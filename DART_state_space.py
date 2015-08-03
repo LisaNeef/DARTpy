@@ -339,18 +339,13 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 		MM[:,ii] = M
 
 	# make a grid of levels and days
-	#day = daterange.dayofyear
-	#t = [d.date() for d in daterange]
 	t = daterange
 
         # choose color map based on the variable in question
-	#cmap = state_space_colormap(E,Ediff)
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
 
 
         # contour data over the map.
-        #cs = plt.contourf(t,lat,MM,15,cmap=cmap)
-        #cs = plt.contourf(t,lat,MM,len(colors)-1,colors=colors)
         cs = plt.contourf(t,lat,MM,len(colors)-1,cmap=cmap,extend="both")
 	plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
 	plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
@@ -375,24 +370,23 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 	if len(t)>30:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 	else:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 
 	return cs,CB
 
 def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D'),averaging=True,hostname='taurus',debug=False):
 
-	# retrieve the prior or posterior ensemble averaged over some region of the state,
-	# along with the truth (if available), 
-	# for some DART experiment
-	#
-	# if parameter averaging is set to TRUE, average over the input latitude, longitude, and level ranges.
+	"""
+	retrieve the prior or posterior ensemble averaged over some region of the state,
+	along with the truth (if available), 
+	for some DART experiment
+	
+	if averaging is set to TRUE, average over the input latitude, longitude, and level ranges.
+	"""
 
 	# query the ensemble size for this experiment
 	N = dart.get_ensemble_size_per_run(E['exp_name'])
