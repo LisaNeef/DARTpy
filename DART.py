@@ -1100,17 +1100,14 @@ def exp_paths_old(hostname='taurus',experiment='ERPALL'):
 	return run_dir_list, truth_dir_list
 
 
-def basic_experiment_dict(shortcut=None):
+def basic_experiment_dict():
 
 	"""
 	this is a default Python dictionary containing the details of an experiment that we look at -- 
-	the purpose of this is only to make the inputs to my diagnostic codes shorter.
-
-	The input variable "shortcut" is optional -- it 
-	fills in some convenient settings, e.g. for ERA data  
+	the purpose of this is only to make the inputs to diagnostic codes shorter.
 	"""
 
-	E = {'exp_name' : 'W0910_NODA',
+	E = {'exp_name' : 'generic_experiment_name',
 	'diagn' : 'Prior',
 	'copystring' : 'ensemble mean',
 	'variable' : 'US',
@@ -1118,91 +1115,11 @@ def basic_experiment_dict(shortcut=None):
 	'latrange' : [-90,91],
 	'lonrange' : [0,361],
 	'extras' : None,
-	'obs_name':'ERP_LOD',
+	'obs_name':'T',
 	'run_category' : None ,
 	'daterange':daterange(),
 	'clim':None
 	}
-
-	if shortcut == 'ERPALL':
-		# generic settings for the primary experiment in my ERP assimilation study  
-		E = {'exp_name' : 'ERPALL',
-		'diagn' : 'Prior',
-		'copystring' : 'ensemble mean',
-		'variable' : 'US',
-		'levrange' : [1000, 0], 
-		'latrange' : [-90,91],
-		'lonrange' : [0,361],
-		'extras' : None,
-		'obs_name':'ERP_LOD',
-		'run_category' : 'ERPDA' ,
-		'daterange':daterange(),
-		'clim':None
-		}
-
-	if shortcut == 'ERPRST':
-		# generic settings for the primary experiment in my ERP assimilation study  
-		E = {'exp_name' : 'ERPRST',
-		'diagn' : 'Prior',
-		'copystring' : 'ensemble mean',
-		'variable' : 'US',
-		'levrange' : [1000, 0], 
-		'latrange' : [-90,91],
-		'lonrange' : [0,361],
-		'extras' : None,
-		'obs_name':'ERP_LOD',
-		'run_category' : 'ERPDA' ,
-		'daterange':daterange(),
-		'clim':None
-		}
-
-	if shortcut == 'ERA':
-		# generic settings for the primary experiment in my ERP assimilation study  
-		E = {'exp_name' : 'ERA',
-		'diagn' : None,
-		'copystring' : None,
-		'variable' : 'U',
-		'levrange' : [1000, 0], 
-		'latrange' : [-90,91],
-		'lonrange' : [0,361],
-		'extras' : None,
-		'obs_name': None,
-		'run_category' : 'ERA',
-		'daterange': daterange(date_start=datetime.datetime(2009,12,1), periods=30, DT='1D'),
-		'clim':None
-		}
-
-	if shortcut == 'TROPICS':
-		# generic settings for the tropics-only assimilation, winter 2009/10
-		E = {'exp_name' : 'W0910_TROPICS',
-		'diagn' : 'Prior',
-		'copystring' : 'ensemble mean',
-		'variable' : 'US',
-		'levrange' : [1000, 0], 
-		'latrange' : [-90,91],
-		'lonrange' : [0,361],
-		'extras' : None,
-		'obs_name': None,
-		'run_category' : None,
-		'daterange': daterange(date_start=datetime.datetime(2009,10,1,12,0,0), periods=180, DT='1D'),
-		'clim':None
-		}
-
-	if shortcut == 'GLOBAL':
-		# generic settings for the global assimilation, winter 2009/10
-		E = {'exp_name' : 'W0910_GLOBAL',
-		'diagn' : 'Prior',
-		'copystring' : 'ensemble mean',
-		'variable' : 'US',
-		'levrange' : [1000, 0], 
-		'latrange' : [-90,91],
-		'lonrange' : [0,361],
-		'extras' : None,
-		'obs_name': None,
-		'run_category' : None,
-		'daterange': daterange(date_start=datetime.datetime(2009,10,1,12,0,0), periods=180, DT='1D'),
-		'clim':None
-		}
 
 	return E
 
