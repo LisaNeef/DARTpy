@@ -8,10 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from mpl_toolkits.basemap import Basemap
 import datetime
-import time as time
 import pandas as pd
 import DART as dart
-from calendar import monthrange
 import brewer2mpl
 from netCDF4 import Dataset
 import ERP as erp
@@ -93,7 +91,6 @@ def plot_diagnostic_globe(E,Ediff=None,projection='moll',clim=None,cbar='Vertica
 
 
  	# set up a map projection
-	#map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
 	if projection == 'miller':
 		map = Basemap(projection='mill',llcrnrlat=E['latrange'][0],urcrnrlat=E['latrange'][1],\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
