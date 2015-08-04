@@ -9,7 +9,7 @@ import dayconv
 import os.path
 import pandas as pd
 import re
-import experiment_details 
+import experiment_settings
 
 def load_covariance_file(E,hostname='taurus',debug=False):
 

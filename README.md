@@ -59,7 +59,7 @@ This module has the following subroutines:
 + netCDF4 python library  
 + datetime 
 + pandas 
-+ dayconv  
++ [dayconv.py](http://www.astrobetter.com/wiki/Python+Switchers+Guide) tool for converting Gregorian to Julian day  
 
 ## Examples  
 
