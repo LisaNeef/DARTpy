@@ -29,6 +29,37 @@ Currently the standard entries for an experiment dictionary are:
 + `daterange` - the range of dates over which to load data, in Python `datetime` format  
 + `clim` - the limits of the values to be plotted (depending on the plot, this could be the y-limits, x-limits, or color limits)  
 
+## Modules 
+
+### `DART.py`  
+
+This module contains what you need to read in DART outout.  
+This module has the following subroutines:  
+
++ `load_covariance_file`  loads netcdf files of covariance and correlation between the model state and a given observation  
++ `load_DART_obs_epoch_series_as_dataframe` runs through DART `obs_epoch` files corresponding to a given date range, and turns them into a Pandas dataframe  
++ `load_DART_obs_epoch_file_as_dataframe` read in a DART `obs_epoch` files and retuns a dataframe 
++ `load_DART_obs_epoch_file` reads in a DART `obs_epoch` files and retuns a dataframe 
++ `load_DART_diagnostic_file` read in a DART `Posterior_Diag` or `Prior_Diag` file and return the desired variable field. 
++ `get_ensemble_size` given a DART output diagnostic netcdf file that is already open, find the number of ensemble members in the output
++ `get_obs_type_number` having opened a DART output diagnostic netcdf file, find the obs_type number that corresponds to a given obs_typestring
++ `get_copy` having opened a DART output diagnostic netcdf file, find the copy number that corresponds to a given copystring
++ `basic_experiment_dict` loads a default Python dictionary containing the details of an experiment that we look at -- 
++ `date_to_gday` convert a datetime date to gregorian day count the way it is counted in DART  (i.e. number of days since 1601-01-01
++ `daterange` generate a range of dates (in python datetime format), given some start date, a time delta, and the numper of periods
++ `rank_hist` given a 1-D ensemble time series and a verification (usually the truth), compute the rank histogram over the desired block of time
++ `kurtosis`  given a 1D ensemble of numbers (obs space, state space, whatever) return the kurtosis of the PDF represented by the ensemble
++ `skewness`  given a 1D ensemble of numbers (obs space, state space, whatever) return the skewness of the PDF represented by the ensemble
++ `point_check_dictionaries` pre-defined experiment dictionaries that give various averaging regions 
++ `climate_index_dictionaries` returns experiment dictionaries with the lat, long, and levranges needed to compute certain climate indices.  
+	
+
+## Dependencies  
+
++ netCDF4 python library  
++ datetime 
++ pandas 
++ dayconv  
+
 ## Examples  
 
-## Modules 
