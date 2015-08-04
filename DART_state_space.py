@@ -4,241 +4,18 @@
 
 
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from mpl_toolkits.basemap import Basemap
 import datetime
-import time as time
 import pandas as pd
 import DART as dart
-from calendar import monthrange
 import brewer2mpl
 from netCDF4 import Dataset
 import ERP as erp
 import WACCM as waccm
 import re
 import ERA as era
-
-def make_single_plot(hostname='taurus'):
-
-	# simple code for making one of the plot types below
-
-	## define the date range over which we want to plot
-	#daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=17, DT='1D')
-	daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D')
-
-	## ---define the experiment(s) we want to look at: 
-
-	E = dart.basic_experiment_dict()
-	E['exp_name'] = 'ERPALL'
-	E['diagn'] = 'Prior'  
-	E['copystring'] = 'ensemble mean'
-	E['extras'] = None
-	E['old_run_flag'] = True
-	E['variable'] = 'PS'
-	E['levrange'] = [1000,0]
-	E['latrange'] = [-90,90]
-	E['lonrange'] = [0,360]
-	E['label'] = 'test'
-	title = E['exp_name']
-	plot_type = 'rank_histogram'
-
-	## possible difference field to subtract out
-	Ediff = None
-
-	##---second experiment to look at, for plot codes that take a list of experiments as input
-	E2 = E.copy()
-	E2['diagn'] = 'Prior'
-	E2['copystring'] = 'ensemble spread'
-	E2['label'] = 'Ensemble Spread'
-	EE = []
-	EE.append(E)
-	EE.append(E2)
-	EEdiff = None
-
-	## color limits
-	clim = None
-
-
-	# init figure
-	if (plot_type == 'globe'):
-		pw = 6 
-		ph = 5
-	if (plot_type == 'lev_time') or (plot_type == 'global_ave') or (plot_type == 'ensemble'):
-		pw = 10
-		ph = 5
-        plt.close('all')
-        plt.figure()
-        plt.clf()
-
-	# plot
-	if (plot_type == 'globe'):
-		date = daterange[0]
-		levrange = E['levrange']
-		plot_diagnostic_globe(E,Ediff,l0evrange[0],date,clim,hostname)
-	if (plot_type == 'lat_time'):
-		plot_diagnostic_lat_time(E,Ediff,daterange,clim,hostname)
-	if (plot_type == 'lev_time'):
-		plot_diagnostic_lev_time(E,Ediff,daterange,clim,hostname)
-	if (plot_type == 'global_ave'):
-		MM,day = plot_diagnostic_global_ave(EE,EEdiff,daterange,clim,hostname,debug)
-	if (plot_type == 'ensemble'):
-		VE,VT,day = plot_state_space_ensemble(E,daterange,clim,hostname)
-	if (plot_type == 'rank_histogram'):
-		plot_rank_hist(E,daterange,space_or_time='both',hostname=hostname)
-
-	plt.title(title)
-
-	# export
-        fig_name = 'testplot.pdf'
-        plt.savefig(fig_name, dpi=96)
-        plt.close(1)
-
-def make_expt_comparison(hostname='taurus'):
-
-	# compare basic diagnostics for 2 experiments or two variables  
-
-
-	# define the two experiments we want to compare  
-	E1 = dart.basic_experiment_dict()
-	E1 = dart.basic_experiment_dict()
-	E1['exp_name'] = 'ERPALL'
-	E1['variable'] = 'US'
-	E1['plot_type'] = 'lev_time'
-
-	E2 = dart.basic_experiment_dict()
-	E2['exp_name'] = 'ERPALL'
-	E2['variable'] = 'US'
-	E2['plot_type'] = 'lev_time'
-
-
-	# define a list of diagnostics to look over
-	diagnlist = ['Prior Error','Analysis Increment','Prior Spread','Error Reduction']
-	
-	# initialize figure
-	plt.close('all')
-	nrows = len(diagnlist)
-	ncolumns = 2
-	fig, axs = plt.subplots(nrows, ncolumns, figsize = (10,20))
-
-	# loop over diagnostics (rows) and experiments (columns)  
-	first_row = True
-	for ax,D,jj in zip(axs,diagnlist,np.arange(0,len(diagnlist))):
-
-		for iX in [1,2]:
-
-			# which experiment?
-			if iX == 1:
-				E = E1.copy()
-			else:
-				E = E2.copy()
-
-			# figure out what to plot based on what diagnostic we want
-			if (D=='Prior Error'):
-				E['diagn'] = 'Prior'
-				E['copystring'] = 'ensemble mean'
-				Ediff = E.copy()
-				Ediff['diagn'] = 'Truth'
-			if (D=='Analysis Increment'):
-				E['diagn'] = 'Prior'
-				E['copystring'] = 'ensemble mean'
-				Ediff = E.copy()
-				Ediff['diagn'] = 'Posterior'
-			if (D=='Prior Spread'):
-				E['diagn'] = 'Prior'
-				E['copystring'] = 'ensemble spread'
-				Ediff = None
-
-
-
-
-
-                        # draw the plot
-                        fig.add_subplot(ax[iX])
-                        clim=color_limits[jj]
-
-	#### PICK UP HERE
-                        if (plot_type=='globe'):
-                                plot_diagnostic_globe(E,Ediff,level,date,clim,hostname)
-                        if (plot_type=='lev_time'):
-                                plot_diagnostic_lev_time(E,Ediff,latrange,lonrange,date,clim,hostname)
-
-                        #if first_row:
-                        # insert title here
-
-
-
-		# second experiment  
-
-
-
-
-
-def make_snapshots(hostname='taurus',plot_type='globe'):
-
-	# given a list of times and dates, plot instances of some diagnostic field
-	# these are the choices for plots that can be made here:
-	# 	globe
-	#	lev-time
-
-	# experiment we want to look at, and the vertical level 
-	E = dart.basic_experiment_dict()
-	level = 300
-	# list of diagnostics  
-	diagnlist = ['True Error','ensemble spread']
-	# list of times 
-	datelist= dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D')
-	# desired page width and height
-	pw = 10
-	ph = 5
-
-	# choose color limits  for each row
-	color_limits = [6,6]
-
-	# initialize figure
-	plt.close('all')
-	nrows = len(diagnlist)
-	ncolumns = len(datelist)
-	fig, axs = plt.subplots(nrows, ncolumns, figsize = (pw,ph))
-
-
-	# loop over diagnostics (rows) and dates (columns)  
-	first_row = True
-	for ax,D,jj in zip(axs,diagnlist,np.arange(0,len(diagnlist))):
-
-		for date, ii in zip(datelist,np.arange(0,len(datelist))):  
-
-			# figure out what to plot based on what diagnostic we want
-			# most of the time the plot type is just the copystring, but there are special cases.
-			Ediff=None
-			E['copystring'] = D
-			if (D == 'True Error'):
-				# if we want to plot the true error, need to subtract the posterior field from the truth
-				E['diagn'] = 'Posterior'
-				E['copystring'] = 'ensemble mean'
-				Ediff = E.copy()
-				Ediff['diagn'] = 'Truth'
-			
-
-			# draw the plot  
-                	fig.add_subplot(ax[ii])
-			clim=color_limits[jj]
-
-			if (plot_type=='globe'):
-				plot_diagnostic_globe(E,Ediff,level,date,clim,hostname)
-			if (plot_type=='lev_time'):
-				plot_diagnostic_lev_time(E,Ediff,latrange,lonrange,date,clim,hostname)
-
-			#if first_row:
-			# insert title here
-
-		first_row = False
-
-	# export to pdf
-	fig_name = 'test_globes.pdf'
-	plt.savefig(fig_name, dpi=96)
-	plt.close(fig)
 
 def plot_diagnostic_globe(E,Ediff=None,projection='moll',clim=None,cbar='Vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
@@ -314,7 +91,6 @@ def plot_diagnostic_globe(E,Ediff=None,projection='moll',clim=None,cbar='Vertica
 
 
  	# set up a map projection
-	#map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
 	if projection == 'miller':
 		map = Basemap(projection='mill',llcrnrlat=E['latrange'][0],urcrnrlat=E['latrange'][1],\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
@@ -563,18 +339,13 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 		MM[:,ii] = M
 
 	# make a grid of levels and days
-	#day = daterange.dayofyear
-	#t = [d.date() for d in daterange]
 	t = daterange
 
         # choose color map based on the variable in question
-	#cmap = state_space_colormap(E,Ediff)
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
 
 
         # contour data over the map.
-        #cs = plt.contourf(t,lat,MM,15,cmap=cmap)
-        #cs = plt.contourf(t,lat,MM,len(colors)-1,colors=colors)
         cs = plt.contourf(t,lat,MM,len(colors)-1,cmap=cmap,extend="both")
 	plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
 	plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
@@ -599,24 +370,23 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 	if len(t)>30:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 	else:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 
 	return cs,CB
 
 def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D'),averaging=True,hostname='taurus',debug=False):
 
-	# retrieve the prior or posterior ensemble averaged over some region of the state,
-	# along with the truth (if available), 
-	# for some DART experiment
-	#
-	# if parameter averaging is set to TRUE, average over the input latitude, longitude, and level ranges.
+	"""
+	retrieve the prior or posterior ensemble averaged over some region of the state,
+	along with the truth (if available), 
+	for some DART experiment
+	
+	if averaging is set to TRUE, average over the input latitude, longitude, and level ranges.
+	"""
 
 	# query the ensemble size for this experiment
 	N = dart.get_ensemble_size_per_run(E['exp_name'])
