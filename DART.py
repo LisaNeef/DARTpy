@@ -9,43 +9,27 @@ import dayconv
 import os.path
 import pandas as pd
 import re
+import experiment_details 
 
-def load_covariance_file(E,date=datetime.datetime(2009,1,1,0,0,0),hostname='taurus',debug=False):
+def load_covariance_file(E,hostname='taurus',debug=False):
 
 	"""
-	this subroutine loads in a pre-computed file of state-to-observation covariancse and correlations.
+	this subroutine loads in a pre-computed file of state-to-observation covariances and correlations.
 	the state variable is given by E['variable']
 	the observation is given by E['obs_name']
 	"""
 
 	# find the directory for this run   
-	if E['run_category'] == None:
-		data_dir_list,truth_dir_list = exp_paths(hostname,E['exp_name'])
-	if E['run_category'] == 'ERPDA':
-		data_dir_list,truth_dir_list = exp_paths_old(hostname,E['exp_name'])
-	if E['run_category'] == 'NCAR':
-		data_dir_list,truth_dir_list = exp_paths_NCAR(hostname,E['exp_name'])
-
-	# figure out the filename  
-	fname = E['exp_name']+'_'+'covariance_'+E['obs_name']+'_'+E['variable']+'_'+date.strftime('%Y-%m-%d')+'.nc'
-
-	# loop over the run directories and look for covariance files
-	correct_filepath_found = False
-	if debug:
-		print('checking for DART diagnostic files in these directories:')
-		print data_dir_list
-	for data_dir in data_dir_list:
-		if debug:
-			print 'Looking for file in  '+data_dir
-		filename = data_dir+fname
-		if os.path.exists(filename):
-			correct_filepath_found = True
-			break
-
-	if correct_filepath_found is False:
-		print("+++cannot find files that look like  "+ff+' for experiment '+E['exp_name']+' -- returning NA')
+	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
+	# but written my each user -- it should take an experiment dictionary and the hostname 
+	# as input, and return as output 
+	# the filepath that corresponds to the desired field, diagnostic, etc. 
+	filename = find_paths(E,hostname)
+	if not os.path.exists(filename):
+		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None, None, None, None, None
 
+	# load the netcdf file 
 	f = Dataset(filename,'r')
 	lat = f.variables['lat'][:]
 	lon = f.variables['lon'][:]
@@ -88,9 +72,12 @@ def load_covariance_file(E,date=datetime.datetime(2009,1,1,0,0,0),hostname='taur
 	# return covariance and correlation grids 
 	return  lev2, lat2, lon2, C, R
 
-def load_DART_obs_epoch_series_as_dataframe(E,daterange,obs_type_list=['ERP_PM1','ERP_LOD'],ens_status_list=['ensemble member'], hostname='taurus'):
+def load_DART_obs_epoch_series_as_dataframe(E,obs_type_list=['ERP_PM1','ERP_LOD'],ens_status_list=['ensemble member'], hostname='taurus'):
 
-	# this function scoots through a set of dates and returns a (sometimes very huge) dataframe of information
+	"""
+	this function scoots through a set of dates and returns a (sometimes very huge) dataframe of information
+	"""
+	daterange = E['daterange']
 	for date in daterange:
 
 		if date == daterange[0]:
@@ -104,35 +91,25 @@ def load_DART_obs_epoch_series_as_dataframe(E,daterange,obs_type_list=['ERP_PM1'
 
 def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_list=['ERP_PM1','ERP_LOD'],ens_status_list=['ensemble member'], hostname='taurus',debug=False):
 
-	# read in a DART obs erpoch file, defined by its date and the Experiment E, and return as a Pandas data frame, in which al the observations 
-	# that have ensemble status and obs types given in ens_status_list and obs_type_list, respectively, 
-	# are ordered according to ObsIndex.  
-	# this should eventually replace the SR load_DART_obs_epoch_file  
+	"""
+	 read in a DART obs epoch file, defined by its date and the Experiment E, and return as a Pandas data frame, in which al the observations 
+	 that have ensemble status and obs types given in ens_status_list and obs_type_list, respectively, 
+	 are ordered according to ObsIndex.  
+	 this should eventually replace the SR load_DART_obs_epoch_file  
+	"""
 
-	# find the directory corresponding to this run  
-	if E['run_category'] == 'ERPDA':
-		run_branch,truth_branch = exp_paths_old(hostname,E['exp_name'])
-		run_dir = run_branch+'/'
-	if E['run_category'] == 'NCAR':
-		run_branch,truth_branch = exp_paths_NCAR(hostname,E['exp_name'])
-		run_dir = run_branch+'/'
-	if E['run_category'] == None:
-		run_branch,truth_branch = exp_paths(hostname,E['exp_name'])
-		run_dir = run_branch+'../obs_epoch/'
-
-	# find the obs epoch file corresponding to this run  
-	start_date = get_expt_start_date(E)
-	delta_time = date-start_date
-	obs_epoch_no = delta_time.days+1
-	if obs_epoch_no < 10:
-		obs_epoch_name = 'obs_epoch_00'+str(obs_epoch_no)+'.nc'
-	else:
-		obs_epoch_name = 'obs_epoch_0'+str(obs_epoch_no)+'.nc'
-	filename = run_dir+obs_epoch_name
-
+	# find the directory for this run   
+	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
+	# but written my each user -- it should take an experiment dictionary and the hostname 
+	# as input, and return as output 
+	# the filepath that corresponds to the desired field, diagnostic, etc. 
+	filename = find_paths(E,hostname)
+	if not os.path.exists(filename):
+		print("+++cannot find files that look like  "+filename+' -- returning None')
+		return None
 
 	# load the file and select the observation we want
-        if os.path.isfile(filename):
+        else:
 		f = Dataset(filename,'r')
 		CopyMetaData = f.variables['CopyMetaData'][:]
 		ObsTypesMetaData = f.variables['ObsTypesMetaData'][:]
@@ -179,10 +156,6 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 				diagn.append(None)
 			
                 f.close()
-	else:
-		print("Cannot find the observation file "+filename)
-		return
-
 
 	# return the desired observations and copys, and the copy meta data
 	#for obs_type_no in obs_type_no_list:
@@ -213,8 +186,6 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 		iensstatus.extend(indices)
 	iensstatus.sort()	# this is the list of copies with the right ensemble status
 	idiagn = [i for i,x in enumerate(diagn) if x == E['diagn']]	# this is the list of copies with the right diagnostic
-
-	# print a check 
 
 	# we are interested in the indices that appear in both iensstatus and idiagn
 	sdiagn = set(idiagn)
@@ -308,7 +279,7 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 
 	#return ObsIndex_out, loc1_out, loc2_out, loc3_out, qc_out, obs_out, copynames
 	return DF
-
+#BINK
 def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_list=['ERP_PM1','ERP_LOD'],ens_status_list=['ensemble member'], hostname='taurus',debug=False):
 
 	# this function reads in an obs_epoch_XXX.nc file for a certain DART experiment, with the obs that we want 

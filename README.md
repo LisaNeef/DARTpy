@@ -11,8 +11,8 @@ I developed these for my work using DART with the Community Atmosphere Model (CA
 The foundation of these codes is that any experiment you do with DART plus some model is described in a Python dictionary. 
 The way to create an experiment dictionary is with the function `basic_experiment_dict` in the `DART.py` module:  
 
-> import DART as dart  
-> E = dart.basic_experiment_dict()
+	import DART as dart  
+	E = dart.basic_experiment_dict()
 
 Currently the standard entries for an experiment dictionary are: 
 
