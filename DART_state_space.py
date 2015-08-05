@@ -92,7 +92,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='moll',clim=None,cbar='Vertica
 
  	# set up a map projection
 	if projection == 'miller':
-		map = Basemap(projection='mill',llcrnrlat=E['latrange'][0],urcrnrlat=E['latrange'][1],\
+		maxlat = np.min([E['latrange'][1],90.0])
+		minlat = np.max([E['latrange'][0],-90.0])
+		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
 	if projection == 'polar-stereog':
 		map = Basemap(projection='npstere',boundinglat=0,lon_0=0,resolution='l')
