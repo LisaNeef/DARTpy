@@ -424,7 +424,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,date,'diag',hostname=hostname)
+	filename = es.find_paths(E,date,'diag',hostname=hostname,debug=debug)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None,None,None,None,None,None
