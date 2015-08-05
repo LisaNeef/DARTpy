@@ -24,7 +24,7 @@ def load_covariance_file(E,hostname='taurus',debug=False):
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,hostname)
+	filename = es.find_paths(E,hostname=hostname)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None, None, None, None, None
@@ -103,7 +103,7 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,hostname)
+	filename = es.find_paths(E,hostname=hostname)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None
@@ -296,7 +296,7 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,hostname)
+	filename = es.find_paths(E,hostname=hostname)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None
@@ -424,7 +424,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,hostname)
+	filename = es.find_paths(E,'diag',hostname=hostname)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None,None,None,None,None,None
