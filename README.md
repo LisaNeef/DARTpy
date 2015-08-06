@@ -62,4 +62,4 @@ This module has the following subroutines:
 + [dayconv.py](http://www.astrobetter.com/wiki/Python+Switchers+Guide) tool for converting Gregorian to Julian day  
 
 ## Examples  
-
+For examples of how to use this code, see [this iPython notebook](https://github.com/LisaNeef/DART-state-space/blob/master/DART_state_space.py)
