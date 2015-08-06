@@ -11,7 +11,7 @@ import DART as dart
 #from calendar import monthrange
 from netCDF4 import Dataset
 import glob
-
+import experiment_settings as es
 
 #-------reading in WACCM history files--------------------------------------
 def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',verbose=False,special_flag=None):
@@ -36,7 +36,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 	"""
 
 	# find the history file path corresponding to this experiment  
-	h_file_path_list,truth_path_list = dart.exp_paths(hostname,E['exp_name'])
+	h_file_path_list,truth_path_list = es.exp_paths(hostname,E['exp_name'])
 
 	# find the history file number corresponding to the desired variable field  
 	hnum = history_file_lookup(E)
