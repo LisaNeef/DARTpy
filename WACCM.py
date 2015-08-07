@@ -109,12 +109,12 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 			if verbose:
 				print('Unable to find variable '+E['variable']+' in file '+ff)
 		f.close()
-	
+
+
 		# select the vertical and lat/lon ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it
-		# TODO: still need to add this option for lat and lon slices
+		# TODO: need to add this option for lev and lat
 		levrange=E['levrange']
-	
 		if levrange is not None:
 			if levrange[0] == levrange[1]:
 				ll = levrange[0]
@@ -137,11 +137,22 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		i1 = (np.abs(lon-lonrange[0])).argmin()
 		lon2 = lon[i1:i2+1]
 
-		if len(VV.shape)==3:
+		# now select the relevant lat, lon, and lev regions -- different variables have different shapes, 
+		# so this depends on variable 
+		if E['variable'] == 'P0':
+			# scalar 
+			Vout = VV
+
+		if (E['variable'] == 'hyam') or (E['variable'] == 'hybm'):
+			# these variables just have dimensionality lev
+			Vout = VV[k1:k2+1]
+
+		if (E['variable'] == 'PS'):
 			# 2D variables have shape time x lat x lon
 			Vout = VV[:,j1:j2+1,i1:i2+1]
 			lev2 = None
-		if len(VV.shape)==4:
+		
+		if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
 			# 3D variables have shape time x lev x lat x lon
 			Vout = VV[:,k1:k2+1,j1:j2+1,i1:i2+1]
 
@@ -192,7 +203,11 @@ def history_file_lookup(E):
 	'PS':1,
 	'U':1,
 	'FLUT':1,
-	'Z3':1
+	'Z3':1,
+	'hyam':1,
+	'hybm':1,
+	'P0':1,
+	'PS':1,
 	}
 		
 	hnumber = H[E['variable']]
