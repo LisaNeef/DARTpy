@@ -1520,7 +1520,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False):
 
 	"""
-	Retrive a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
+	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
 	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
 	all times in E['daterange']
 	"""
@@ -1619,3 +1619,57 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# return the colorbar handle if available, so we can adjust it later
 	return CB
+
+def Nsq(E,date,hostname='taurus',debug=False):
+
+	"""
+	given a DART experiment dictionary on a certain date and time, compute the buoyancy frequency as a 3D field 
+
+	**main calculation:**  
+	N2 = (g/theta)*dtheta/dz 
+	where theta = T(p_ref/p)^K is the potential temperature 
+	K = R/cp 
+	T = Temperature 
+	p_ref = reference pressure (here using P0 = 1000.0 in WACCM data) 
+	p = pressure  
+	"""
+
+
+	# reconstruct the pressure field at each point from hybrid model variables 
+	varlist = ['hyam','hybm','P0','PS','T','Z3']
+	H = dict()
+	for vname in varlist:
+	    Ehyb = E.copy()
+	    Ehyb['variable'] = vname
+	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=False)
+	    if vname == 'PS':
+		H['lev'] = lev
+		H['lat'] = lat
+		H['lon'] = lon        
+	    H[vname]=field
+
+	nlev = len(lev)
+	nlat = len(lat)
+	nlon = len(lon)
+	P = np.zeros(shape = (nlev,nlat,nlon))
+	for k in range(nlev):
+	    for i in range(nlon):
+		for j in range(nlat):
+		    P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* H['PS'][j,i]
+
+
+	# compute potential temperature  
+	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
+	g = 9.80616                     # Acceleration due to gravity       m/s^2
+	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
+	theta = H['T']*(H['P0']/P)**(Rd/cp)
+
+	# compute the vertical gradient in potential temperature 
+	dZ = np.gradient(H['Z3'])	# 3D gradient of geopotential height (with respect to model level) 
+	dthetadZ_3D = np.gradient(theta,dZ[1])
+	dthetadZ = dthetadZ_3D[1] # this is the vertical temperature gradient with respect to pressure 
+
+	# compute the buoyancy frequency 
+	N2 = (g/theta)*dthetadZ
+
+	return N2
