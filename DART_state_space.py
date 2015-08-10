@@ -777,20 +777,9 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
         # appropriate color maps for state space plots
         colors_sequential = False
 
-	# want a sequential plot if plotting GPH and no diffs
-        if (E['variable']=='Z3')and (Ediff == None):
-                colors_sequential = True
-
-	# want a sequential plot if plotting surface pressure and no diffs
-        if (E['variable']=='PS')and (Ediff == None):
-                colors_sequential = True
-
-	# want a sequential plot if plotting FLUT and no diffs
-        if (E['variable']=='FLUT')and (Ediff == None):
-                colors_sequential = True
-
-	# want a sequential plot if plotting temperature and no diffs
-        if (E['variable']=='T')and (Ediff == None):
+	# sequential plot if plotting positive definite variables and not taking a difference  
+	post_def_variables = ['Z3','PS','FLUT','T','Nsq']
+	if (Ediff == None) and (E['variable'] in post_def_variables):
                 colors_sequential = True
 
         # for square error plots, we want a sequential color map, but only if not taking a difference
@@ -1517,7 +1506,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1542,11 +1531,18 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 			if E['diagn'].lower() == 'correlation':
 				V = Corr
 
-		# for regular variables, it's either a DART or a WACCM file:
+		# for regular diagnostic, the file we retrieve depends on the variable in question  
 		else:
+			file_type_found = False
 			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
 				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-			else:
+				file_type_found = True
+			if E['variable'] == 'Nsq':
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
+	
+			# for all other variables, compute the diagnostic from model h files 
+			if not file_type_found:
 				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
@@ -1599,8 +1595,14 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	else:
 		L  = np.linspace(start=0,stop=clim,num=len(colors))
 
+	# transpose the array if necessary  
+	if M.shape[0]==len(lat):
+		MT = np.transpose(M)
+	else:
+		MT = M
+
         # plot
-        cs = plt.contourf(lat,lev,np.transpose(M),L,cmap=cmap,extend="both")
+        cs = plt.contourf(lat,lev,MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
@@ -1672,4 +1674,4 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	# compute the buoyancy frequency 
 	N2 = (g/theta)*dthetadZ
 
-	return N2
+	return N2,lat,lon,lev
