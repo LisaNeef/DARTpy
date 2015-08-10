@@ -1560,9 +1560,14 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		Vlist = []
 		for date in E['daterange']:
 
+			file_type_found = False
 			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'PS') or (E['variable'] == 'T'):
 				lev2,lat2,lon2,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-			else:
+				file_type_found = True
+			if E['variable'] == 'Nsq':
+				V,lat2,lon2,lev2 = Nsq(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
+			if not file_type_found:
 				V,lat2,lon2,lev2 = compute_DART_diagn_from_model_h_files(Ediff,date,hostname=hostname,verbose=debug)
 			# add the variable field just loaded to the list:
 			Vlist.append(V)
