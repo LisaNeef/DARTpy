@@ -771,8 +771,11 @@ def state_space_colormap(E,Ediff=None):
 
 def state_space_HCL_colormap(E,Ediff=None,debug=False):
 
-	# loads colormaps (not a matplotlib colormap, but just a list of colors)
-	# based on the HCL theory put forth in Stauffer et al 2014
+	"""
+	loads colormaps (not a matplotlib colormap, but just a list of colors)
+	based on the HCL theory put forth in Stauffer et al 2014
+	other sample color maps are available here:  http://hclwizard.org/why-hcl/  
+	"""
 
         # appropriate color maps for state space plots
         colors_sequential = False
@@ -803,18 +806,11 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
 
         # choose sequential or diverging colormap
         if colors_sequential:
-		#---blues----
-		#colors = ("#FFFFFF","#E3F2F6","#C9E4F0","#B3D5EB","#A1C3E6","#94AFDF",
-		#	  "#8D99D7","#8A80CB","#8963BC","#863DA7","#7B008A")
-		# white to yellow to green
-		colors = ("#F1F1F1","#FAEDEC","#FFE9E4","#FFE7D8","#FFE7C9","#FFE8B9",
-			  "#F4E9A8","#E4EC99","#CDEE8E","#ACEE88","#26A63A")
-		#---greens---
-		#colors = ("#F3F1E4","#E6E6D2","#D7DAC0","#C7CFAF","#B5C39E","#A2B78D",
-		#	  "#8DAB7D","#779D6E","#5E8E5E","#417C4E","#035F33")
-		#---pinks---
-		#colors = ("#F2F0F6","#E9DFF2","#E3CDEB","#DEB9E2","#DAA5D5","#D68FC5",
-		#	  "#D079B2","#C6619B","#B94880","#A52B5F","#82002F")
+		# yellow to blue
+		colors = ("#F4EB94","#CEE389","#A4DA87","#74CF8C","#37C293","#00B39B",
+			  "#00A1A0","#008CA1","#00749C","#005792","#202581")
+
+
 
 
 		if debug:
@@ -1589,7 +1585,8 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
-		clim = np.nanmax(np.absolute(M))
+		#clim = np.nanmax(np.absolute(M))
+		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 	if cmap_type == 'divergent':
 		L  = np.linspace(start=-clim,stop=clim,num=len(colors))
 	else:
@@ -1620,7 +1617,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	plt.gca().invert_yaxis()
 
 	# return the colorbar handle if available, so we can adjust it later
-	return CB
+	return CB,M
 
 def Nsq(E,date,hostname='taurus',debug=False):
 
@@ -1668,8 +1665,8 @@ def Nsq(E,date,hostname='taurus',debug=False):
 
 	# compute the vertical gradient in potential temperature 
 	dZ = np.gradient(H['Z3'])	# 3D gradient of geopotential height (with respect to model level) 
-	dthetadZ_3D = np.gradient(theta,dZ[1])
-	dthetadZ = dthetadZ_3D[1] # this is the vertical temperature gradient with respect to pressure 
+	dthetadZ_3D = np.gradient(theta,dZ[0])
+	dthetadZ = dthetadZ_3D[0] # this is the vertical temperature gradient with respect to pressure 
 
 	# compute the buoyancy frequency 
 	N2 = (g/theta)*dthetadZ
