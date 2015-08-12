@@ -18,7 +18,7 @@ import WACCM as waccm
 import re
 import ERA as era
 
-def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='Vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
 	"""
 	plot a given state-space diagnostic on a given calendar day and for a given variable 
@@ -33,6 +33,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='Verti
 
 	# loop over dates given in the experiment dictionary and load the desired data  
 	Vlist = []
+	Vshape = None
 	for date in E['daterange']:
 
 		# for covariances and correlations
@@ -52,6 +53,17 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='Verti
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
+
+		# store the dimensions of the array V one time 
+		if (V is not None) and (Vshape is None):
+			Vshape = V.shape
+
+	# if Vshape is still none, that means we found no data at all -- abort
+	if Vshape is None:
+		d1 = E['daterange'][0].strftime("%Y-%m-%d")
+		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+		return None,None
 
 	# turn the list of variable fields into a matrix and average over the last dimension, which is time
 	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
