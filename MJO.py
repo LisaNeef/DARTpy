@@ -411,21 +411,44 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 
 	if climatology_option == 'NODA' :
 		climatology_option_not_found = False
-
-		# cycle over the dates in the experiment dictionary and load the ensemble mean of the corresponding No-assimilation case 
+		# cycle over the dates in the experiment dictionary 
+		# and load the ensemble mean of the corresponding No-assimilation case 
 		# TODO: a subroutine that returns the corresponding NODA experiment for each case  
-
 		Xlist = []	
 		ECLIM = E.copy()
 		ECLIM['exp_name'] = 'W0910_NODA'
 		ECLIM['diagn'] = 'Prior'
 		ECLIM['copystring'] = 'ensemble mean'
-
 		Xclim,lat,lon,lev = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
-		
 		if Xclim == None:
 			print('Cannot find data for climatology option '+climatology_option+' and experiment '+E['exp_name'])
 			return None, None, None, None
+
+	if climatology_option == 'F_W4_L66' :
+		from netCDF4 import Dataset
+		climatology_option_not_found = False
+		# in this case, load a single daily climatology calculated from this CESM-WACCM simulation  
+		ff = '/data/c1/lneef/CESM/F_W4_L66/atm/climatology/F_W4_L66.cam.h1.1951-2010.daily_climatology.nc'
+		f = Dataset(ff,'r')
+		lat = f.variables['lat'][:]
+		lon = f.variables['lon'][:]
+		lev = f.variables['lev'][:]
+		time = f.variables['time'][:]
+
+		# load climatology of the desired model variable  
+		variable = E['variable']
+		if E['variable'] == 'US':
+			variable = 'U'
+		if E['variable'] == 'VS':
+			variable = 'V'
+		VV = f.variables[variable][:]
+		f.close()
+
+		# now choose the daterange corresponding to the daterange in E
+		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
+		nT = len(E['daterange'])
+		df = E['daterange'][nT-0].timetuple().tm_yday	# day in the year where we start  
+		Xclim = VV[d0:df+1,:,:,:]
 
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
