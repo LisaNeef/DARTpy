@@ -32,41 +32,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	"""
 
 	# loop over dates given in the experiment dictionary and load the desired data  
-	Vlist = []
-	Vshape = None
-	for date in E['daterange']:
-
-		# for covariances and correlations
-		if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-			lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-			if E['diagn'].lower() == 'covariance':
-				V = Cov
-			if E['diagn'].lower() == 'correlation':
-				V = Corr
-
-		# for regular variables, it's either a DART or a WACCM file:
-		else:
-			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'PS') or (E['variable'] == 'T'):
-				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-			else:
-				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
-
-		# add the variable field just loaded to the list:
-		Vlist.append(V)
-
-		# store the dimensions of the array V one time 
-		if (V is not None) and (Vshape is None):
-			Vshape = V.shape
-
-	# if Vshape is still none, that means we found no data at all -- abort
-	if Vshape is None:
-		d1 = E['daterange'][0].strftime("%Y-%m-%d")
-		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
-		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-		return None,None
+	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# turn the list of variable fields into a matrix and average over the last dimension, which is time
-	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 	# average over vertical levels  if the variable is 3D
@@ -135,15 +103,14 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
 
 	# specify the color limits 
+	if clim is None:
+		clim = np.nanmax(np.absolute(M))
 	if debug:
 		print('++++++clim+++++')
 		print(clim)
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if cmap_type == 'divergent':
-		if clim is None:
-			#clim = round(np.nanmax(np.absolute(M)),2)
-			clim = np.nanmax(np.absolute(M))
 		L  = np.linspace(start=-clim,stop=clim,num=len(colors))
 	else:
 		L  = np.linspace(start=0,stop=clim,num=len(colors))
@@ -1527,6 +1494,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
+	# TODO: call subroutine 'DART-diagn_to_array' which does the below also
 	# loop over dates given in the experiment dictionary and load the desired data  
 	Vlist = []
 	for date in E['daterange']:
@@ -1556,8 +1524,10 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
 
-	# turn the list of variable fields into a matrix and average over the last dimension, which is always time (by how we formed this array) 
+	# turn the list of variable fields into a matrix 
 	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
+
+	# and average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 	# figure out which dimension is longitude and then average over that dimension 
@@ -1690,3 +1660,60 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	N2 = (g/theta)*dthetadZ
 
 	return N2,lat,lon,lev
+
+def DART_diagn_to_array(E,hostname='taurus',debug=False):
+
+	"""
+	This subroutine loops over the dates given in E['daterange'] and load the appropriate DART diagnostic for each date, 
+	returning a numpy matrix of the relevant data.  
+
+	The files we load depend on the desired DART diagnostic (given in E['diagn']), variable (E['variable']), and 
+	any extra computations needed (E['extras'])  
+	"""
+
+
+	# loop over dates given in the experiment dictionary and load the desired data  
+	Vlist = []
+	Vshape = None
+	for date in E['daterange']:
+
+		# for covariances and correlations
+		if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
+			lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
+			if E['diagn'].lower() == 'covariance':
+				V = Cov
+			if E['diagn'].lower() == 'correlation':
+				V = Corr
+
+		# for regular diagnostic, the file we retrieve depends on the variable in question  
+		else:
+			file_type_found = False
+			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
+				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
+			if E['variable'] == 'Nsq':
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
+	
+			# for all other variables, compute the diagnostic from model h files 
+			if not file_type_found:
+				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+
+		# add the variable field just loaded to the list:
+		Vlist.append(V)
+
+		# store the dimensions of the array V one time 
+		if (V is not None) and (Vshape is None):
+			Vshape = V.shape
+
+	# if Vshape is still none, that means we found no data at all -- abort
+	if Vshape is None:
+		d1 = E['daterange'][0].strftime("%Y-%m-%d")
+		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+		return None,None
+
+	# turn the list of variable fields into a matrix 
+	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
+
+	return Vmatrix,lat,lon,lev
