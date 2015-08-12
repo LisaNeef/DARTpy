@@ -399,7 +399,39 @@ def RMM(E,hostname='taurus',verbose=False):
 
 	return pc
 
+def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
+	"""
+	Load a climatology option for a given DART experiment. 
+	The choice of climatology is given by 'climatology_option'. Choices are:  
+	'NODA' (default): take the ensemble mean of the corresponding no-DA experiment as a N-year climatology  
+	'F_W4_L66': CESM-WACCM simulation with observed forcings, 1951-2010 (perfomed by Wuke Wang)  
+	"""
+	climatology_option_not_found = True
+
+	if climatology_option == 'NODA' :
+		climatology_option_not_found = False
+
+		# cycle over the dates in the experiment dictionary and load the ensemble mean of the corresponding No-assimilation case 
+		# TODO: a subroutine that returns the corresponding NODA experiment for each case  
+
+		Xlist = []	
+		ECLIM = E.copy()
+		ECLIM['exp_name'] = 'W0910_NODA'
+		ECLIM['diagn'] = 'Prior'
+		ECLIM['copystring'] = 'ensemble mean'
+
+		Xclim,lat,lon,lev = DART_diagn_to_array(ECLIM,hostname=hostname,debug=debug)
+		
+		if Xclim == None:
+			print('Cannot find data for climatology option '+climatology_option+' and experiment '+E['exp_name'])
+			return None, None, None, None
+
+	if climatology_option_not_found:
+		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
+		return None, None, None, None
+
+	return Xclim,lat,lon,lev
 
 def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
@@ -411,40 +443,8 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	None: don't subtract out anything -- just return the regular fields in the same shape as other "anomalies"  
 	"""
 
-	Xclim = None
-
-	if climatology_option is not None:
-		# cycle over the dates in the requested experiment and load a corresponding climatology  
-		Xlist = []	
-		for date in E['daterange']:
-			if climatology_option == 'NODA':
-				# todo: a subroutine that returns the corresponding NODA experiment for each case  
-				ECLIM = E.copy()
-				ECLIM['exp_name'] = 'W0910_NODA'
-				ECLIM['diagn'] = 'Prior'
-				ECLIM['copystring'] = 'ensemble mean'
-				X,lat0,lon0,lev0 = DSS.compute_DART_diagn_from_model_h_files(ECLIM,date,hostname=hostname,verbose=verbose)
-
-			if X is None:
-				# kill this loop if we can't find data for every time instance for this experiment and clim choice
-				datestr = date.strftime("%Y-%m-%d")
-				print('Cannot find climatology data for climatology option '+climatology_option+' and date '+datestr)
-				return None, None, None, None
-			else:	
-				# if data are found, add to the list
-				Xs = np.squeeze(X)
-				Xlist.append(Xs)
-				lat = lat0
-				lon = lon0
-				lev = lev0
-
-		# if we successfully made it through the loop over dates and found climatology files, 
-		# put them together  
-		Xclim = np.concatenate([X[..., np.newaxis] for X in Xlist], axis=len(Xs.shape))
-		if Xclim is None:
-			if verbose:
-				print('Climatology option '+climatology_option+' not possible for this experiment, either because it is not coded yet, or because we dont have enough data per instance.')
-			return None, None, None, None
+	# load climatology 
+	Xclim,lat,lon,lev = load_climatology(E,climatology_toption,hostname)
 
 	# load the desired model fields for the experiment
 	Xlist = []	# empty list to hold the fields we retrieve for every day  
