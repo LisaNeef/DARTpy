@@ -147,7 +147,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 			# these variables just have dimensionality lev
 			Vout = VV[k1:k2+1]
 
-		if (E['variable'] == 'PS'):
+		if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
 			# 2D variables have shape time x lat x lon
 			Vout = VV[:,j1:j2+1,i1:i2+1]
 			lev2 = None
