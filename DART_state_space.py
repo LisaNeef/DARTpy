@@ -45,26 +45,13 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		Vlist = []
-		for date in E['daterange']:
-
-			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'PS') or (E['variable'] == 'T'):
-				lev2,lat2,lon2,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-			else:
-				V,lat2,lon2,lev2 = compute_DART_diagn_from_model_h_files(Ediff,date,hostname=hostname,verbose=debug)
-			# add the variable field just loaded to the list:
-			Vlist.append(V)
-
-		# turn the list of variable fields into a matrix and average over the last dimension, which is time
-		Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
+		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-		# average over levels if necessary
+		# average over vertical levels  if the variable is 3D
 		if (len(np.squeeze(VV).shape)==2):
 			M2 = np.squeeze(VV)
 		else:
-			M2 = np.average(VV,axis=2)
-
+			M2 = np.mean(VV,axis=2)
 		# subtract the difference field out from the primary field  
 		M = M1-M2
 	else:
@@ -1711,7 +1698,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		d1 = E['daterange'][0].strftime("%Y-%m-%d")
 		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
 		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-		return None,None
+		return None,None,None,None
 
 	# turn the list of variable fields into a matrix 
 	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
