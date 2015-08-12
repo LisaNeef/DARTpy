@@ -421,7 +421,7 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		ECLIM['diagn'] = 'Prior'
 		ECLIM['copystring'] = 'ensemble mean'
 
-		Xclim,lat,lon,lev = DART_diagn_to_array(ECLIM,hostname=hostname,debug=debug)
+		Xclim,lat,lon,lev = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
 		
 		if Xclim == None:
 			print('Cannot find data for climatology option '+climatology_option+' and experiment '+E['exp_name'])
@@ -444,7 +444,7 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	"""
 
 	# load climatology 
-	Xclim,lat,lon,lev = load_climatology(E,climatology_toption,hostname)
+	Xclim,lat,lon,lev = load_climatology(E,climatology_option,hostname)
 
 	# load the desired model fields for the experiment
 	Xlist = []	# empty list to hold the fields we retrieve for every day  
