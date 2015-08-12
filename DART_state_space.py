@@ -26,17 +26,33 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	We can also plot the difference between two fields by specifying another list of Experiment
 	dictionaries called Ediff  
 
+
+	To plot climatology fields or anomalies wrt climatology, make the field E['diagn'] 'climatology.XXX' or 'anomaly.XXX', 
+	where 'XXX' some option for loading climatologies accepted by the subroutine ano in MJO.py (see that code for options)
+
 	INPUTS:  
 	log_levels: a list of the (logarithmic) levels to draw the contours on. If set to none, just draw regular linear levels. 
 
 	"""
 
-	# loop over dates given in the experiment dictionary and load the desired data  
-	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# if plotting a climatology field or an anomaly with respect to climatology, 
+	# use the ano subroutine from the MJO module, which will call DART_diagn_to_array  
 
-	# turn the list of variable fields into a matrix and average over the last dimension, which is time
+	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']):
+		from MJO import ano
+		climatology_option = E['diagn'].split('.')[1]
+		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+		if 'climatology' in E['diagn']:
+			Vmatrix = Xclim
+		else:
+			#TODO: make sure that this works with the anomaly fields produced by ano
+			Vmatrix = AA
+	else:
+	# otherwise, go directly to DART_diagn_to_array  
+		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# average over the last dimension, which is time
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
 	# average over vertical levels  if the variable is 3D
 	if (len(np.squeeze(VV).shape)==2):
 		M1 = np.squeeze(VV)
@@ -45,7 +61,16 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']):
+			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+			if 'climatology' in E['diagn']:
+				Vmatrix = Xclim
+			else:
+				#TODO: make sure that this works with the anomaly fields produced by ano
+				Vmatrix = AA
+		else:
+			Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 		# average over vertical levels  if the variable is 3D
 		if (len(np.squeeze(VV).shape)==2):
