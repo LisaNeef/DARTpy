@@ -18,7 +18,7 @@ import WACCM as waccm
 import re
 import ERA as era
 
-def plot_diagnostic_globe(E,Ediff=None,projection='moll',clim=None,cbar='Vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='Vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
 	"""
 	plot a given state-space diagnostic on a given calendar day and for a given variable 
@@ -1609,7 +1609,8 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# add a colorbar if desired 
 	if cbar is not None:
 		if (clim > 1000) or (clim < 0.001):
-			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.3f')
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
+			print('++exponential color labels+++')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
 	else: 
@@ -1645,7 +1646,7 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	for vname in varlist:
 	    Ehyb = E.copy()
 	    Ehyb['variable'] = vname
-	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=False)
+	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
 	    if vname == 'PS':
 		H['lev'] = lev
 		H['lat'] = lat
