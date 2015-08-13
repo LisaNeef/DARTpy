@@ -447,8 +447,11 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		# now choose the daterange corresponding to the daterange in E
 		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
 		nT = len(E['daterange'])
-		df = E['daterange'][nT-0].timetuple().tm_yday	# day in the year where we start  
-		Xclim = VV[d0:df+1,:,:,:]
+		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
+		if len(VV.shape) == 4:
+			Xclim = VV[d0:df+1,:,:,:]
+		else:
+			Xclim = VV[d0:df+1,:,:]
 
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
