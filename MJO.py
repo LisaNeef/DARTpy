@@ -444,14 +444,35 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		VV = f.variables[variable][:]
 		f.close()
 
-		# now choose the daterange corresponding to the daterange in E
+		# choose the daterange corresponding to the daterange in E
 		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
 		nT = len(E['daterange'])
 		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
+
+		# also choose the lat, lon, and level ranges corresponding to those in E
+		if E['levrange'] is not None:
+			if E['levrange'][0] == E['levrange'][1]:
+				ll = E['levrange'][0]
+				idx = (np.abs(lev-ll)).argmin()
+				lev2 = lev[idx]
+				k1 = idx
+				k2 = idx
+			else:
+				k2 = (np.abs(lev-E['levrange'][1])).argmin()
+				k1 = (np.abs(lev-E['levrange'][0])).argmin()
+				lev2 = lev[k1:k2+1]
+
+                j2 = (np.abs(lat-E['latrange'][1])).argmin()
+		j1 = (np.abs(lat-E['latrange'][0])).argmin()
+		lat2 = lat[j1:j2+1]
+		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
+		i1 = (np.abs(lon-E['lonrange'][0])).argmin()
+		lon2 = lon[i1:i2+1]
+
 		if len(VV.shape) == 4:
-			Xclim = VV[d0:df+1,:,:,:]
+			Xclim = VV[d0:df+1,k1:k2+1,j1:j2+1,i1:i2+1]
 		else:
-			Xclim = VV[d0:df+1,:,:]
+			Xclim = VV[d0:df+1,j1:j2+1,i1:i2+1]
 
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
@@ -478,7 +499,7 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		d0 = E['daterange'][0]
 		df = E['daterange'][len(E['daterange'])-1]
 		days = df-d0
-		E['daterange'] = dart.daterange(date_start=d0, periods=days, DT='1D')
+		E['daterange'] = dart.daterange(date_start=d0, periods=days.days+1, DT='1D')
 
 	# load the desired model fields for the experiment
 	Xlist = []	# empty list to hold the fields we retrieve for every day  
@@ -504,9 +525,11 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	if climatology_option == None:
 		AA = XX
 	else:
-		AA = XX-Xclim
+		# transpose the climatology to be the same shape as the model fields 
+		XclimT = Xclim.reshape(XX.shape)
+		AA = XX-XclimT
 
-	return AA,Xclim,lat,lon,lev
+	return AA,XclimT,lat,lon,lev
 
 def filter(daily_anomalies,return_as_vector = True):
 
