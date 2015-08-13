@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import nanmean
 
 
-def plot_RMM(E,copies_to_plot,hostname='taurus',verbose=False):
+def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbose=False):
 
 	"""
 	given a certain experiment dictionary, compute the Wheeler and Hendon (2004)
@@ -319,7 +319,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',hostname='taurus',ve
 
 	return R,S,L,space_dim
 
-def RMM(E,hostname='taurus',verbose=False):
+def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 	"""
 	this subroutine computes the real-time multivariate MJO (RMM) indices defined by Wheeler and Hendon (2004)
@@ -368,13 +368,13 @@ def RMM(E,hostname='taurus',verbose=False):
 			variable_name = E['variable']
 
 		# load variable anomaly field for each variable
-		anomalies,climatology,lat,lon = ano(E,climatology_option = 'NODA',hostname=hostname,verbose=verbose)
+		anomalies,climatology,lat,lon = ano(E,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
 		if anomalies is None:
 			print('not enough data to compute RMM index -- returning')
 			return None
 
 		# also load an adequate standard deviation for the variable in question
-		standard_deviations,lat,lon = stds(E,std_option = 'NODA',hostname=hostname,verbose=verbose)
+		standard_deviations,lat,lon = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
 		if standard_deviations is None:
 			print('not enough standard deviation data to compute RMM index -- returning')
 			return None
@@ -487,6 +487,7 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 	Inputs allowed for climatology_option:  
 	'NODA': take the ensemble mean of the corresponding no-DA experiment as a 40-year climatology  
+	'F_W4_L66': daily climatology of a CESM+WACCM simulation with realistic forcings, 1951-2010
 	None: don't subtract out anything -- just return the regular fields in the same shape as other "anomalies"  
 	"""
 
@@ -852,40 +853,84 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 	DART experiment.  
 	This can be used in the RMM index computation.  
 
-	`std_option` chooses how we compute the standard deviation. 
-	So far the only choice is NODA, which takes the STD of the corresponding free-running
-	ensemble.
+	Inputs allowed for std_option:  
+	'NODA': take the ensemble mean of the corresponding no-DA experiment as a 40-year climatology  
+	'F_W4_L66': daily climatology of a CESM+WACCM simulation with realistic forcings, 1951-2010
+	None: don't subtract out anything -- just return the regular fields in the same shape as other "anomalies"  
 	"""
 
 	std_option_not_found = True
 	if std_option == 'NODA':
-		ESTD = E.copy()
-		ESTD['exp_name'] = 'W0910_NODA'
-		ESTD['copystring'] = 'ensemble std'
 		std_option_not_found = False
 
+	if std_option == 'NODA' :
+		std_option_not_found = False
+		# cycle over the dates in the experiment dictionary 
+		# and load the ensemble mean of the corresponding No-assimilation case 
+		# TODO: a subroutine that returns the corresponding NODA experiment for each case  
+		Xlist = []	
+		ESTD = E.copy()
+		ESTD['exp_name'] = 'W0910_NODA'
+		ESTD['diagn'] = 'Prior'
+		ESTD['copystring'] = 'ensemble std'
+		Xstd,lat,lon,lev = DSS.DART_diagn_to_array(ESTD,hostname=hostname,debug=verbose)
+		if Xstd == None:
+			print('Cannot find data for standard deviation option '+std_option+' and experiment '+E['exp_name'])
+			return None, None, None, None
+
+	if std_option == 'F_W4_L66' :
+		from netCDF4 import Dataset
+		std_option_not_found = False
+		# in this case, load a single daily climatology calculated from this CESM-WACCM simulation  
+		ff = '/data/c1/lneef/CESM/F_W4_L66/atm/climatology/F_W4_L66.cam.h1.1951-2010.daily_climatology.nc'
+		f = Dataset(ff,'r')
+		lat = f.variables['lat'][:]
+		lon = f.variables['lon'][:]
+		lev = f.variables['lev'][:]
+		time = f.variables['time'][:]
+
+		# load climatology of the desired model variable  
+		variable = E['variable']
+		if E['variable'] == 'US':
+			variable = 'U'
+		if E['variable'] == 'VS':
+			variable = 'V'
+		VV = f.variables[variable][:]
+		f.close()
+
+		# choose the daterange corresponding to the daterange in E
+		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
+		nT = len(E['daterange'])
+		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
+
+		# also choose the lat, lon, and level ranges corresponding to those in E
+		if E['levrange'] is not None:
+			if E['levrange'][0] == E['levrange'][1]:
+				ll = E['levrange'][0]
+				idx = (np.abs(lev-ll)).argmin()
+				lev2 = lev[idx]
+				k1 = idx
+				k2 = idx
+			else:
+				k2 = (np.abs(lev-E['levrange'][1])).argmin()
+				k1 = (np.abs(lev-E['levrange'][0])).argmin()
+				lev2 = lev[k1:k2+1]
+
+                j2 = (np.abs(lat-E['latrange'][1])).argmin()
+		j1 = (np.abs(lat-E['latrange'][0])).argmin()
+		lat2 = lat[j1:j2+1]
+		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
+		i1 = (np.abs(lon-E['lonrange'][0])).argmin()
+		lon2 = lon[i1:i2+1]
+
+		if len(VV.shape) == 4:
+			Xstd = VV[d0:df+1,k1:k2+1,j1:j2+1,i1:i2+1]
+		else:
+			Xstd = VV[d0:df+1,j1:j2+1,i1:i2+1]
+
 	if std_option_not_found:
-		print('std option '+std_option+' is not a valid choice.')
-		print('right now only supportting std_option NODA.')
+		print('Climatology option '+std_option+' has not been coded yet. Returning None for climatology.')
 		return None, None, None, None
 
-	Slist = []
-	for date in E['daterange']:
-		S,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(ESTD,date,verbose=verbose)
+	return Xstd,lat,lon,lev
 
-		if S is None:
-			# kill this loop if we can't find data for every time instance for this experiment and clim choice
-			datestr = date.strftime("%Y-%m-%d")
-			print('Cannot find climatology data for std option '+std_option+' and date '+datestr)
-			return None, None, None, None
-		else:	
-			# if data are found, add to the list
-			Ss = np.squeeze(S)
-			Slist.append(Ss)
-
-	# if we successfully made it through the loop over dates and found std files, 
-	# put them together  
-	STD = np.concatenate([S[..., np.newaxis] for S in Slist], axis=len(Ss.shape))
-
-	# return lat, lon, and STD field
-	return STD,lat,lon
