@@ -472,6 +472,14 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	# load climatology 
 	Xclim,lat,lon,lev = load_climatology(E,climatology_option,hostname)
 
+	# some climatologies are only available at daily resolution, so 
+	# in that case we have to change the daterange in E to be daily  
+	if (climatology_option == 'F_W4_L66'):
+		d0 = E['daterange'][0]
+		df = E['daterange'][len(E['daterange'])-1]
+		days = df-d0
+		E['daterange'] = dart.daterange(date_start=d0, periods=days, DT='1D')
+
 	# load the desired model fields for the experiment
 	Xlist = []	# empty list to hold the fields we retrieve for every day  
 	for date in E['daterange']:
