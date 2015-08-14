@@ -864,8 +864,6 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 	"""
 
 	std_option_not_found = True
-	if std_option == 'NODA':
-		std_option_not_found = False
 
 	if std_option == 'NODA' :
 		std_option_not_found = False
@@ -886,7 +884,7 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		from netCDF4 import Dataset
 		std_option_not_found = False
 		# in this case, load a single daily climatology calculated from this CESM-WACCM simulation  
-		ff = '/data/c1/lneef/CESM/F_W4_L66/atm/climatology/F_W4_L66.cam.h1.1951-2010.daily_climatology.nc'
+		ff = '/data/c1/lneef/CESM/F_W4_L66/atm/climatology/F_W4_L66.cam.h1.1951-2010.daily_std.nc'
 		f = Dataset(ff,'r')
 		lat = f.variables['lat'][:]
 		lon = f.variables['lon'][:]
