@@ -52,7 +52,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			Vmatrix = S.reshape(AA.shape)
 		
 	else:
-	# otherwise, go directly to DART_diagn_to_array  
+		# otherwise, go directly to DART_diagn_to_array  
 		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is time
@@ -68,17 +68,17 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	if (Ediff != None):
 		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
 			from MJO import ano,stds
-			climatology_option = E['diagn'].split('.')[1]
+			climatology_option = Ediff['diagn'].split('.')[1]
 			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
-			if 'climatology' in E['diagn']:
+			if 'climatology' in Ediff['diagn']:
 				Vmatrix = Xclim
-			if 'anomaly' in E['diagn']:
+			if 'anomaly' in Ediff['diagn']:
 				Vmatrix = AA
 			if 'climatological_std' in E['diagn']:
-				S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
+				S,lat,lon,lev = stds(Ediff,climatology_option,hostname,debug)	
 				Vmatrix = S.reshape(AA.shape)
 		else:
-			Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+			Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 		# average over vertical levels  if the variable is 3D
@@ -131,9 +131,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=len(colors))
+		L  = np.linspace(start=-clim,stop=clim,num=11)
 	else:
-		L  = np.linspace(start=0,stop=clim,num=len(colors))
+		L  = np.linspace(start=0,stop=clim,num=11)
 
 
         # contour data over the map.
