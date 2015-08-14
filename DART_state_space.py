@@ -1685,7 +1685,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	"""
 	This subroutine loops over the dates given in E['daterange'] and load the appropriate DART diagnostic for each date, 
-	returning a numpy matrix of the relevant data.  
+	returning a numpy matrix of the relevant date.  
 
 	The files we load depend on the desired DART diagnostic (given in E['diagn']), variable (E['variable']), and 
 	any extra computations needed (E['extras'])  
