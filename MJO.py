@@ -71,7 +71,7 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 		
 		else:
 			E['copystring'] = copy
-			pc = RMM(E,hostname='taurus',verbose=verbose)
+			pc = RMM(E,climatology_option=climatology_option,hostname='taurus',verbose=verbose)
 			if pc is None:
 				# if we don't have enough data to compute the RMM index for this experiment, 
 				# add it to the list of bad copies:
@@ -368,21 +368,25 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 			variable_name = E['variable']
 
 		# load variable anomaly field for each variable
-		anomalies,climatology,lat,lon = ano(E,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
+		anomalies,climatology,lat,lon,lev = ano(E,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
 		if anomalies is None:
 			print('not enough data to compute RMM index -- returning')
 			return None
 
 		# also load an adequate standard deviation for the variable in question
-		standard_deviations,lat,lon = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
+		standard_deviations,lat,lon,lev = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
 		if standard_deviations is None:
 			print('not enough standard deviation data to compute RMM index -- returning')
 			return None
 
+		# because the anomalies get transposed in some cases, it's possible that standard 
+		# deviations also need to be transposed
+		STDT = standard_deviations.reshape(anomalies.shape)
+
 		# average the normalized anomalies over the 15S-15N latitude band  
-		norm_anoms = anomalies/standard_deviations
+		norm_anoms = anomalies/STDT
 		lat1,lon1,A = aave('WH',norm_anoms,lat,lon,None,variable_name,averaging_dimension='lat')
-		Anomaly_field_list.append(A)
+		Anomaly_field_list.append(np.squeeze(A))
 
 	# concatenate the 3 anomaly fields so that we have a length (144x3) vector for nT points in time  
 	AA = np.concatenate([A for A in Anomaly_field_list], axis=0)
@@ -420,7 +424,7 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		ECLIM['diagn'] = 'Prior'
 		ECLIM['copystring'] = 'ensemble mean'
 		Xclim,lat,lon,lev = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
-		if Xclim == None:
+		if Xclim is None:
 			print('Cannot find data for climatology option '+climatology_option+' and experiment '+E['exp_name'])
 			return None, None, None, None
 
@@ -874,7 +878,7 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		ESTD['diagn'] = 'Prior'
 		ESTD['copystring'] = 'ensemble std'
 		Xstd,lat,lon,lev = DSS.DART_diagn_to_array(ESTD,hostname=hostname,debug=verbose)
-		if Xstd == None:
+		if Xstd is None:
 			print('Cannot find data for standard deviation option '+std_option+' and experiment '+E['exp_name'])
 			return None, None, None, None
 
@@ -908,25 +912,26 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 			if E['levrange'][0] == E['levrange'][1]:
 				ll = E['levrange'][0]
 				idx = (np.abs(lev-ll)).argmin()
-				lev2 = lev[idx]
+				lev = lev[idx]
 				k1 = idx
 				k2 = idx
 			else:
 				k2 = (np.abs(lev-E['levrange'][1])).argmin()
 				k1 = (np.abs(lev-E['levrange'][0])).argmin()
-				lev2 = lev[k1:k2+1]
+				lev = lev[k1:k2+1]
 
                 j2 = (np.abs(lat-E['latrange'][1])).argmin()
 		j1 = (np.abs(lat-E['latrange'][0])).argmin()
-		lat2 = lat[j1:j2+1]
+		lat = lat[j1:j2+1]
 		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
 		i1 = (np.abs(lon-E['lonrange'][0])).argmin()
-		lon2 = lon[i1:i2+1]
+		lon = lon[i1:i2+1]
 
 		if len(VV.shape) == 4:
 			Xstd = VV[d0:df+1,k1:k2+1,j1:j2+1,i1:i2+1]
 		else:
 			Xstd = VV[d0:df+1,j1:j2+1,i1:i2+1]
+		
 
 	if std_option_not_found:
 		print('Climatology option '+std_option+' has not been coded yet. Returning None for climatology.')
