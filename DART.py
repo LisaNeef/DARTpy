@@ -24,7 +24,7 @@ def load_covariance_file(E,date,hostname='taurus',debug=False):
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,date,hostname=hostname)
+	filename = es.find_paths(E,date,file_type='covariance',hostname=hostname)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None, None, None, None, None
@@ -428,7 +428,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None,None,None,None,None,None
-
 	else:
 		if debug:
 			print('opening file  '+filename)
@@ -496,21 +495,15 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 		# if requestiing the mean square error (MSE), load the corresponding truth run and subtract it out, then square  
 		if (E['extras'] == 'MSE'):
-			# in this case we also need to search the right directories  
-
-			correct_filepath_found = False
-			for truth_dir in truth_dir_list:
+			Etr = E.copy()
+			Etr['diagn'] = 'Truth'
+			filename_truth = es.find_paths(Etr,date,'truth',hostname=hostname,debug=debug)
+			if not os.path.exists(filename):
+				print("+++cannot find files that look like  "+filename_truth+' -- returning None')
+				return None,None,None,None,None,None,None
+			else:
 				if debug:
-					print 'Looking for file in  '+truth_dir
-				filename_truth = truth_dir+ff_truth
-				if os.path.exists(filename_truth):
-					correct_filepath_found = True
-					break
-			if not correct_filepath_found:
-				print('Cannot find the true state file  '+filename_truth)
-				return
-			if debug:
-				print('Opening true state file: '+filename_truth)
+					print('opening file  '+filename_truth)
 
 			# open the truth file and load the field
 			ft = Dataset(filename_truth,'r')
