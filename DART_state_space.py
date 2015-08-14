@@ -35,24 +35,29 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	"""
 
-	# if plotting a climatology field or an anomaly with respect to climatology, 
+	# if plotting a climatology field, the climatological standard deviation,
+	#  or an anomaly with respect to climatology, 
 	# use the ano subroutine from the MJO module, which will call DART_diagn_to_array  
 
-	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']):
-		from MJO import ano
+	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+		from MJO import ano,stds
 		climatology_option = E['diagn'].split('.')[1]
 		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
 		if 'climatology' in E['diagn']:
 			Vmatrix = Xclim
-		else:
-			#TODO: make sure that this works with the anomaly fields produced by ano
+		if 'anomaly' in E['diagn']:
 			Vmatrix = AA
+		if 'climatological_std' in E['diagn']:
+			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
+			Vmatrix = S.reshape(AA.shape)
+		
 	else:
 	# otherwise, go directly to DART_diagn_to_array  
 		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is time
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
 	# average over vertical levels  if the variable is 3D
 	if (len(np.squeeze(VV).shape)==2):
 		M1 = np.squeeze(VV)
@@ -61,13 +66,17 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']):
+		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+			from MJO import ano,stds
+			climatology_option = E['diagn'].split('.')[1]
 			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
 			if 'climatology' in E['diagn']:
 				Vmatrix = Xclim
-			else:
-				#TODO: make sure that this works with the anomaly fields produced by ano
+			if 'anomaly' in E['diagn']:
 				Vmatrix = AA
+			if 'climatological_std' in E['diagn']:
+				S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
+				Vmatrix = S.reshape(AA.shape)
 		else:
 			Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
@@ -81,7 +90,6 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		M = M1-M2
 	else:
 		M = M1
-
 
  	# set up a map projection
 	if projection == 'miller':
