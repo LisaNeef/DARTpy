@@ -453,6 +453,12 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		nT = len(E['daterange'])
 		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
 
+		# if df<d0, we have to cycle back to the beginning of the year
+		if df < d0:
+			day_indices = range(d0,365)+range(0,df+1)
+		else:
+			day_indices = range(d0,df+1)
+
 		# also choose the lat, lon, and level ranges corresponding to those in E
 		if E['levrange'] is not None:
 			if E['levrange'][0] == E['levrange'][1]:
@@ -474,9 +480,9 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		lon2 = lon[i1:i2+1]
 
 		if len(VV.shape) == 4:
-			Xclim = VV[d0:df+1,k1:k2+1,j1:j2+1,i1:i2+1]
+			Xclim = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
 		else:
-			Xclim = VV[d0:df+1,j1:j2+1,i1:i2+1]
+			Xclim = VV[day_indices,j1:j2+1,i1:i2+1]
 
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
@@ -905,6 +911,12 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		nT = len(E['daterange'])
 		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
 
+		# if df<d0, we have to cycle back to the beginning of the year
+		if df < d0:
+			day_indices = range(d0,365)+range(0,df+1)
+		else:
+			day_indices = range(d0,df+1)
+
 		# also choose the lat, lon, and level ranges corresponding to those in E
 		if E['levrange'] is not None:
 			if E['levrange'][0] == E['levrange'][1]:
@@ -926,9 +938,9 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		lon = lon[i1:i2+1]
 
 		if len(VV.shape) == 4:
-			Xstd = VV[d0:df+1,k1:k2+1,j1:j2+1,i1:i2+1]
+			Xstd = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
 		else:
-			Xstd = VV[d0:df+1,j1:j2+1,i1:i2+1]
+			Xistd = VV[day_indices,j1:j2+1,i1:i2+1]
 		
 
 	if std_option_not_found:
