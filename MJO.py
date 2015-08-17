@@ -940,7 +940,7 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		if len(VV.shape) == 4:
 			Xstd = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
 		else:
-			Xistd = VV[day_indices,j1:j2+1,i1:i2+1]
+			Xstd = VV[day_indices,j1:j2+1,i1:i2+1]
 		
 
 	if std_option_not_found:
