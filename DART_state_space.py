@@ -800,6 +800,15 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
 	if (E['extras'] == 'MJO variance'):
                 colors_sequential = True
 
+	# if the diagnostic includes a climatological standard deviation, turn on sequential colormap
+	if 'climatological_std' in E['diagn']:
+                colors_sequential = True
+
+	# if any of the above turned on the sequential colormap but we are looking at anomalies, turn it back off  
+	if 'anomaly' in E['diagn']:
+                colors_sequential = False
+		
+
 	# TEMP---maybe we can do without the sequential map altogether? Python automatically adjusts it so that 0 is white
 	#colors_sequential = False
 
