@@ -342,6 +342,10 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	NORM = pd.read_csv(ff,skiprows=442,sep='  ',engine='python')
 	NORM.columns = ['normalization_factors']  
 	normfac = NORM.normalization_factors
+	NF_FLUT = normfac[0:144]
+	NF_U850 = normfac[144:288]
+	NF_U200 = normfac[288:432]
+	NF_list = [NF_FLUT,NF_U850,NF_U200]
 
 	# read in the eigenvalues  
 	f = open(ff, "r")
@@ -352,44 +356,55 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	evalues = [eigenval1,eigenval2]
 	f.close()
 	
-	# read in the wind and OLR data corresponding to this experiment  
+	# load anomalies of the three MJO variable (OLR, U850, U200) for this experiment
 	variable_list = ['FLUT','U','U']
 	levrange_list = [None,[850,850],[200,200]]
-
-	Anomaly_field_list = []
-	for variable,levrange in zip(variable_list,levrange_list):
+	Anomaly_list = []
+	for variable,levrange,NF in zip(variable_list,levrange_list,NF_list):
 		Etemp = E.copy()
-		E['variable'] = variable
-		E['levrange'] = levrange
+		Etemp['variable'] = variable
+		Etemp['levrange'] = levrange
 
-		if E['variable'] == 'U':
-			variable_name = 'U'+str(E['levrange'][0])
+		# for the MJO, we are only interested in anomalies between 15S and 15N
+		Etemp['latrange'] = [-15,15]
+
+		if Etemp['variable'] == 'U':
+			variable_name = 'U'+str(levrange[0])
 		else:
-			variable_name = E['variable']
+			variable_name = Etemp['variable']
 
 		# load variable anomaly field for each variable
-		anomalies,climatology,lat,lon,lev = ano(E,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
+		anomalies,climatology,lat,lon,lev = ano(Etemp,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
 		if anomalies is None:
 			print('not enough data to compute RMM index -- returning')
 			return None
 
 		# also load an adequate standard deviation for the variable in question
-		standard_deviations,lat,lon,lev = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
-		if standard_deviations is None:
-			print('not enough standard deviation data to compute RMM index -- returning')
-			return None
+		#standard_deviations,lat,lon,lev = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
+		#if standard_deviations is None:
+		#	print('not enough standard deviation data to compute RMM index -- returning')
+		#	return None
 
 		# because the anomalies get transposed in some cases, it's possible that standard 
 		# deviations also need to be transposed
-		STDT = standard_deviations.reshape(anomalies.shape)
+		#STDT = standard_deviations.reshape(anomalies.shape)
+		# norm_anoms = anomalies/STDT
 
 		# average the normalized anomalies over the 15S-15N latitude band  
-		norm_anoms = anomalies/STDT
-		lat1,lon1,A = aave('WH',norm_anoms,lat,lon,None,variable_name,averaging_dimension='lat')
-		Anomaly_field_list.append(np.squeeze(A))
+		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
+
+		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
+		nT = np.squeeze(ave_anom).shape[1]
+		ave_anom_norm = 0*ave_anom
+		for aa,iT in zip(ave_anom,range(nT)):
+			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/NF.values
+
+		# put everything into a list
+		Anomaly_list.append(ave_anom_norm)
+
 
 	# concatenate the 3 anomaly fields so that we have a length (144x3) vector for nT points in time  
-	AA = np.concatenate([A for A in Anomaly_field_list], axis=0)
+	AA = np.concatenate([A for A in Anomaly_list], axis=0)
 
 	# compute the principal components  
 	N = EVEC.EV1.shape[0]
@@ -397,9 +412,9 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	pc = np.zeros(shape=(2,nT))
 
 	for k in range(nT):	# loop over time  
-		for eof,iev in zip(EOF,range(2)):	# loop over eigenvectors
-			for ii in range(N):				# loop over longitudes  
-				pc[iev,k] += AA[ii,k]*eof[ii]
+		for eof,iev,eigval in zip(EOF,range(2),evalues):	# loop over eigenvectors and eigenvalues
+			for ii in range(N):				# loop over 3xlongitudes  
+				pc[iev,k] += (AA[ii,k]*eof[ii])/np.sqrt(eigval)
 
 	return pc
 
