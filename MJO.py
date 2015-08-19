@@ -214,7 +214,7 @@ def plot_variance_maps(E,cbar=True,hostname="taurus"):
 	CB = plt.colorbar(cs, shrink=0.6, extend='both')
 
 
-def variance_maps(E,hostname='taurus',verbose=False):  
+def variance_maps(E,climatology_option = 'NODA',hostname='taurus',verbose=False):  
 
 	# given a certain experiment or dataset (E) over a certain daterange,  
 	# retrieve the data, then 
@@ -229,7 +229,7 @@ def variance_maps(E,hostname='taurus',verbose=False):
 	E['levrange'] = [850,850]
 
 	# compute or load the daily climatology and deviation from climatology  
-	anomalies,climatology,lat,lon = ano(E,climatology_option = 'experiment',hostname=hostname,verbose=verbose)
+	anomalies,climatology,lat,lon = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=True)
@@ -239,13 +239,15 @@ def variance_maps(E,hostname='taurus',verbose=False):
 
 	return VV,lat,lon
 
-def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',hostname='taurus',verbose=False):
+def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='NODA',hostname='taurus',verbose=False):
 
-	# compute correlations between U850 or OLR in a reference are and everywhere else, 
-	# as a function of lag and either latitude or longitude 
+	"""
+	compute correlations between U850 or OLR in a reference are and everywhere else, 
+	as a function of lag and either latitude or longitude 
+	"""
 
 	# compute or load the daily climatology and deviation from climatology  
-	anomalies,climatology,lat,lon = ano(E,climatology_option = 'experiment',hostname=hostname,verbose=verbose)
+	anomalies,climatology,lat,lon = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=False)
