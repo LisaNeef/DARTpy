@@ -689,8 +689,11 @@ def aave(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
 
 def averaging_regions(region,season,variable):  
 
-	# lat and lon limits of the averaging regions for CLIVAR MJO diagnostics
-	# these are taken from Waliser et al. 2009 (J. Clim)  
+	"""
+	lat and lon limits of the averaging regions for CLIVAR MJO diagnostics
+	these are taken from Waliser et al. 2009 (J. Clim)  
+	"""
+
 	if region is 'WH':	# this latitude band is used in the Wheeler and Hendon MJO index  
 		latrange = [-15,15]
 		lonrange = [0,360]
@@ -803,6 +806,13 @@ def averaging_regions(region,season,variable):
 			if (variable is 'U200'):
 				latrange = [1.25,16.25]
 				lonrange = [238.75,266.25]
+
+	# throw an error if latrange and lonrange didn't get defined
+	try:
+		latrange
+	except NameError:
+		print('MJO.averaging_regions Nothing defined for region '+region)
+		return
 
 	return latrange,lonrange		
 
