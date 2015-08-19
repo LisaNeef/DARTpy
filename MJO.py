@@ -12,6 +12,7 @@ import time as time
 import os.path
 import pandas as pd
 import DART as dart
+import experiment_settings as es
 #from calendar import monthrange
 #from netCDF4 import Dataset
 import WACCM as waccm
@@ -45,7 +46,7 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 		copy_list.append(E['copystring'])
 
 	if ("ensemble" in copies_to_plot): 
-		N = dart.get_ensemble_size_per_run(E['exp_name'])
+		N = es.get_ensemble_size_per_run(E['exp_name'])
 		for iens in np.arange(1,N+1):
 			if iens < 10:
 				spacing = '      '
@@ -378,17 +379,6 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		if anomalies is None:
 			print('not enough data to compute RMM index -- returning')
 			return None
-
-		# also load an adequate standard deviation for the variable in question
-		#standard_deviations,lat,lon,lev = stds(E,std_option=climatology_option,hostname=hostname,verbose=verbose)
-		#if standard_deviations is None:
-		#	print('not enough standard deviation data to compute RMM index -- returning')
-		#	return None
-
-		# because the anomalies get transposed in some cases, it's possible that standard 
-		# deviations also need to be transposed
-		#STDT = standard_deviations.reshape(anomalies.shape)
-		# norm_anoms = anomalies/STDT
 
 		# average the normalized anomalies over the 15S-15N latitude band  
 		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
