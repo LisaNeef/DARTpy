@@ -229,7 +229,7 @@ def variance_maps(E,climatology_option = 'NODA',hostname='taurus',verbose=False)
 	E['levrange'] = [850,850]
 
 	# compute or load the daily climatology and deviation from climatology  
-	anomalies,climatology,lat,lon = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
+	anomalies,climatology,lat,lon,lev = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=True)
@@ -247,7 +247,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 	"""
 
 	# compute or load the daily climatology and deviation from climatology  
-	anomalies,climatology,lat,lon = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
+	anomalies,climatology,lat,lon,lev = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=False)
