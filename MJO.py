@@ -123,11 +123,12 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 
 def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True,hostname="taurus"):
 
-	# given a certain experiment or dataset over a certain daterange, 
-	# plot the correlation between wind or precip anomalies in one reference
-	# region, relative to everywhere else, either 
-	# as a function of latitude and longite, and Lag.  
-	# this should produce figures like Figs. 5-6 of Waliser et al. 
+	"""
+	 given a certain experiment or dataset over a certain daterange, 
+	 plot the correlation between wind or precip anomalies in one reference
+	 region, relative to everywhere else, either 
+	 as a function of latitude and longite, and Lag.  
+	 this should produce figures like Figs. 5-6 of Waliser et al. 
 
 	# load the correlation field 
 	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what)
@@ -270,7 +271,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 
 	# area averaging  the desired variable over the Indian Ocean reference point
 	#IOA = aave('IO',FA,lat,lon)
-	if (E['daterange'][0].month  >= 10) or (E['daterange'][0].month  < 10):
+	if (E['daterange'][0].month  >= 10) or (E['daterange'][0].month  <= 2):
 		season = 'winter'
 	else:
 		season = 'summer'
@@ -707,13 +708,17 @@ def averaging_regions(region,season,variable):
 		lonrange = [80,100]
 		return latrange, lonrange
 
+	# variables that count as "precipitation"
+	precip_variables = ['OLR','precip','FLUT']
 
-	# boreal winter
+	# regions specific for seasons------
+
+	#boreal winter
 	if season is 'winter':
 
 		# indian ocean  
 		if region is 'IO':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [-10,5]
 				lonrange = [75,100]
 			if (variable == 'U850'):
@@ -725,7 +730,7 @@ def averaging_regions(region,season,variable):
 		
 		# west pacific  
 		if region is 'WP':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [-20,-5]
 				lonrange = [160,185]
 			if (variable is 'U850'):
@@ -737,7 +742,7 @@ def averaging_regions(region,season,variable):
 		
 		# maritime continent
 		if region is 'MC':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [-17.5,-2.5]
 				lonrange = [115,145]
 			else:
@@ -746,7 +751,7 @@ def averaging_regions(region,season,variable):
 		
 		# east pacific
 		if region is 'EP':  
-			if (variable is 'OLR') or (variable is 'precip') or (variable is 'U850'):
+			if (variable in precip_variables) or (variable is 'U850'):
 				print('averaging over the East Pacific for anything other than U200 is not part of the CLIVAR diagnostics.')
 				return 
 			if (variable is 'U200'):
@@ -758,7 +763,7 @@ def averaging_regions(region,season,variable):
 
 		# indian ocean  
 		if region is 'IO':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [-10,5]
 				lonrange = [75,100]
 			if (variable is 'U850'):
@@ -770,7 +775,7 @@ def averaging_regions(region,season,variable):
 	
 		# bay of Bengal
 		if region is 'BB':
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [10,20]
 				lonrange = [80,100]		
 			else:
@@ -779,7 +784,7 @@ def averaging_regions(region,season,variable):
 
 		# west pacific  
 		if region is 'WP':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				latrange = [10,25]
 				lonrange = [115,140]
 			if (variable is 'U850'):
@@ -796,7 +801,7 @@ def averaging_regions(region,season,variable):
 		
 		# east pacific
 		if region is 'EP':  
-			if (variable is 'OLR') or (variable is 'precip'):
+			if (variable in precip_variables):
 				print('averaging over the East Pacific for OLD and precip during boreal summer is not part of the CLIVAR diagnostics.')
 				return 
 			if (variable is 'U850'):
@@ -810,8 +815,9 @@ def averaging_regions(region,season,variable):
 	# throw an error if latrange and lonrange didn't get defined
 	try:
 		latrange
+		lonrange
 	except NameError:
-		print('MJO.averaging_regions Nothing defined for region '+region)
+		print('MJO.averaging_regions Nothing defined for region '+region+', season '+season,', and variable '+variable)
 		return
 
 	return latrange,lonrange		
