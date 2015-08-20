@@ -143,7 +143,7 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True
 
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
-	colors,cmap,cmap_type = DSS.state_space_HCL_colormap(E)
+	colors,cmap,cmap_type = DSS.state_space_HCL_colormap(E,reverse=True)
 	
 	# choose axis labels  
 	plt.ylabel('Lag (days)')
@@ -573,8 +573,12 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 def filter(daily_anomalies,return_as_vector = True):
 
- 	# given 3D or 2D anomaly fields (e.g. of zonal wind), band-pass filter to 
-	# isolate the MJO signal  
+	"""
+ 	given 3D or 2D anomaly fields (e.g. of zonal wind)
+	apply a Lanczos filter to isolate the 20-100 day MJO signal 
+
+	note that here the input data have to have DAILY resolution  
+	"""
 
 	# turn the anomaly field into a vectors in time 
 	if len(daily_anomalies.shape)==3:
@@ -586,12 +590,8 @@ def filter(daily_anomalies,return_as_vector = True):
 		L = n1*n2*n3
 		A = np.reshape(daily_anomalies,(L,nt))
 
-	#f_low = 0.01		# 100 days
-	#f_high = 0.05		# 20 days 
-	# ****note that DART-WACCM output data is 6-hourly, and the cutoff frequencies here are
-	# defined in terms of DART-WACCM time units of 6 hours
-	f_low = (1.0/100)*(6.0/24.0)
-	f_high = (1.0/20)*(6.0/24.0)
+	f_low = 0.01		# 100 days
+	f_high = 0.05		# 20 days 
 	n = 50 # 201-point filter (??)
 
 	fil = LF.LanczosFilter("bp",f_low,f_high,n)
