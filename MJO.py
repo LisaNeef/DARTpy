@@ -144,18 +144,27 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
 	colors,cmap,cmap_type = DSS.state_space_HCL_colormap(E)
+	
+	# choose axis labels  
+	plt.ylabel('Lag (days)')
 	if lag_versus_what=='lat':
 		plt.xlabel('Latitude')
 	if lag_versus_what=='lon':
 		plt.xlabel('Longitude')
-	plt.ylabel('Lag (days)')
+
+	# set the contour levels - it depends on the color limits and the number of colors we have  
+	clim = 1.0
+	if cmap_type == 'divergent':
+		clevels  = np.linspace(start=-clim,stop=clim,num=11)
+	else:
+		clevels  = np.linspace(start=0,stop=clim,num=11)
 
         # contour plot of the chosen variable
-        cs = plt.contourf(x,L,R,len(colors)-1,cmap=cmap)
+        cs = plt.contourf(x,L,R,levels=clevels,cmap=cmap)
 	plt.clim([-1.0,1.0])
 
-	if cbar:
-		CB = plt.colorbar(cs, shrink=0.6)
+	if (cbar is not None):
+		CB = plt.colorbar(cs, shrink=0.6, extend='both', orientation=cbar)
 
 	return x,L,R,S
 
