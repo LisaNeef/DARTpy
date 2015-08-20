@@ -768,7 +768,7 @@ def state_space_colormap(E,Ediff=None):
 
 	return cmap
 
-def state_space_HCL_colormap(E,Ediff=None,debug=False):
+def state_space_HCL_colormap(E,Ediff=None,reverse=False,debug=False):
 
 	"""
 	loads colormaps (not a matplotlib colormap, but just a list of colors)
@@ -804,7 +804,9 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
 	if 'climatological_std' in E['diagn']:
                 colors_sequential = True
 
-	# if any of the above turned on the sequential colormap but we are looking at anomalies, turn it back off  
+	# if any of the above turned on the sequential colormap but we are looking at anomalies or correlations, turn it back off  
+	if 'Correlation' in E['extras']:
+                colors_sequential = False
 	if 'anomaly' in E['diagn']:
                 colors_sequential = False
 		
@@ -817,9 +819,6 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
 		# yellow to blue
 		colors = ("#F4EB94","#CEE389","#A4DA87","#74CF8C","#37C293","#00B39B",
 			  "#00A1A0","#008CA1","#00749C","#005792","#202581")
-
-
-
 
 		if debug:
 			print('loading a sequential HCL colormap')
@@ -841,6 +840,9 @@ def state_space_HCL_colormap(E,Ediff=None,debug=False):
 		if debug:
 			print('loading a diverging HCL colormap')
 		type='divergent'
+
+	if reverse:
+		colors = colors[::-1]
 
 	cmap = mpl.colors.ListedColormap(colors, name='my_cmap')
 
