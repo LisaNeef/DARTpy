@@ -130,14 +130,16 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True
 	 as a function of latitude and longite, and Lag.  
 	 this should produce figures like Figs. 5-6 of Waliser et al. 
 
+	INPUTS:  
+	E - a standard DART experiment dictionary, with the variable field and level range corresponding to some MJO variable  
+	maxlag: the limit of the lag (in days) that we look at 
+	lag_versus_what: choose 'lat' or 'lon'  
+	cbar: set to True to have a colorbar  
+	hostname: computer name - default is Taurus  
+	"""
+
 	# load the correlation field 
 	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what)
-        #X,Y = np.meshgrid(x,L)
-
-	# note that DART-WACCM output data is in time units of 6 hours
-	# for the MJO it makes more sense to look at days, so 
-	# convert L to daily
-	Ld = L*0.25
 
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
@@ -149,7 +151,7 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True
 	plt.ylabel('Lag (days)')
 
         # contour plot of the chosen variable
-        cs = plt.contourf(x,Ld,R,len(colors)-1,cmap=cmap)
+        cs = plt.contourf(x,L,R,len(colors)-1,cmap=cmap)
 	plt.clim([-1.0,1.0])
 
 	if cbar:
@@ -245,7 +247,16 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 	"""
 	compute correlations between U850 or OLR in a reference are and everywhere else, 
 	as a function of lag and either latitude or longitude 
+
+	INPUTS:  
+	E - a standard DART experiment dictionary, with the variable field and level range corresponding to some MJO variable  
+	maxlag: the limit of the lag (in days) that we look at 
+	lat_or_lon: choose dimension to preserve after averaging -- 'lat' or 'lon'  
+	climatology_option: choose which climatology to take the anomalies to respect with -- default is "NODA"  
 	"""
+
+	# change the given daterange to daily resolution, because the lag is specified in days  
+	E['daterange'] = dart.change_daterange_to_daily(E['daterange'])
 
 	# compute or load the daily climatology and deviation from climatology  
 	anomalies,climatology,lat,lon,lev = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
@@ -279,7 +290,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 
 	#------ compute field of correlation coefficients   	
 	# empty array size Lag by Lat
-	# plut an array to keep track of sample size
+	# plus an array to keep track of sample size
 	Lag_range = range(-maxlag,maxlag+1)
 	nlag = len(Lag_range)
 	n = FAm.shape[0]
@@ -289,6 +300,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 	# loop over latitudes
 	T = len(FA0)
 	for ii in range(n):
+		# loop over lags  
 		for ilag,L in zip(range(nlag),Lag_range):
 			# the time points that we can check go from L to T-L
 			# so shorter lags have a larger sample size and are more significant.  
@@ -303,7 +315,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 			IO = []
 			X  = []
 			for k in Tsel:
-				IO.append(FA0[k])
+				IO.append(FA0[k+L])
 				X.append(FAm[ii,k])
 
 			# now compute the correlation from this list of samples and store in the lag vs lat array  
