@@ -121,7 +121,7 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 	plt.xlabel('RMM1')
 	plt.ylabel('RMM2')
 
-def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus"):
+def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus",debug=False):
 
 	"""
 	 given a certain experiment or dataset over a certain daterange, 
@@ -139,7 +139,7 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_or
 	"""
 
 	# load the correlation field 
-	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what,filter_order=filter_order)
+	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what,filter_order=filter_order,verbose=debug)
 
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
