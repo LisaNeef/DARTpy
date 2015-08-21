@@ -273,9 +273,6 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=False)
 	
-	# temp - for testing, use unfiltere anomalies  
-	FA=AA
-
 	if E['variable'] == 'U':
 		variable_name = 'U'+str(E['levrange'][0])
 	else:
@@ -743,8 +740,6 @@ def averaging_regions(region,season,variable):
 		if region is 'IO':  
 			if (variable in precip_variables):
 				latrange = [-10,5]
-				# TEMP - make this -10 to 10 to test correlations 
-				latrange = [-10,10]
 				lonrange = [75,100]
 			if (variable == 'U850'):
 				latrange = [-16.25,-1.25]
