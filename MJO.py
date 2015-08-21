@@ -272,6 +272,9 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,return_as_vector=False)
+	
+	# temp - for testing, use unfiltere anomalies  
+	FA=AA
 
 	if E['variable'] == 'U':
 		variable_name = 'U'+str(E['levrange'][0])
@@ -290,7 +293,6 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 
 
 	# area averaging  the desired variable over the Indian Ocean reference point
-	#IOA = aave('IO',FA,lat,lon)
 	if (E['daterange'][0].month  >= 10) or (E['daterange'][0].month  <= 2):
 		season = 'winter'
 	else:
@@ -678,7 +680,7 @@ def aave(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
 	i2 = (np.abs(lon-lonrange[1])).argmin()	
 	j1 = (np.abs(lat-latrange[0])).argmin()	
 	j2 = (np.abs(lat-latrange[1])).argmin()	
-		
+
 	lat_out = lat[j1:j2+1]
 	lon_out = lon[i1:i2+1]
 
@@ -699,13 +701,13 @@ def aave(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
 	
 	# average  
 	if averaging_dimension == "all":
-		FAave1 = np.nanmean(FA,axis=latdim,keepdims=True)
+		FAave1 = np.nanmean(FAsel,axis=latdim,keepdims=True)
 		FAave2 = np.nanmean(FAave1,axis=londim,keepdims=True)
 		FAave = np.squeeze(FAave2)
 	if averaging_dimension == "lat": # meridional mean only
-		FAave = nanmean(FA,axis=latdim)
+		FAave = nanmean(FAsel,axis=latdim)
 	if averaging_dimension == "lon": # zonal mean only
-		FAave = nanmean(FA,axis=londim)
+		FAave = nanmean(FAsel,axis=londim)
 
 	return lat_out,lon_out,FAave
 
@@ -741,6 +743,8 @@ def averaging_regions(region,season,variable):
 		if region is 'IO':  
 			if (variable in precip_variables):
 				latrange = [-10,5]
+				# TEMP - make this -10 to 10 to test correlations 
+				latrange = [-10,10]
 				lonrange = [75,100]
 			if (variable == 'U850'):
 				latrange = [-16.25,-1.25]
