@@ -121,7 +121,7 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 	plt.xlabel('RMM1')
 	plt.ylabel('RMM2')
 
-def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True,hostname="taurus"):
+def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus"):
 
 	"""
 	 given a certain experiment or dataset over a certain daterange, 
@@ -139,7 +139,7 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',cbar=True
 	"""
 
 	# load the correlation field 
-	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what)
+	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what,filter_order=filter_order)
 
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
@@ -251,7 +251,7 @@ def variance_maps(E,climatology_option = 'NODA',hostname='taurus',verbose=False)
 
 	return VV,lat,lon
 
-def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='NODA',hostname='taurus',verbose=False):
+def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',filter_order=50,climatology_option='NODA',hostname='taurus',verbose=False):
 
 	"""
 	compute correlations between U850 or OLR in a reference are and everywhere else, 
@@ -271,7 +271,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',climatology_option='
 	anomalies,climatology,lat,lon,lev = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
-	AA,FA = filter(anomalies,return_as_vector=False)
+	AA,FA = filter(anomalies,filter_order,return_as_vector=False)
 	
 	if E['variable'] == 'U':
 		variable_name = 'U'+str(E['levrange'][0])
@@ -570,13 +570,15 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 	return AA,XclimT,lat,lon,lev
 
-def filter(daily_anomalies,return_as_vector = True):
+def filter(daily_anomalies,filter_order = 50, return_as_vector = True):
 
 	"""
  	given 3D or 2D anomaly fields (e.g. of zonal wind)
 	apply a Lanczos filter to isolate the 20-100 day MJO signal 
 
 	note that here the input data have to have DAILY resolution  
+
+	input filter_order gives the order of the Lanczos Filter - it's defaults is 50 , for a 201-point filter (not sure about this yet-- need to check)  
 	"""
 
 	# turn the anomaly field into a vectors in time 
@@ -591,7 +593,7 @@ def filter(daily_anomalies,return_as_vector = True):
 
 	f_low = 0.01		# 100 days
 	f_high = 0.05		# 20 days 
-	n = 50 # 201-point filter (??)
+	n = filter_order  
 
 	fil = LF.LanczosFilter("bp",f_low,f_high,n)
 
