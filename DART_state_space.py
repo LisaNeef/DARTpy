@@ -1791,7 +1791,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
 		from MJO import ano,stds
 		climatology_option = E['diagn'].split('.')[1]
-		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+		AA,Xclim,lat,lon,lev,new_daterange = ano(E,climatology_option,hostname,debug)	
 		if 'climatology' in E['diagn']:
 			Vmatrix = Xclim
 		if 'anomaly' in E['diagn']:
@@ -1799,8 +1799,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		if 'climatological_std' in E['diagn']:
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
-		# TODO: make ano and stds shorten the daterange for when there are files missing  
-		new_daterange=None
 
 	else:
 		# for all other diagnostics, loop over dates given in the experiment dictionary and load the desired data  

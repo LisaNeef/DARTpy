@@ -538,6 +538,9 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	if len(DR) != E['daterange']:
 		print('Changing the experiment daterange to the dates found for the requested climatology')
 		E['daterange'] = DR
+		d1 = DR[0].strftime("%Y-%m-%d")
+		d2 = DR[len(E['daterange'])-1].strftime("%Y-%m-%d")
+		print('new daterange goes from '+d1+' to '+d2)
 
 	# some climatologies are only available at daily resolution, so 
 	# in that case we have to change the daterange in E to be daily  
@@ -575,7 +578,7 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		XclimT = Xclim.reshape(XX.shape)
 		AA = XX-XclimT
 
-	return AA,XclimT,lat,lon,lev
+	return AA,XclimT,lat,lon,lev,DR
 
 def filter(daily_anomalies,filter_order = 50, return_as_vector = True):
 
