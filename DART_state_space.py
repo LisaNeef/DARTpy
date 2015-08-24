@@ -235,10 +235,9 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	if colorbar_label is not None:
 		CB.set_label(colorbar_label)
 
-        plt.xlabel('time')
-        plt.ylabel('Pressure (hPa)')
-	plt.yscale('log')
 	plt.gca().invert_yaxis()
+        plt.ylabel('Time')
+        plt.xlabel('Longitude')
 	plt.axis('tight')
 	return CB,cs,M
 
