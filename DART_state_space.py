@@ -32,28 +32,10 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	INPUTS:  
 	log_levels: a list of the (logarithmic) levels to draw the contours on. If set to none, just draw regular linear levels. 
-
 	"""
 
-	# if plotting a climatology field, the climatological standard deviation,
-	#  or an anomaly with respect to climatology, 
-	# use the ano subroutine from the MJO module, which will call DART_diagn_to_array  
-
-	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
-		from MJO import ano,stds
-		climatology_option = E['diagn'].split('.')[1]
-		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
-		if 'climatology' in E['diagn']:
-			Vmatrix = Xclim
-		if 'anomaly' in E['diagn']:
-			Vmatrix = AA
-		if 'climatological_std' in E['diagn']:
-			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
-			Vmatrix = S.reshape(AA.shape)
-		
-	else:
-		# otherwise, go directly to DART_diagn_to_array  
-		Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# turn the requested diagnostic into an array 
+	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is time
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -66,20 +48,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
-			from MJO import ano,stds
-			climatology_option = Ediff['diagn'].split('.')[1]
-			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
-			if 'climatology' in Ediff['diagn']:
-				Vmatrix = Xclim
-			if 'anomaly' in Ediff['diagn']:
-				Vmatrix = AA
-			if 'climatological_std' in E['diagn']:
-				S,lat,lon,lev = stds(Ediff,climatology_option,hostname,debug)	
-				Vmatrix = S.reshape(AA.shape)
-		else:
-			Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
+		Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 		# average over vertical levels  if the variable is 3D
 		if (len(np.squeeze(VV).shape)==2):
@@ -160,7 +129,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
 
-def plot_diagnostic_hovmoeller(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
 	"""
 	plot a given state-space diagnostic on a Hovmoeller plot, i.e. with time on the y-axis and 
@@ -176,85 +145,54 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,projection='miller',clim=None,cbar='
 
 	"""
 
-
-	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
-		from MJO import ano,stds
-		climatology_option = E['diagn'].split('.')[1]
-		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
-		if 'climatology' in E['diagn']:
-			Vmatrix = Xclim
-		if 'anomaly' in E['diagn']:
-			Vmatrix = AA
-		if 'climatological_std' in E['diagn']:
-			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
-			Vmatrix = S.reshape(AA.shape)
-		
 	# generate an array from the requested diagnostic  
-	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-	# average over the last dimension, which is time
-	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+	# find the latidue dimension and average over it
+	shape_tuple = Vmatrix.shape
+	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+		if dimlength == len(lat):
+			latdim = ii
+	Mlat = np.nanmean(Vmatrix,axis=latdim)
 
-	# average over vertical levels  if the variable is 3D
-	if (len(np.squeeze(VV).shape)==2):
-		M1 = np.squeeze(VV)
+	# if it's a 3d variable, also average over the selected level range  
+	if lev is not None:
+		shape_tuple_2 = Mlat.shape
+		for dimlength,ii in zip(shape_tuple_2,range(len(shape_tuple_2))):
+			if dimlength == len(lev):
+				levdim = ii
+		M1 = np.nanmean(Mlat,axis=levdim)
 	else:
-		M1 = np.mean(VV,axis=2)
+		M1 = Mlat
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
-			from MJO import ano,stds
-			climatology_option = Ediff['diagn'].split('.')[1]
-			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
-			if 'climatology' in Ediff['diagn']:
-				Vmatrix = Xclim
-			if 'anomaly' in Ediff['diagn']:
-				Vmatrix = AA
-			if 'climatological_std' in E['diagn']:
-				S,lat,lon,lev = stds(Ediff,climatology_option,hostname,debug)	
-				Vmatrix = S.reshape(AA.shape)
-		else:
-			Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-		# average over vertical levels  if the variable is 3D
-		if (len(np.squeeze(VV).shape)==2):
-			M2 = np.squeeze(VV)
+		# find the latidue dimension and average over it
+		shape_tuple = Vmatrix.shape
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lat):
+				latdim = ii
+		Mlat = np.nanmean(Vmatrix,axis=latdim)
+
+		# if it's a 3d variable, also average over the selected level range  
+		if lev is not None:
+			shape_tuple_2 = Mlat.shape
+			for dimlength,ii in zip(shape_tuple_2,range(len(shape_tuple_2))):
+				if dimlength == len(lev):
+					levdim = ii
+			M2 = np.nanmean(Mlat,axis=levdim)
 		else:
-			M2 = np.mean(VV,axis=2)
+			M2 = Mlat
+
 		# subtract the difference field out from the primary field  
 		M = M1-M2
 	else:
 		M = M1
 
- 	# set up a map projection
-	if projection == 'miller':
-		maxlat = np.min([E['latrange'][1],90.0])
-		minlat = np.max([E['latrange'][0],-90.0])
-		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
-			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
-	if projection == 'polar-stereog':
-		map = Basemap(projection='npstere',boundinglat=0,lon_0=0,resolution='l')
-	if projection == 'polar-stereog-SH':
-		map = Basemap(projection='spstere',boundinglat=0,lon_0=90,resolution='l')
-	if projection == None:
-		map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
-
-        # draw coastlines, country boundaries, fill continents.
-	coastline_width = 0.25
-	if projection == 'miller':
-		coastline_width = 1.0
-        map.drawcoastlines(linewidth=coastline_width)
-		
-
-        # draw lat/lon grid lines every 30 degrees.
-        map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
-        map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
-
-        # compute native map projection coordinates of lat/lon grid.
-        X,Y = np.meshgrid(lon,lat)
-        x, y = map(X, Y)
+	#---plot settings----------------
+	time = E['daterange']
 
         # choose color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
@@ -272,32 +210,38 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,projection='miller',clim=None,cbar='
 	else:
 		L  = np.linspace(start=0,stop=clim,num=11)
 
+        # contour plot 
+        cs = plt.contourf(lon,time,M,L,cmap=cmap,extend="both")
 
-        # contour data over the map.
-	if (projection == 'ortho') or (projection == 'polar-stereog') or (projection == 'polar-stereog-SH'):
-		if log_levels is not None:
-			cs = map.contourf(x,y,M, norm=mpl.colors.LogNorm(vmin=log_levels[0],vmax=log_levels[len(log_levels)-1]),levels=log_levels,cmap=cmap)
-		else:
-			cs = map.contourf(x,y,M,levels=L,cmap=cmap,extend="both")
-	if projection is 'miller':
-		#cs = map.contourf(x,y,M,len(colors)-1,cmap=cmap,extend="both",vmin=-clim,vmax=clim)
-		cs = map.contourf(x,y,M,L,cmap=cmap,extend="both")
+	# date axis formatting 
+	if len(time)>30:
+		fmt = mdates.DateFormatter('%b-%d')
+		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+		plt.gca().xaxis.set_major_formatter(fmt)
+	else:
+		fmt = mdates.DateFormatter('%b-%d')
+		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+		plt.gca().xaxis.set_major_formatter(fmt)
+	#plt.xticks(rotation=45)
 
-	if (cbar is not None):
+	if cbar:
 		if (clim > 1000) or (clim < 0.001):
-			CB = plt.colorbar(cs, shrink=0.6, extend='both',format='%.1e', orientation=cbar)
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical',format='%.3f')
 		else:
-			CB = plt.colorbar(cs, shrink=0.6, extend='both', orientation=cbar)
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical')
+	else: 
+		CB = None
+
 	if colorbar_label is not None:
 		CB.set_label(colorbar_label)
 
-	else:
-		CB = None
-
-	# return the colorbar handle if available, so we can adjust it later
+        plt.xlabel('time')
+        plt.ylabel('Pressure (hPa)')
+	plt.yscale('log')
+	plt.gca().invert_yaxis()
+	plt.axis('tight')
 	return CB,M
 
-#BINK
 
 def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False,colorbar_label=None):
 
@@ -1855,6 +1799,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
 		# TODO: make ano and stds shorten the daterange for when there are files missing  
+		new_daterange=None
 
 	else:
 		# for all other diagnostics, loop over dates given in the experiment dictionary and load the desired data  
