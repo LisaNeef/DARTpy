@@ -514,6 +514,9 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		else:
 			Xclim = VV[day_indices,j1:j2+1,i1:i2+1]
 
+		# in this case, we don't need to change the daterange  
+		DRnew = E['daterange']
+
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
 		return None, None, None, None
