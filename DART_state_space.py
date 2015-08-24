@@ -192,7 +192,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 		M = M1
 
 	#---plot settings----------------
-	time = E['daterange']
+	time = DRnew
 
         # choose color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
@@ -211,18 +211,18 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 		L  = np.linspace(start=0,stop=clim,num=11)
 
         # contour plot 
-        cs = plt.contourf(lon,time,M,L,cmap=cmap,extend="both")
+	MT = np.transpose(M)
+        cs = plt.contourf(lon,time,MT,L,cmap=cmap,extend="both")
 
 	# date axis formatting 
 	if len(time)>30:
 		fmt = mdates.DateFormatter('%b-%d')
-		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		plt.gca().xaxis.set_major_formatter(fmt)
+		plt.gca().yaxis.set_major_locator(mdates.AutoDateLocator())
+		plt.gca().yaxis.set_major_formatter(fmt)
 	else:
 		fmt = mdates.DateFormatter('%b-%d')
-		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		plt.gca().xaxis.set_major_formatter(fmt)
-	#plt.xticks(rotation=45)
+		plt.gca().yaxis.set_major_locator(mdates.AutoDateLocator())
+		plt.gca().yaxis.set_major_formatter(fmt)
 
 	if cbar:
 		if (clim > 1000) or (clim < 0.001):
@@ -240,7 +240,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
 	plt.axis('tight')
-	return CB,M
+	return CB,cs,M
 
 
 def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False,colorbar_label=None):

@@ -864,14 +864,14 @@ def climate_index_dictionaries(index_name):
 		print('returning generic experiment dictionary.')
 	return E
 
-def change_daterange_to_daily(daterange):
+def change_daterange_to_daily(DR):
 
 	"""
 	Change a DART experiment daterange to daily resolution  
 	"""
 
-	d0 = daterange[0]
-	df = daterange[len(daterange)-1]
+	d0 = DR[0]
+	df = DR[len(DR)-1]
 	days = df-d0
-	daterange_out = daterange(date_start=d0, periods=days.days+1, DT='1D')
-	return daterange_out  
+	DR_out = daterange(date_start=d0, periods=days.days+1, DT='1D')
+	return DR_out  
