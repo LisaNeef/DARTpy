@@ -888,8 +888,9 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,debug=False):
                 colors_sequential = True
 
 	# if any of the above turned on the sequential colormap but we are looking at anomalies or correlations, turn it back off  
-	if 'Correlation' in E['extras']:
-                colors_sequential = False
+	if E['extras'] is not None:
+		if 'Correlation' in E['extras']:
+			colors_sequential = False
 	if 'anomaly' in E['diagn']:
                 colors_sequential = False
 		
