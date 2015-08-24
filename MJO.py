@@ -451,7 +451,9 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		ECLIM['exp_name'] = 'W0910_NODA'
 		ECLIM['diagn'] = 'Prior'
 		ECLIM['copystring'] = 'ensemble mean'
-		Xclim,lat,lon,lev = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
+		Xclim,lat,lon,lev,DRnew = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
+		if len(DRnew) != len(ECLIM['daterange']):
+			print('NOTE: not all requested data were found; returning a revised datarange')
 		if Xclim is None:
 			print('Cannot find data for climatology option '+climatology_option+' and experiment '+E['exp_name'])
 			return None, None, None, None
@@ -516,7 +518,7 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
 		return None, None, None, None
 
-	return Xclim,lat,lon,lev
+	return Xclim,lat,lon,lev,DRnew
 
 def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
@@ -530,7 +532,12 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	"""
 
 	# load climatology 
-	Xclim,lat,lon,lev = load_climatology(E,climatology_option,hostname)
+	Xclim,lat,lon,lev,DR = load_climatology(E,climatology_option,hostname)
+
+	# change the daterange in the anomalies to suit what was found for climatology  
+	if len(DR) != E['daterange']:
+		print('Changing the experiment daterange to the dates found for the requested climatology')
+		E['daterange'] = DR
 
 	# some climatologies are only available at daily resolution, so 
 	# in that case we have to change the daterange in E to be daily  

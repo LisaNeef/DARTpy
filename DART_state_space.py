@@ -160,6 +160,145 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
 
+def plot_diagnostic_hovmoeller(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+
+	"""
+	plot a given state-space diagnostic on a Hovmoeller plot, i.e. with time on the y-axis and 
+	longitudeo on the x-axis.  
+	We can also plot the difference between two fields by specifying another list of Experiment
+	dictionaries called Ediff.  
+
+	To plot climatology fields or anomalies wrt climatology, make the field E['diagn'] 'climatology.XXX' or 'anomaly.XXX', 
+	where 'XXX' some option for loading climatologies accepted by the subroutine ano in MJO.py (see that code for options)
+
+	INPUTS:  
+	log_levels: a list of the (logarithmic) levels to draw the contours on. If set to none, just draw regular linear levels. 
+
+	"""
+
+
+	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+		from MJO import ano,stds
+		climatology_option = E['diagn'].split('.')[1]
+		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+		if 'climatology' in E['diagn']:
+			Vmatrix = Xclim
+		if 'anomaly' in E['diagn']:
+			Vmatrix = AA
+		if 'climatological_std' in E['diagn']:
+			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
+			Vmatrix = S.reshape(AA.shape)
+		
+	# generate an array from the requested diagnostic  
+	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# average over the last dimension, which is time
+	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+	# average over vertical levels  if the variable is 3D
+	if (len(np.squeeze(VV).shape)==2):
+		M1 = np.squeeze(VV)
+	else:
+		M1 = np.mean(VV,axis=2)
+
+	# if computing a difference to another field, load that here  
+	if (Ediff != None):
+		if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+			from MJO import ano,stds
+			climatology_option = Ediff['diagn'].split('.')[1]
+			AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+			if 'climatology' in Ediff['diagn']:
+				Vmatrix = Xclim
+			if 'anomaly' in Ediff['diagn']:
+				Vmatrix = AA
+			if 'climatological_std' in E['diagn']:
+				S,lat,lon,lev = stds(Ediff,climatology_option,hostname,debug)	
+				Vmatrix = S.reshape(AA.shape)
+		else:
+			Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+
+		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+		# average over vertical levels  if the variable is 3D
+		if (len(np.squeeze(VV).shape)==2):
+			M2 = np.squeeze(VV)
+		else:
+			M2 = np.mean(VV,axis=2)
+		# subtract the difference field out from the primary field  
+		M = M1-M2
+	else:
+		M = M1
+
+ 	# set up a map projection
+	if projection == 'miller':
+		maxlat = np.min([E['latrange'][1],90.0])
+		minlat = np.max([E['latrange'][0],-90.0])
+		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
+			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
+	if projection == 'polar-stereog':
+		map = Basemap(projection='npstere',boundinglat=0,lon_0=0,resolution='l')
+	if projection == 'polar-stereog-SH':
+		map = Basemap(projection='spstere',boundinglat=0,lon_0=90,resolution='l')
+	if projection == None:
+		map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
+
+        # draw coastlines, country boundaries, fill continents.
+	coastline_width = 0.25
+	if projection == 'miller':
+		coastline_width = 1.0
+        map.drawcoastlines(linewidth=coastline_width)
+		
+
+        # draw lat/lon grid lines every 30 degrees.
+        map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
+        map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
+
+        # compute native map projection coordinates of lat/lon grid.
+        X,Y = np.meshgrid(lon,lat)
+        x, y = map(X, Y)
+
+        # choose color map based on the variable in question
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
+
+	# specify the color limits 
+	if clim is None:
+		clim = np.nanmax(np.absolute(M))
+	if debug:
+		print('++++++clim+++++')
+		print(clim)
+
+	# set the contour levels - it depends on the color limits and the number of colors we have  
+	if cmap_type == 'divergent':
+		L  = np.linspace(start=-clim,stop=clim,num=11)
+	else:
+		L  = np.linspace(start=0,stop=clim,num=11)
+
+
+        # contour data over the map.
+	if (projection == 'ortho') or (projection == 'polar-stereog') or (projection == 'polar-stereog-SH'):
+		if log_levels is not None:
+			cs = map.contourf(x,y,M, norm=mpl.colors.LogNorm(vmin=log_levels[0],vmax=log_levels[len(log_levels)-1]),levels=log_levels,cmap=cmap)
+		else:
+			cs = map.contourf(x,y,M,levels=L,cmap=cmap,extend="both")
+	if projection is 'miller':
+		#cs = map.contourf(x,y,M,len(colors)-1,cmap=cmap,extend="both",vmin=-clim,vmax=clim)
+		cs = map.contourf(x,y,M,L,cmap=cmap,extend="both")
+
+	if (cbar is not None):
+		if (clim > 1000) or (clim < 0.001):
+			CB = plt.colorbar(cs, shrink=0.6, extend='both',format='%.1e', orientation=cbar)
+		else:
+			CB = plt.colorbar(cs, shrink=0.6, extend='both', orientation=cbar)
+	if colorbar_label is not None:
+		CB.set_label(colorbar_label)
+
+	else:
+		CB = None
+
+	# return the colorbar handle if available, so we can adjust it later
+	return CB,M
+
+#BINK
+
 def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False,colorbar_label=None):
 
 	daterange = E['daterange']
@@ -1702,53 +1841,69 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	any extra computations needed (E['extras'])  
 	"""
 
+	# if plotting anomalies from climatology, climatology, or a climatological standard deviation, 
+	# can load these using the `stds` and `ano` rubroutines in MJO.py  
+	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+		from MJO import ano,stds
+		climatology_option = E['diagn'].split('.')[1]
+		AA,Xclim,lat,lon,lev = ano(E,climatology_option,hostname,debug)	
+		if 'climatology' in E['diagn']:
+			Vmatrix = Xclim
+		if 'anomaly' in E['diagn']:
+			Vmatrix = AA
+		if 'climatological_std' in E['diagn']:
+			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
+			Vmatrix = S.reshape(AA.shape)
+		# TODO: make ano and stds shorten the daterange for when there are files missing  
 
-	# loop over dates given in the experiment dictionary and load the desired data  
-	Vlist = []
-	Vshape = None
-	for date in E['daterange']:
-
-		# for covariances and correlations
-		if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-			lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-			if E['diagn'].lower() == 'covariance':
-				V = Cov
-			if E['diagn'].lower() == 'correlation':
-				V = Corr
-
-		# for regular diagnostic, the file we retrieve depends on the variable in question  
-		else:
-			file_type_found = False
-			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
-				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
-			if E['variable'] == 'Nsq':
-				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
-	
-			# for all other variables, compute the diagnostic from model h files 
-			if not file_type_found:
-				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
-
-		# add the variable field just loaded to the list:
-		Vlist.append(V)
-
-		# store the dimensions of the array V one time 
-		if (V is not None) and (Vshape is None):
-			Vshape = V.shape
-
-	# if Vlist still has length 0, we didn't find any data -- abort 
-	if len(Vlist)==0:
-		d1 = E['daterange'][0].strftime("%Y-%m-%d")
-		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
-		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-		return None,None,None,None
 	else:
-		# first remove and Nones that might be in there  
-		Vlist2 = [V for V in Vlist if V is not None]
-		bad = [i for i, j in enumerate(Vlist) if j is None]
-		new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
+		# for all other diagnostics, loop over dates given in the experiment dictionary and load the desired data  
+		Vlist = []
+		Vshape = None
+		for date in E['daterange']:
 
-		# turn the list of variable fields into a matrix 
-		Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
-		return Vmatrix,lat,lon,lev,new_daterange
+			# for covariances and correlations
+			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
+				lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
+				if E['diagn'].lower() == 'covariance':
+					V = Cov
+				if E['diagn'].lower() == 'correlation':
+					V = Corr
+
+			# for regular diagnostic, the file we retrieve depends on the variable in question  
+			else:
+				file_type_found = False
+				if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
+					lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+					file_type_found = True
+				if E['variable'] == 'Nsq':
+					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+					file_type_found = True
+		
+				# for all other variables, compute the diagnostic from model h files 
+				if not file_type_found:
+					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+
+			# add the variable field just loaded to the list:
+			Vlist.append(V)
+
+			# store the dimensions of the array V one time 
+			if (V is not None) and (Vshape is None):
+				Vshape = V.shape
+
+			# if Vlist still has length 0, we didn't find any data -- abort 
+			if len(Vlist)==0:
+				d1 = E['daterange'][0].strftime("%Y-%m-%d")
+				d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+				print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+				Vmatrix = None
+			else:
+				# first remove and Nones that might be in there  
+				Vlist2 = [V for V in Vlist if V is not None]
+				bad = [i for i, j in enumerate(Vlist) if j is None]
+				new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
+
+				# turn the list of variable fields into a matrix 
+				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
+
+	return Vmatrix,lat,lon,lev,new_daterange
