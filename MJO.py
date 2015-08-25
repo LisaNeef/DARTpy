@@ -478,7 +478,7 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 		VV = f.variables[variable][:]
 		f.close()
 
-		# choose the daterange corresponding to the daterange in E
+		# choose the times corresponding to the daterange in E
 		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
 		nT = len(E['daterange'])
 		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
@@ -538,7 +538,7 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	Xclim,lat,lon,lev,DR = load_climatology(E,climatology_option,hostname)
 
 	# change the daterange in the anomalies to suit what was found for climatology  
-	if len(DR) != E['daterange']:
+	if len(DR) != len(E['daterange']):
 		print('Changing the experiment daterange to the dates found for the requested climatology')
 		E['daterange'] = DR
 		d1 = DR[0].strftime("%Y-%m-%d")
@@ -571,17 +571,33 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		print(E['variable'])
 
 	# compute anomalies:
-	# the daily climatology should be a matrix of hape lat x lon x time
-	# so we turn the model fields into another matrix and simply subtract the two  
+	# for this we turn the model fields into a matrix and subtract from the climatology
 	XX = np.concatenate([X[..., np.newaxis] for X in Xlist], axis=len(Xs.shape))
 	if climatology_option == None:
 		AA = XX
 	else:
-		# transpose the climatology to be the same shape as the model fields 
-		XclimT = Xclim.reshape(XX.shape)
-		AA = XX-XclimT
+		# if the climatology does not have shape lat x lon x lev x time, 
+		# run swapaxes 2x to get it as such  
+		# NOTE: this is still a kludge and probably wont work with all datasets - check this carefully 
+		# with your own data 
+		XclimS = np.squeeze(Xclim)
+		nT = len(DR)
+		lastdim = len(XclimS.shape)-1
+		for s,ii in zip(XclimS.shape,range(len(XclimS.shape))):
+			if s == nT:
+				time_dim = ii
+		# if time is the last dimension, don't need to reshape Xclim 
+		if time_dim == lastdim: 
+			XclimR = XclimS
+		# if time is the first dimension, need to reshape Xclim
+		if time_dim == 0:	
+			Xclim2 = XclimS.swapaxes(0,lastdim)
+			XclimR = Xclim2.swapaxes(0,1)
 
-	return AA,XclimT,lat,lon,lev,DR
+
+		AA = XX-XclimR
+
+	return AA,XclimR,lat,lon,lev,DR
 
 def filter(daily_anomalies,filter_order = 50, return_as_vector = True):
 

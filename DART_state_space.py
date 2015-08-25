@@ -156,7 +156,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	Mlat = np.nanmean(Vmatrix,axis=latdim)
 
 	# if it's a 3d variable, also average over the selected level range  
-	if lev is not None:
+	if len(shape_tuple) > 3: 
 		shape_tuple_2 = Mlat.shape
 		for dimlength,ii in zip(shape_tuple_2,range(len(shape_tuple_2))):
 			if dimlength == len(lev):
@@ -224,21 +224,21 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 		plt.gca().yaxis.set_major_locator(mdates.AutoDateLocator())
 		plt.gca().yaxis.set_major_formatter(fmt)
 
-	if cbar:
+	if cbar is not None:
 		if (clim > 1000) or (clim < 0.001):
-			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical',format='%.3f')
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.3f')
 		else:
-			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical')
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
 	else: 
 		CB = None
 
 	if colorbar_label is not None:
 		CB.set_label(colorbar_label)
 
-	plt.gca().invert_yaxis()
+	#plt.gca().invert_yaxis()
         plt.ylabel('Time')
         plt.xlabel('Longitude')
-	plt.axis('tight')
+	#plt.axis('tight')
 	return CB,cs,M
 
 
