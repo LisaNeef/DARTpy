@@ -121,7 +121,7 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 	plt.xlabel('RMM1')
 	plt.ylabel('RMM2')
 
-def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus",debug=False):
+def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus",debug=False):
 
 	"""
 	 given a certain experiment or dataset over a certain daterange, 
@@ -136,10 +136,11 @@ def plot_correlations_lag_lat_or_lon(E,maxlag=25,lag_versus_what='lon',filter_or
 	lag_versus_what: choose 'lat' or 'lon'  
 	cbar: set to True to have a colorbar  
 	hostname: computer name - default is Taurus  
+	climatology_option: choose which climatology to take the anomalies to respect with -- default is "NODA"  
 	"""
 
 	# load the correlation field 
-	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what,filter_order=filter_order,verbose=debug)
+	R,S,L,x = correlations_lag_lat_or_lon(E,maxlag,lag_versus_what,filter_order,climatology_option,hostname=hostname,verbose=debug)
 
         # choose color map based on the variable in question
 	E['extras'] = 'Correlation'
@@ -398,7 +399,7 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 			variable_name = Etemp['variable']
 
 		# load variable anomaly field for each variable
-		anomalies,climatology,lat,lon,lev = ano(Etemp,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
+		anomalies,climatology,lat,lon,lev,DRnew = ano(Etemp,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
 		if anomalies is None:
 			print('not enough data to compute RMM index -- returning')
 			return None
