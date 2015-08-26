@@ -269,7 +269,7 @@ def correlations_lag_lat_or_lon(E,maxlag,lat_or_lon = 'lon',filter_order=50,clim
 	E['daterange'] = dart.change_daterange_to_daily(E['daterange'])
 
 	# compute or load the daily climatology and deviation from climatology  
-	anomalies,climatology,lat,lon,lev = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
+	anomalies,climatology,lat,lon,lev,DRnew = ano(E,climatology_option = climatology_option,hostname=hostname,verbose=verbose)
 
 	# filter daily anomalies using a Lanczos filter
 	AA,FA = filter(anomalies,filter_order,return_as_vector=False)
