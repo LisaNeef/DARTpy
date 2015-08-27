@@ -158,10 +158,11 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 
 		# if loading low-pass filtered data, several times are in one file -- choose the first.  
 		# (It shouldn't matter because we filtered fast stuff anyway)  
-		if len(VV.shape)==3:
-			Vout = VV[0,j1:j2+1,i1:i2+1]	
-		if len(VV.shape)==4:
-			Vout = VV[0,k1:k2+1,j1:j2+1,i1:i2+1]
+		if (special_flag == 'lowpass6day'):
+			if len(VV.shape)==3:
+				Vout = VV[0,j1:j2+1,i1:i2+1]	
+			if len(VV.shape)==4:
+				Vout = VV[0,k1:k2+1,j1:j2+1,i1:i2+1]
 
 	# for file not found 
 	else:
