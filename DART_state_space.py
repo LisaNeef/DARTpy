@@ -1533,6 +1533,33 @@ def read_aefs_from_csv_to_dataframe(E=dart.basic_experiment_dict(), hostname='ta
 
 	return(DF)
 
+def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',verbose=True):
+
+	"""
+	For a given experiment dictionary and datetime, load the transformed Eulerian mean (TEM) 
+	diagnostics 
+	corresponging to the desired DART diagnostic.  
+
+	This code is designed to read in TEM diagnostics computed by Wuke Wang, GEOMAR Kiel 
+	"""
+	# load the file corresponding to the desired date 
+	X,lat,lev = tem.load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname=hostname,verbose=verbose)
+	CS = E['copystring']
+
+	# if the diagnostic is a single ensemble member, simply choose it out of the array and return 
+	if 'ensemble member' in CS:
+		ensindex = re.sub(r'ensemble member*','',CS).strip()
+		Dout = np.squeeze(X[:,:,:,ensindex-1])	
+	
+	# can also compute simple ensemble statistics: mean, standard deviation, etc (other still need to be added)
+	if CS == 'ensemble mean':
+		Dout = np.mean(X,axis=3)
+	if CS == 'ensemble std':
+		Dout = np.std(X,axis=3)
+		
+
+	return Dout
+
 def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbose=True):
 
 	# compute ensemble mean or spread, or just retrieve an ensemble member  
@@ -1570,28 +1597,6 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 			datestr = datetime_in.strftime("%Y-%m-%d")
 			if verbose:
 				print("filling in None for experiment "+E['exp_name']+', instance '+str(instance)+', and date '+datestr)
-
-
-	# if ensemble spread, loop over all ensemble members 
-	if (CS=='ensemble spread'):
-		N = dart.get_ensemble_size_per_run(E['exp_name'])
-		Xlist = []
-		for n in range(N):
-			instance = n+1
-			X,lat,lon,lev = waccm.load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname=hostname,verbose=verbose)
-			if X is not None:
-				Xs = np.squeeze(X)
-				Xlist.append(Xs)
-		XX = np.concatenate([X[..., np.newaxis] for X in Xlist], axis=len(Xs.shape))
-
-		if (CS=='ensemble mean'):
-			# to get the mean, just average over the last dimension, which is the ensemble index
-			Xout = np.average(XX,axis=len(XX.shape)-1)
-
-		if (CS=='ensemble spread'):
-			# to get the spread, just take the standard dev over the last dimension, which is the ensemble index
-			Xout = np.std(XX,axis=len(XX.shape)-1)
-
 
 	return Xout,lat,lon,lev
 
