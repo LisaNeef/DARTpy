@@ -1533,7 +1533,7 @@ def read_aefs_from_csv_to_dataframe(E=dart.basic_experiment_dict(), hostname='ta
 
 	return(DF)
 
-def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',verbose=True):
+def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug=False):
 
 	"""
 	For a given experiment dictionary and datetime, load the transformed Eulerian mean (TEM) 
@@ -1542,23 +1542,26 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',verbo
 
 	This code is designed to read in TEM diagnostics computed by Wuke Wang, GEOMAR Kiel 
 	"""
+
+	import TEM as tem
+
 	# load the file corresponding to the desired date 
-	X,lat,lev = tem.load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname=hostname,verbose=verbose)
+	X,lat,lev = tem.load_Wang_TEM_file(E,datetime_in,hostname=hostname,verbose=debug)
 	CS = E['copystring']
 
 	# if the diagnostic is a single ensemble member, simply choose it out of the array and return 
 	if 'ensemble member' in CS:
 		ensindex = re.sub(r'ensemble member*','',CS).strip()
-		Dout = np.squeeze(X[:,:,:,ensindex-1])	
+		Dout = np.squeeze(X[:,:,:,int(ensindex)-1])	
 	
 	# can also compute simple ensemble statistics: mean, standard deviation, etc (other still need to be added)
 	if CS == 'ensemble mean':
-		Dout = np.mean(X,axis=3)
+		Dout = np.squeeze(np.mean(X,axis=3))
 	if CS == 'ensemble std':
-		Dout = np.std(X,axis=3)
+		Dout = np.squeeze(np.std(X,axis=3))
 		
 
-	return Dout
+	return Dout,lat,lev
 
 def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbose=True):
 
@@ -1821,9 +1824,23 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			# for regular diagnostic, the file we retrieve depends on the variable in question  
 			else:
 				file_type_found = False
-				if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
+				# here are the different categories of variables:
+				# TODO: subroutine that reads the control variables specific to each model/experiment
+				dart_control_variables_list = ['US','VS','T','PS']
+				tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
+
+				# DART control variables are in the Prior_Diag and Posterior_Diag files 
+				if E['variable'] in dart_control_variables_list:
 					lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
+
+				# transformed Eulerian mean diagnostics have their own routine 
+				if E['variable'] in tem_variables_list:
+					V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+					lon = None
+					file_type_found = True
+
+				# another special case is buoyancy frequency -- this is computed in a separate routine 
 				if E['variable'] == 'Nsq':
 					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
