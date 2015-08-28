@@ -17,6 +17,7 @@ import ERP as erp
 import WACCM as waccm
 import re
 import ERA as era
+import TEM as tem
 
 def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
@@ -1616,48 +1617,22 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	# TODO: call subroutine 'DART-diagn_to_array' which does the below also
-	# loop over dates given in the experiment dictionary and load the desired data  
-	Vlist = []
-	for date in E['daterange']:
-
-		# for covariances and correlations
-		if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-			lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-			if E['diagn'].lower() == 'covariance':
-				V = Cov
-			if E['diagn'].lower() == 'correlation':
-				V = Corr
-
-		# for regular diagnostic, the file we retrieve depends on the variable in question  
-		else:
-			file_type_found = False
-			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
-				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
-			if E['variable'] == 'Nsq':
-				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
-	
-			# for all other variables, compute the diagnostic from model h files 
-			if not file_type_found:
-				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
-
-		# add the variable field just loaded to the list:
-		Vlist.append(V)
-
-	# turn the list of variable fields into a matrix 
-	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
+	# load the desired DART diagnostic for the desired variable and daterange:
+	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# and average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 	# figure out which dimension is longitude and then average over that dimension 
+	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
 	shape_tuple = VV.shape
-	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-		if dimlength == len(lon):
-			londim = ii
-	M1 = np.squeeze(np.mean(VV,axis=londim))
+	if lon is not None:
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lon):
+				londim = ii
+		M1 = np.squeeze(np.mean(VV,axis=londim))
+	else:
+		M1 = np.squeeze(VV)
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
