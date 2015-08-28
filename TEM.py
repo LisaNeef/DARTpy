@@ -7,7 +7,7 @@
 import os.path
 from netCDF4 import Dataset
 
-def load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname='taurus',verbose=False):
+def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 	"""
 	Load the file of TEM diagnostics computed for a certain experiment and a 
@@ -18,7 +18,6 @@ def load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname='taurus',verbose=F
 	Inputs:  
 	E		: experiment dictionary 
 	datetime_in  	: datetime.datetime object for the file to load 
-	ensemble_member	: number of the ensemble member to load 
 	hostname	: default is taurus  
 	verbose		: default is False  
 
@@ -51,6 +50,9 @@ def load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname='taurus',verbose=F
 				print('Unable to find variable '+E['variable']+' in file '+ff)
 		f.close()
 
+		# bad flag is -999 -- turn it into np.nan
+		VV[VV==-999.]=np.nan
+
 		# select the vertical and lat ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it
 		# TODO: make this an external subroutine 
@@ -79,9 +81,9 @@ def load_Wang_TEM_file(E,datetime_in,ensemble_member,hostname='taurus',verbose=F
 			lat2 = lat[j1:j2+1]
 
 
-		# now select the relevant lat, lon, and lev regions 
+		# now select the relevant lat and lev regions 
 		# All the variables in Wuke's files have shape time x lev x lat x ensemble_member 
-		Vout = VV[:,k1:k2+1,j1:j2+1,ensemble_member-1]
+		Vout = VV[:,k1:k2+1,j1:j2+1,:]
 		
 	# for file not found 
 	else:
