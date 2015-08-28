@@ -1636,27 +1636,18 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		Vlist = []
-		for date in E['daterange']:
 
-			file_type_found = False
-			if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'PS') or (E['variable'] == 'T'):
-				lev2,lat2,lon2,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-				file_type_found = True
-			if E['variable'] == 'Nsq':
-				V,lat2,lon2,lev2 = Nsq(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
-			if not file_type_found:
-				V,lat2,lon2,lev2 = compute_DART_diagn_from_model_h_files(Ediff,date,hostname=hostname,verbose=debug)
-			# add the variable field just loaded to the list:
-			Vlist.append(V)
+		# load the desired DART diagnostic for the difference experiment dictionary
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 
-		# turn the list of variable fields into a matrix and average over the last dimension, which is time
-		Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist], axis=len(V.shape))
+		# average over time 
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 		# average over longitudes 
-		M2 = np.squeeze(np.mean(VV,axis=londim))
+		if lon is not None:
+			M2 = np.squeeze(np.mean(VV,axis=londim))
+		else:
+			M2 = np.squeeze(VV)
 
 		# subtract the difference field out from the primary field  
 		M = M1-M2
