@@ -1557,9 +1557,9 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 	
 	# can also compute simple ensemble statistics: mean, standard deviation, etc (other still need to be added)
 	if CS == 'ensemble mean':
-		Dout = np.squeeze(np.mean(X,axis=3))
+		Dout = np.squeeze(np.nanmean(X,axis=3))
 	if CS == 'ensemble std':
-		Dout = np.squeeze(np.std(X,axis=3))
+		Dout = np.squeeze(np.nanstd(X,axis=3))
 		
 
 	return Dout,lat,lev
