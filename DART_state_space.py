@@ -1660,12 +1660,12 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
-		#clim = np.nanmax(np.absolute(M))
 		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
+
 	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=len(colors))
+		L  = np.linspace(start=-clim,stop=clim,num=11)
 	else:
-		L  = np.linspace(start=0,stop=clim,num=len(colors))
+		L  = np.linspace(start=0,stop=clim,num=11)
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(lat):
