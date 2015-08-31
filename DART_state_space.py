@@ -1839,7 +1839,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",clim=None,hostname='taurus',log_levels=True,debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',hostname='taurus',log_levels=True,debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -1854,7 +1854,6 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
-
 
 	# load the timeseries of data from either reanalysis (ERA-Interim) or DART  
 	# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
@@ -1924,7 +1923,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		M = M1
 
         # plot the profile 
-        cs = plt.plot(M,lev,color=color)
+        cs = plt.plot(M,lev,color=color,linestyle=linestyle)
 
         plt.ylabel('Level (hPa)')
 	if log_levels:
