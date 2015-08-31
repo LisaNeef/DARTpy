@@ -1838,3 +1838,100 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
 
 	return Vmatrix,lat,lon,lev,new_daterange
+
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',log_levels=True,debug=False):
+
+	"""
+	Plot a vertical profile of some DART diagnostic / variable, 
+	averaged over the date, latitude, and longitude ranges given in the 
+	experiment dictionary 
+	"""
+
+
+	daterange = E['daterange']
+
+	# throw an error if the desired variable is 2 dimensional 
+	if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
+		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
+		return
+
+
+	# load the timeseries of data from either reanalysis (ERA-Interim) or DART  
+	# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
+	if E['exp_name'] == 'ERA':
+		M0,t,lat,lon,lev = era.retrieve_era_averaged(E,average_levels=False,hostname=hostname,verbose=debug)
+		Vmatrix = np.transpose(M0)	
+
+	else:
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# average over the last dimension, which is always time (by how we formed this array) 
+	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+	# find the latidue and longitude dimensions and average 
+	shape_tuple = VV.shape
+	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+		if lat is not None:
+			if dimlength == len(lat):
+				latdim = ii
+		if lon is not None:
+			if dimlength == len(lon):
+				londim = ii
+	if lat is not None:
+		Mlat = np.nanmean(VV,axis=latdim)
+	else:
+		Mlat = VV
+	if lon is not None:
+		M1 = np.nanmean(Mlat,axis=latdim)
+	else:
+		M1 = Mlat
+
+
+	# repeat everything for the difference experiment
+	if (Ediff != None):
+		# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
+		if Ediff['exp_name'] == 'ERA':
+			M0,t,lat,lon,lev = era.retrieve_era_averaged(Ediff,average_levels=False,hostname=hostname,verbose=debug)
+			Vmatrix = np.transpose(M0)	
+
+		else:
+			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+
+		# average over the last dimension, which is always time (by how we formed this array) 
+		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+		# find the latidue and longitude dimensions and average 
+		shape_tuple = VV.shape
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if lat is not None:
+				if dimlength == len(lat):
+					latdim = ii
+			if lon is not None:
+				if dimlength == len(lon):
+					londim = ii
+		if lat is not None:
+			Mlat = np.nanmean(VV,axis=latdim)
+		else:
+			Mlat = VV
+		if lon is not None:
+			M2 = np.nanmean(Mlat,axis=latdim)
+		else:
+			M2 = Mlat
+		
+		# take the difference
+		M = M1-M2
+
+
+        # if no input color given, make it black
+	if color is None:
+		color = "#000000"
+
+        # plot the profile 
+        cs = plt.plot(lev,M,color=color)
+
+        plt.ylabel('Level (hPa)')
+	if log_levels:
+		plt.yscale('log')
+	plt.gca().invert_yaxis()
+	plt.axis('tight')
+	return M
