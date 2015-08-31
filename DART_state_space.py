@@ -1923,11 +1923,15 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		M = M1
 
         # plot the profile 
-        cs = plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth)
+        plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'])
 
+	# improve axes and labels
+	ax = plt.gca()
+	xlim = ax.get_xlim()[1]
+	ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
         plt.ylabel('Level (hPa)')
 	if log_levels:
 		plt.yscale('log')
 	plt.gca().invert_yaxis()
-	plt.axis('tight')
+	#plt.axis('tight')
 	return M
