@@ -1839,7 +1839,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',log_levels=True,debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",clim=None,hostname='taurus',log_levels=True,debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -1920,14 +1920,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		
 		# take the difference
 		M = M1-M2
-
-
-        # if no input color given, make it black
-	if color is None:
-		color = "#000000"
+	else:
+		M = M1
 
         # plot the profile 
-        cs = plt.plot(lev,M,color=color)
+        cs = plt.plot(M,lev,color=color)
 
         plt.ylabel('Level (hPa)')
 	if log_levels:
