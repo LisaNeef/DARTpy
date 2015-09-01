@@ -1839,7 +1839,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,hostname='taurus',log_levels=True,debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',log_levels=True,debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -1923,7 +1923,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		M = M1
 
         # plot the profile 
-        plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'])
+        plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# improve axes and labels
 	ax = plt.gca()
