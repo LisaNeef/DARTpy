@@ -19,7 +19,7 @@ import re
 import ERA as era
 import TEM as tem
 
-def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False):
 
 	"""
 	plot a given state-space diagnostic on a given calendar day and for a given variable 
@@ -36,7 +36,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	"""
 
 	# turn the requested diagnostic into an array 
-	Vmatrix,lat,lon,lev = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is time
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -49,7 +49,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
-		Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 		# average over vertical levels  if the variable is 3D
 		if (len(np.squeeze(VV).shape)==2):
@@ -68,9 +68,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
 	if projection == 'polar-stereog':
-		map = Basemap(projection='npstere',boundinglat=0,lon_0=0,resolution='l')
+		map = Basemap(projection='npstere',boundinglat=E['latrange'][0],lon_0=0,resolution='l')
 	if projection == 'polar-stereog-SH':
-		map = Basemap(projection='spstere',boundinglat=0,lon_0=90,resolution='l')
+		map = Basemap(projection='spstere',boundinglat=E['latrange'][0],lon_0=90,resolution='l')
 	if projection == None:
 		map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
 
@@ -90,7 +90,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
         x, y = map(X, Y)
 
         # choose color map based on the variable in question
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
 
 	# specify the color limits 
 	if clim is None:
@@ -127,8 +127,8 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	else:
 		CB = None
 
-	# return the colorbar handle if available, so we can adjust it later
-	return CB,M
+	# return the colorbar handle if available, the map handle, and the data
+	return CB,map,M
 
 def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
