@@ -486,9 +486,9 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 
 		# if df<d0, we have to cycle back to the beginning of the year
 		if df < d0:
-			day_indices = range(d0,365)+range(0,df+1)
+			day_indices = range(d0,365)+range(0,df)
 		else:
-			day_indices = range(d0,df+1)
+			day_indices = range(d0,df)
 
 		# also choose the lat, lon, and level ranges corresponding to those in E
 		if E['levrange'] is not None:
