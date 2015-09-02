@@ -35,6 +35,19 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	log_levels: a list of the (logarithmic) levels to draw the contours on. If set to none, just draw regular linear levels. 
 	"""
 
+	# if plotting a polar stereographic projection, it's better to return all lats and lons, and then 
+	# cut off the unwanted regions with map limits -- otherwise we get artifical circles on a square map
+	if (projection == 'polar-stereog'): 
+		lat0 = E['latrange'][0]
+		E['latrange'] = [-90,90]
+		E['lonrange'] = [0,360]
+
+	if (projection == 'polar-stereog-SH'):
+		lat0 = E['latrange'][1]
+		E['latrange'] = [-90,90]
+		E['lonrange'] = [0,360]
+
+
 	# turn the requested diagnostic into an array 
 	Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
@@ -68,9 +81,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
 	if projection == 'polar-stereog':
-		map = Basemap(projection='npstere',boundinglat=E['latrange'][0],lon_0=0,resolution='l')
+		map = Basemap(projection='npstere',boundinglat=lat0,lon_0=0,resolution='l')
 	if projection == 'polar-stereog-SH':
-		map = Basemap(projection='spstere',boundinglat=E['latrange'][0],lon_0=90,resolution='l')
+		map = Basemap(projection='spstere',boundinglat=lat0,lon_0=90,resolution='l')
 	if projection == None:
 		map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
 
