@@ -40,12 +40,12 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	if (projection == 'polar-stereog'): 
 		lat0 = E['latrange'][0]
 		E['latrange'] = [-90,90]
-		E['lonrange'] = [0,360]
+		E['lonrange'] = [0,361]
 
 	if (projection == 'polar-stereog-SH'):
 		lat0 = E['latrange'][1]
 		E['latrange'] = [-90,90]
-		E['lonrange'] = [0,360]
+		E['lonrange'] = [0,361]
 
 
 	# turn the requested diagnostic into an array 
@@ -1761,6 +1761,52 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	N2 = (g/theta)*dthetadZ
 
 	return N2,lat,lon,lev
+
+def bootstrapci_from_anomalies(E,P=95,nsamples=1000,hostname='taurus',debug=False):
+
+	"""
+	Given some DART experiment dictionary, retrieve anomalies with respect 
+	to a certain climatology and for the entire ensemble, and 
+	then use a bootstrap method to compute the confidence interval 
+	of those anomalies.  
+
+	To make this work, the diagnostic given in E needs to specify the percentage of 
+	the confidence interval that we want, and what climatology we are computing the anomalies
+	with respect to.  
+
+	E['diagn'] should have the form 'anomaly.XXXX.bootstrapci.NN' where 
+		XXXX = the code for the climatology being used ("NODA" is a good choice)  
+		NN = the percentage where we want the confidence interval (e.g. '95'
+
+	INPUTS:  
+	E: a standard DART experiment dictionary 
+	P: the percentage where we want the confidence interval  - default is 95
+	nsamples: the number of samples for the boostrap algorithm - default is 10000
+
+	"""
+
+	# look up the ensemble size for this experiment
+	N = es.get_ensemble_size_per_run(E['exp_name'])
+
+	# extract the climatology option for the anomalies from the diagnostic
+	climatology_option = E['diagn'].split('.')[1]
+	
+	# loop over the entire ensemble, compute the anomalies with respect to
+	# the desired climatology, and append to a list  
+	Alist = []
+	for iens in range(N):
+	    E['copystring'] = 'ensemble member '+str(iens+1)
+	    AA,Xclim,lat,lon,lev,new_daterange = mjo.ano(E,climatology_option)
+	    Alist.append(AA)
+
+	# turn the arrays in the list into a matrix
+	Amatrix = np.concatenate([A[np.newaxis,...] for A in Alist], axis=0)
+
+	# now apply bootstrap.
+	# note that this function applies np.mean over the first dimension, which we made the ensemble
+	CI = bs.bootstrap(Amatrix,nsamples,np.mean,P)
+	
+	return CI
 
 def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
