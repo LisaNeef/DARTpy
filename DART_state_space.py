@@ -1806,7 +1806,16 @@ def bootstrapci_from_anomalies(E,P=95,nsamples=1000,hostname='taurus',debug=Fals
 	# note that this function applies np.mean over the first dimension, which we made the ensemble
 	CI = bs.bootstrap(Amatrix,nsamples,np.mean,P)
 	
-	return CI
+	# we can also make a mask for statistical significance. 
+	# anomalies where the confidence interval includes zero are not considered statistically significant at the P% level. 
+	# we can tell where the CI crosses zero by there the lower and upper bounds have opposite signs, which means that 
+	# their product will be negative
+	L = CI.lower
+	U = CI.upper
+	LU = L*U
+	sig = LU > 0
+
+	return CI,sig
 
 def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
