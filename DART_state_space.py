@@ -18,8 +18,9 @@ import WACCM as waccm
 import re
 import ERA as era
 import TEM as tem
+import experiment_settings as es
 
-def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False):
+def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False,stat_sig=None):
 
 	"""
 	plot a given state-space diagnostic on a given calendar day and for a given variable 
@@ -32,7 +33,24 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	where 'XXX' some option for loading climatologies accepted by the subroutine ano in MJO.py (see that code for options)
 
 	INPUTS:  
+	E: an experimend dictionary given the variable and diagnostic to be plotted, along with level, lat, lon ranges, etc. 
+	Ediff: the difference experiment to subtract out (default is None)
+	projection: the map projection to use (default is "miller")
+	clim: the colorbar limits. If the scale is divergent, the limits are set as [-clim,clim]. If it's sequential, we do [0,clim].
+	cbar: the orientation of the colorbar. Allowed values are 'vertical'|'horizontal'|None
 	log_levels: a list of the (logarithmic) levels to draw the contours on. If set to none, just draw regular linear levels. 
+	hostname
+	taurus
+	debug
+	colorbar_label: string with which to label the colorbar  
+	reverse_colors: set to false to reverse the colors in the 
+	stat_sig: a dictionary giving the settings for estimating statistical significance with boostrap.
+		Entries in this dict are: 
+			P: the probability level at which we estimate the confidence intervals
+			nsamples: the number of bootstrap samples 
+		If these things are set, we add shading to denote fields that are statistically significantly 
+			different from zero -- so this actually only makes sense for anomaies. 
+		if stat_sig is set to "None" (which is the default), just load the data and plot. 
 	"""
 
 	# if plotting a polar stereographic projection, it's better to return all lats and lons, and then 
@@ -48,31 +66,90 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		E['lonrange'] = [0,361]
 
 
-	# turn the requested diagnostic into an array 
-	Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	##-----load data------------------
+	if stat_sig is None:
+		# turn the requested diagnostic into an array 
+		Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-	# average over the last dimension, which is time
-	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-	# average over vertical levels  if the variable is 3D
-	if (len(np.squeeze(VV).shape)==2):
-		M1 = np.squeeze(VV)
-	else:
-		M1 = np.mean(VV,axis=2)
-
-	# if computing a difference to another field, load that here  
-	if (Ediff != None):
-		Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		# average over the last dimension, which is time
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
 		# average over vertical levels  if the variable is 3D
 		if (len(np.squeeze(VV).shape)==2):
-			M2 = np.squeeze(VV)
+			M1 = np.squeeze(VV)
 		else:
-			M2 = np.mean(VV,axis=2)
-		# subtract the difference field out from the primary field  
-		M = M1-M2
+			M1 = np.mean(VV,axis=2)
+
+		# if computing a difference to another field, load that here  
+		if (Ediff != None):
+			Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			# average over vertical levels  if the variable is 3D
+			if (len(np.squeeze(VV).shape)==2):
+				M2 = np.squeeze(VV)
+			else:
+				M2 = np.mean(VV,axis=2)
+			# subtract the difference field out from the primary field  
+			M = M1-M2
+		else:
+			M = M1
 	else:
-		M = M1
+		# if statistical significance stuff was defined, loop over entire ensemble 
+		# and use bootstrap to compute confidence intervals
+
+		# first look up the ensemble size for this experiment from an internal subroutine:
+		N = es.get_ensemble_size_per_run(E['exp_name'])
+
+		# initialize an empty list to hold the ensemble of averaged fields 
+		Mlist = []
+
+		# loop over the ensemble  
+		for iens in range(N):
+			import bootstrap as bs
+
+			E['copystring'] = 'ensemble member '+str(iens+1)
+			# retrieve data for this ensemble member
+			Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+			# average over the last dimension, which is time
+			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			# average over vertical levels  if the variable is 3D
+			if (len(np.squeeze(VV).shape)==2):
+				M1 = np.squeeze(VV)
+			else:
+				M1 = np.mean(VV,axis=2)
+			# if computing a difference to another field, load that here  
+			if (Ediff != None):
+				Ediff['copystring'] = 'ensemble member '+str(iens+1)
+				Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+				# average over vertical levels  if the variable is 3D
+				if (len(np.squeeze(VV).shape)==2):
+					M2 = np.squeeze(VV)
+				else:
+					M2 = np.mean(VV,axis=2)
+				# subtract the difference field out from the primary field  
+				M = M1-M2
+			else:
+				M = M1
+			
+			# store the difference (or plain M1 field) in a list 
+			Mlist.append(M1)
+
+		# turn the list of averaged fields into a matrix, where ensemble index is the first dimension
+		Mmatrix = np.concatenate([M[np.newaxis,...] for M in Mlist], axis=0)
+
+		# now apply bootstrap over the first dimension, which by construction is the ensemble  
+		CI = bs.bootstrap(Mmatrix,stat_sig['nsamples'],np.mean,stat_sig['P'])
+
+		# anomalies are significantly different from 0 if the confidence interval does not cross zero
+		# we can estimate this by checking if there is a sign change
+		LU = CI.lower*CI.upper
+		sig = LU > 0		# this mask is True when CI.lower and CI.upper have the same sign  
+		
+		# also compute the ensemble average for plotting
+		M = np.mean(Mmatrix,axis=0)
+
+	##-----done loading data------------------
 
  	# set up a map projection
 	if projection == 'miller':
@@ -139,6 +216,14 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	else:
 		CB = None
+
+	# if desired, add shading for statistical significance - this only works for when we plot anomalies
+	if stat_sig is not None:
+		colors = ["#ffffff","#636363"]
+		cmap = mpl.colors.ListedColormap(colors, name='my_cmap')
+		plt.contourf(sig,cmap=cmap,alpha=0.3)
+		print('++++++')
+		print(sig.shape)
 
 	# return the colorbar handle if available, the map handle, and the data
 	return CB,map,M

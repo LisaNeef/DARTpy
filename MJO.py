@@ -587,13 +587,17 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		for s,ii in zip(XclimS.shape,range(len(XclimS.shape))):
 			if s == nT:
 				time_dim = ii
-		# if time is the last dimension, don't need to reshape Xclim 
-		if time_dim == lastdim: 
+		# if only retrieveing a single date, don't need to do any reshaping
+		if nT == 1:
 			XclimR = XclimS
-		# if time is the first dimension, need to reshape Xclim
-		if time_dim == 0:	
-			Xclim2 = XclimS.swapaxes(0,lastdim)
-			XclimR = Xclim2.swapaxes(0,1)
+		else:
+			# if time is the last dimension, don't need to reshape Xclim 
+			if time_dim == lastdim: 
+				XclimR = XclimS
+			# if time is the first dimension, need to reshape Xclim
+			if time_dim == 0:	
+				Xclim2 = XclimS.swapaxes(0,lastdim)
+				XclimR = Xclim2.swapaxes(0,1)
 
 
 		AA = XX-XclimR
