@@ -24,7 +24,7 @@ import experiment_settings as es
 
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
-var3d = ['U','US','V','VS','T']
+var3d = ['U','US','V','VS','T','Z3']
 var2d = ['PS','FLUT']
 var1d = ['hyam','hybm','hyai','hybi']
 
@@ -82,25 +82,33 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 		# average over the last dimension, which is time
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+		if len(DRnew) > 1:
+			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+		else:
+			VV = Vmatrix
 
 		# average over vertical levels  if the variable is 3D
-		if E['variable'] in var3d:
+		if E['variable'] in var3d and type(lev) != np.float64:
 			# find the level dimension
 			nlev = len(lev)
 			for dimlength,idim in zip(VV.shape,len(VV.shape)):
 				if dimlength == nlev:
 					levdim = idim
 			M1 = np.mean(VV,axis=levdim)
+			print('+++shape of averaged array+++++')
+			print(M1.shape)
 		else:
 			M1 = np.squeeze(VV)
 
 		# if computing a difference to another field, load that here  
 		if (Ediff != None):
 			Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			if len(DRnew) > 1:
+				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			else:
+				VV = Vmatrix
 			# average over vertical levels  if the variable is 3D
-			if E['variable'] in var3d:
+			if E['variable'] in var3d and type(lev) != np.float64:
 				M2 = np.mean(VV,axis=levdim)
 			else:
 				M2 = np.squeeze(VV)
@@ -125,10 +133,13 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			E['copystring'] = 'ensemble member '+str(iens+1)
 			# retrieve data for this ensemble member
 			Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
-			# average over the last dimension, which is time
-			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-			# average over vertical levels  if the variable is 3D
-			if E['variable'] in var3d:
+			# if there is more than one time, average over this dimension (it's always the last one)
+			if len(DRnew) > 1:
+				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			else:
+				VV = Vmatrix
+			# average over vertical levels  if the variable is 3D and hasn't been averaged yet 
+			if E['variable'] in var3d and type(lev) != np.float64:
 				# find the level dimension
 				nlev = len(lev)
 				for dimlength,idim in zip(VV.shape,len(VV.shape)):
@@ -141,9 +152,12 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			if (Ediff != None):
 				Ediff['copystring'] = 'ensemble member '+str(iens+1)
 				Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+				if len(DRnew) > 1:
+					VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+				else:
+					VV = Vmatrix
 				# average over vertical levels  if the variable is 3D
-				if E['variable'] in var3d:
+				if E['variable'] in var3d and type(lev) != np.float64:
 					M2 = np.mean(VV,axis=levdim)
 				else:
 					M2 = np.squeeze(VV)
@@ -153,7 +167,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 				M = M1
 			
 			# store the difference (or plain M1 field) in a list 
-			Mlist.append(M1)
+			Mlist.append(M)
 
 		# turn the list of averaged fields into a matrix, where ensemble index is the first dimension
 		Mmatrix = np.concatenate([M[np.newaxis,...] for M in Mlist], axis=0)
@@ -167,6 +181,8 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		sig = LU > 0		# this mask is True when CI.lower and CI.upper have the same sign  
 		
 		# also compute the ensemble average for plotting
+		print('+++++++++')
+		print(Mmatrix.shape)
 		M = np.mean(Mmatrix,axis=0)
 
 	##-----done loading data------------------
