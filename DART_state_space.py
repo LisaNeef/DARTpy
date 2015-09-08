@@ -128,20 +128,25 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			# average over the last dimension, which is time
 			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 			# average over vertical levels  if the variable is 3D
-			if (len(np.squeeze(VV).shape)==2):
-				M1 = np.squeeze(VV)
+			if E['variable'] in var3d:
+				# find the level dimension
+				nlev = len(lev)
+				for dimlength,idim in zip(VV.shape,len(VV.shape)):
+					if dimlength == nlev:
+						levdim = idim
+				M1 = np.mean(VV,axis=levdim)
 			else:
-				M1 = np.mean(VV,axis=2)
+				M1 = np.squeeze(VV)
 			# if computing a difference to another field, load that here  
 			if (Ediff != None):
 				Ediff['copystring'] = 'ensemble member '+str(iens+1)
 				Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 				# average over vertical levels  if the variable is 3D
-				if (len(np.squeeze(VV).shape)==2):
-					M2 = np.squeeze(VV)
+				if E['variable'] in var3d:
+					M2 = np.mean(VV,axis=levdim)
 				else:
-					M2 = np.mean(VV,axis=2)
+					M2 = np.squeeze(VV)
 				# subtract the difference field out from the primary field  
 				M = M1-M2
 			else:
