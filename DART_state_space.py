@@ -181,8 +181,6 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		sig = LU > 0		# this mask is True when CI.lower and CI.upper have the same sign  
 		
 		# also compute the ensemble average for plotting
-		print('+++++++++')
-		print(Mmatrix.shape)
 		M = np.mean(Mmatrix,axis=0)
 
 	##-----done loading data------------------
@@ -257,12 +255,12 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	if stat_sig is not None:
 		colors = ["#ffffff","#636363"]
 		cmap = mpl.colors.ListedColormap(colors, name='my_cmap')
-		plt.contourf(sig,cmap=cmap,alpha=0.3)
-		print('++++++')
-		print(sig.shape)
+		map.contourf(x,y,sig,cmap=cmap,alpha=0.3)
+	else:
+		sig = None
 
 	# return the colorbar handle if available, the map handle, and the data
-	return CB,map,M
+	return CB,map,M,sig
 
 def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
 
