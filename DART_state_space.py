@@ -606,7 +606,7 @@ def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=d
 	"""
 
 	# query the ensemble size for this experiment
-	N = dart.get_ensemble_size_per_run(E['exp_name'])
+	N = es.get_ensemble_size_per_run(E['exp_name'])
 
 	# if the input daterange is a single date, we don't have to loop over files
 	if not isinstance(daterange,list):
