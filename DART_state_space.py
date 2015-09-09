@@ -595,15 +595,24 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 
 	return cs,CB
 
-def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D'),averaging=True,hostname='taurus',debug=False):
+def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname='taurus',debug=False):
 
 	"""
 	retrieve the prior or posterior ensemble averaged over some region of the state,
-	along with the truth (if available), 
+	along with the truth (if desired), 
 	for some DART experiment
 	
-	if averaging is set to TRUE, average over the input latitude, longitude, and level ranges.
+	INPUTS:
+	E: standard experiment dictionary 
+	averaging: set to True to average over the input latitude, longitude, and level ranges (default=True).
+	include_truth: set to True to include the true state for this run. Note that if the truth does not exist but is requested, this 
+		subroutine will throw an error. 
+	hostname
+	debug
 	"""
+
+	# query the daterange of E
+	daterange = E['daterange']
 
 	# query the ensemble size for this experiment
 	N = es.get_ensemble_size_per_run(E['exp_name'])
@@ -670,27 +679,28 @@ def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=d
 				else:
 					VE[iens-1,:,:,:,ii] = np.transpose(VV,(2,0,1))
 
-		# load the corresponding truth
-		Etr = E.copy()
-		Etr['diagn'] = 'Truth'
-		Etr['copystring'] = 'true state'
-		lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
-		if VV is None:
-			VT = None
-		else:	
-			if averaging:
-				Mlat = np.mean(VV,axis=0)
-				Mlatlon = np.mean(Mlat,axis=0)
-				if E['variable'] != 'PS':
-					Mlatlonlev = np.mean(Mlatlon,axis=0)
+		# load the corresponding truth, if desired or if it exists
+		if include_truth:
+			Etr = E.copy()
+			Etr['diagn'] = 'Truth'
+			Etr['copystring'] = 'true state'
+			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
+			if VV is None:
+				VT = None
+			else:	
+				if averaging:
+					Mlat = np.mean(VV,axis=0)
+					Mlatlon = np.mean(Mlat,axis=0)
+					if E['variable'] != 'PS':
+						Mlatlonlev = np.mean(Mlatlon,axis=0)
+					else:
+						Mlatlonlev = Mlatlon
+					VT = np.mean(Mlatlonlev,axis=0)
 				else:
-					Mlatlonlev = Mlatlon
-				VT = np.mean(Mlatlonlev,axis=0)
-			else:
-				if E['variable'] == 'PS':
-					VT[0,:,:,ii] = VV
-				else:
-					VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
+					if E['variable'] == 'PS':
+						VT[0,:,:,ii] = VV
+					else:
+						VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
 
 	else:
 
@@ -729,29 +739,32 @@ def retrieve_state_space_ensemble(E=None,daterange = dart.daterange(date_start=d
 						VE[iens-1,:,:,:,ii] = np.transpose(VV,(2,0,1))
 
 			# load the truth if it exists 
-			Etr = E.copy()
-			Etr['diagn'] = 'Truth'
-			Etr['copystring'] = 'true state'
-			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
-			if VV is not None:
-				if averaging:
-					Mlat = np.mean(VV,axis=0)
-					Mlatlon = np.mean(Mlat,axis=0)
-					if E['variable'] != 'PS':
-						Mlatlonlev = np.mean(Mlatlon,axis=0)
+			if include_truth:
+				Etr = E.copy()
+				Etr['diagn'] = 'Truth'
+				Etr['copystring'] = 'true state'
+				lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
+				if VV is not None:
+					if averaging:
+						Mlat = np.mean(VV,axis=0)
+						Mlatlon = np.mean(Mlat,axis=0)
+						if E['variable'] != 'PS':
+							Mlatlonlev = np.mean(Mlatlon,axis=0)
+						else:
+							Mlatlonlev = Mlatlon
+						#---mistake?---VT[0,ii] = np.mean(Mlatlonlev,axis=0)
+						VT[0,ii] = Mlatlonlev
 					else:
-						Mlatlonlev = Mlatlon
-					#---mistake?---VT[0,ii] = np.mean(Mlatlonlev,axis=0)
-					VT[0,ii] = Mlatlonlev
+						if E['variable'] == 'PS':
+							VT[0,:,:,ii] = VV
+						else:
+							VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
 				else:
-					if E['variable'] == 'PS':
-						VT[0,:,:,ii] = VV
-					else:
-						VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
+					VT = None
 			else:
 				VT = None
 
-	# output
+		# output
 	return VE,VT,lev,lat,lon
 
 
@@ -774,7 +787,11 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 	"""
 
 	# retrieve the ensemble
-	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,daterange=E['daterange'],averaging=True,hostname=hostname,debug=debug)
+	if truth_option == 'pmo':
+		include_truth = True
+	else:
+		include_truth = False
+	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=include_truth,hostname=hostname,debug=debug)
 
 	# retrieve ERA data if desired
 	if truth_option=='ERA':
