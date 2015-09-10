@@ -851,12 +851,14 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 
 	return VE,VT,t
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,color_map_no=1,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,color_map_no=1,hostname='taurus',debug=False):
 
-	# plot a given state-space diagnostic for a given variable field,
-	# as a function of time only (averaging spatially)  
-	# We can also plot the difference between two fields by specifying another experiment structure 
-	# called Ediff  
+	"""
+	plot a given state-space diagnostic for a given variable field,
+	as a function of time only (averaging spatially)  
+	We can also plot the difference between two fields by specifying another experiment structure 
+	called Ediff  
+	"""
 
 	# set up an array of global averages that's the length of the longest experiment  
 	DR_all = []
@@ -876,14 +878,6 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,color_map_n
 
 		# store the name of this experiment
 		names.append(E['title'])
-
-		# set up a  time grid for this experiment and collect it in a list of lists x
-		#days = []
-		#for d in E['daterange']:
-	#		dt = d-E['daterange'][0]	
-		#	dtfrac = dt.days + dt.seconds/(24.0*60.0*60.0)
-		#	days.append(dtfrac)
-		#x.append(days)
 
 		# for each experiment loop over the input date range
 		for date, ii in zip(E['daterange'],range(len(E['daterange']))):  
@@ -952,8 +946,11 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,color_map_n
 		y = y0[~np.isnan(y0)]
 		x = x0[~np.isnan(y0)]
 		cs = plt.plot(x,y,color=colors[iE],linewidth=2)
-	lg = plt.legend(names,loc='best')
-	lg.draw_frame(False)
+
+	# include legend if desire
+	if include_legend:
+		lg = plt.legend(names,loc='best')
+		lg.draw_frame(False)
 
         plt.xlabel('Time (Days)')
 	if ylim is not None:
