@@ -851,13 +851,23 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 
 	return VE,VT,t
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,color_map_no=1,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,hostname='taurus',debug=False):
 
 	"""
 	plot a given state-space diagnostic for a given variable field,
 	as a function of time only (averaging spatially)  
 	We can also plot the difference between two fields by specifying another experiment structure 
 	called Ediff  
+
+	INPUTS:
+	EE: a list of experiment dictionaries to loop over an plot
+	EEdiff: a list of experiments to subtract from the experiments in EE
+	ylim: y-limits of the figure
+	xlim: x-limits of the figure
+	include_legend: set to False to get rid of the legennd (default is True)
+	colors: input a list of hex codes that give the colors of the experiments to plot 
+		the default is "None" -- in this case, choose Colorbrewer qualitative colormap "Dark2"
+
 	"""
 
 	# set up an array of global averages that's the length of the longest experiment  
@@ -922,19 +932,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 	#------plotting----------
 
-	# change the default color cycle to colorbrewer colors, which look a lot nicer
-	if (color_map_no == 1):
+	# change the default color cycle to colorbrewer Dark2, or use what is supplied
+	if colors is None:
 		bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
 		colors = bmap.mpl_colors
-	if (color_map_no == 2):
-		bmap = brewer2mpl.get_map('Set1', 'qualitative', 7)
-		colors = bmap.mpl_colors
-		colors[0] = (0,0,0)
-	if (color_map_no == 3):
-		bmap = brewer2mpl.get_map('YlGnBu', 'sequential', 4)
-		colors = bmap.mpl_colors
-		colors[0] = (0,0,0)
-
 
         # plot global diagnostic in in time
 	MT = np.transpose(MM)
