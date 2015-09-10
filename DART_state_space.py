@@ -795,7 +795,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 
 	# retrieve ERA data if desired
 	if truth_option=='ERA':
-		VT,t_tr = era.retrieve_era_averaged(E)
+		VT,t_tr,lat2,lon2,lev2 = era.retrieve_era_averaged(E)
 
 	# set up a  time grid 
 	t = E['daterange']
