@@ -1250,7 +1250,7 @@ def compute_aefs_as_csv(E = dart.basic_experiment_dict(),date=datetime.datetime(
 	variable_list = ['US','VS','PS']
 
 	# figure out which copy strings are in the state space vector
-	copystring_list = dart.get_expt_CopyMetaData_state_space(E)
+	copystring_list = es.get_expt_CopyMetaData_state_space(E)
 
 	# initialize lists for the three AEFs
 	X = []
