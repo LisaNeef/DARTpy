@@ -98,8 +98,6 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 				if dimlength == nlev:
 					levdim = idim
 			M1 = np.mean(VV,axis=levdim)
-			print('+++shape of averaged array+++++')
-			print(M1.shape)
 		else:
 			M1 = np.squeeze(VV)
 
@@ -232,13 +230,12 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 
         # contour data over the map.
-	if (projection == 'ortho') or (projection == 'polar-stereog') or (projection == 'polar-stereog-SH'):
+	if (projection == 'ortho') or ('stere' in projection):
 		if log_levels is not None:
 			cs = map.contourf(x,y,M, norm=mpl.colors.LogNorm(vmin=log_levels[0],vmax=log_levels[len(log_levels)-1]),levels=log_levels,cmap=cmap)
 		else:
 			cs = map.contourf(x,y,M,levels=L,cmap=cmap,extend="both")
 	if projection is 'miller':
-		#cs = map.contourf(x,y,M,len(colors)-1,cmap=cmap,extend="both",vmin=-clim,vmax=clim)
 		cs = map.contourf(x,y,M,L,cmap=cmap,extend="both")
 
 	if (cbar is not None):
