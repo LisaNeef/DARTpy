@@ -218,7 +218,6 @@ def aef_massintegral(VV,PS,p,lat,lon,variable_name,ERP='X3'):
 	# start with zero AAM and then add up
 	AAM = 0.0
 
-	print(variable_name)
 	if variable_name is 'PS':
 		nlat2,nlon2 = VV.shape
 		dm = np.zeros(shape=(nlat2,nlon2))
@@ -251,8 +250,6 @@ def aef_massintegral(VV,PS,p,lat,lon,variable_name,ERP='X3'):
 		dm = dlev*0
 		x = np.zeros(shape=(nlat2,nlon2))
 		dm = np.zeros(shape=(nlat2,nlon2,nlev))
-		#print('checking stats for latitude = ',str(lat[45]),' and lon = ',str(lon[90]))
-		#print('k, dlev, dm,U, aam')
 		for k in range(nlev):
 			for ilat in range(nlat2):
 				for ilon in range(nlon2):
@@ -273,7 +270,6 @@ def aef_massintegral(VV,PS,p,lat,lon,variable_name,ERP='X3'):
 							x[ilat,ilon] = 0.0
 					#aamu = + Re_m*VV[45,90,k]*coslat[45]*dm[45,90,k]
 
-			#print(str(k)+' '+str(dlev[45,90,k])+' '+str(dm[45,90,k])+' '+str(VV[45,90,k])+' '+str(aamu))
 
 		# now loop over lat and lon and add up AAM:
 		for ilat in range(nlat2):
@@ -285,7 +281,6 @@ def aef_massintegral(VV,PS,p,lat,lon,variable_name,ERP='X3'):
 				if ERP is 'X3':
 					AAM = AAM + x[ilat,ilon]*chifacwin3
 		
-	print('the total AAM for this variable and case is:  '+str(AAM))
 	return AAM
 
 
@@ -411,6 +406,5 @@ def aam_prefactors(comp,variable_name):
 			ff = top/bot
 			fac2 = (ff*(Re_m**4))/(g*Cm)
 
-	#print ff
 	return fac2
 
