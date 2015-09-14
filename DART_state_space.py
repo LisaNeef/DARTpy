@@ -65,13 +65,16 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# if plotting a polar stereographic projection, it's better to return all lats and lons, and then 
 	# cut off the unwanted regions with map limits -- otherwise we get artifical circles on a square map
-	if (projection == 'polar-stereog'): 
-		lat0 = E['latrange'][0]
+	if (projection == 'npstere'): 
+		if E['latrange'][0] < 0:
+			boundinglat = 0
+		else:
+			boundinglat =  E['latrange'][0]
 		E['latrange'] = [-90,90]
 		E['lonrange'] = [0,361]
 
-	if (projection == 'polar-stereog-SH'):
-		lat0 = E['latrange'][1]
+	if (projection == 'spstere'):
+		boundinglat = E['latrange'][1]
 		E['latrange'] = [-90,90]
 		E['lonrange'] = [0,361]
 
@@ -85,13 +88,13 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		if len(DRnew) > 1:
 			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 		else:
-			VV = Vmatrix
+			VV = np.squeeze(Vmatrix)
 
 		# average over vertical levels  if the variable is 3D
 		if E['variable'] in var3d and type(lev) != np.float64:
 			# find the level dimension
 			nlev = len(lev)
-			for dimlength,idim in zip(VV.shape,len(VV.shape)):
+			for dimlength,idim in zip(VV.shape,range(len(VV.shape))):
 				if dimlength == nlev:
 					levdim = idim
 			M1 = np.mean(VV,axis=levdim)
@@ -191,10 +194,8 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 		minlat = np.max([E['latrange'][0],-90.0])
 		map = Basemap(projection='mill',llcrnrlat=minlat,urcrnrlat=maxlat,\
 			    llcrnrlon=E['lonrange'][0],urcrnrlon=E['lonrange'][1],resolution='l')
-	if projection == 'polar-stereog':
-		map = Basemap(projection='npstere',boundinglat=lat0,lon_0=0,resolution='l')
-	if projection == 'polar-stereog-SH':
-		map = Basemap(projection='spstere',boundinglat=lat0,lon_0=90,resolution='l')
+	if 'stere' in projection:
+		map = Basemap(projection=projection,boundinglat=boundinglat,lon_0=0,resolution='l')
 	if projection == None:
 		map = Basemap(projection='ortho',lat_0=54,lon_0=10,resolution='l')
 
@@ -1262,8 +1263,7 @@ def compute_aefs_as_csv(E = dart.basic_experiment_dict(),date=datetime.datetime(
 
 		# cycle over all the copies that are available in the state space vector
 		for copystring in copystring_list:
-			if debug:
-				print('+++computing AEF '+AEF+' for copy '+copystring+' for experiment '+E['exp_name']+'------')
+			print('+++computing AEF '+AEF+' for '+copystring+' for experiment '+E['exp_name']+'------')
 
 			E['copystring'] = copystring
 			dum,Xtemp = aef_from_model_field(E,date,variables=variable_list,ERP=AEF,levels_mistake=False,integral_type='mass',hostname=hostname)
