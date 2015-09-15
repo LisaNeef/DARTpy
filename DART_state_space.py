@@ -107,7 +107,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			if len(DRnew) > 1:
 				VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 			else:
-				VV = Vmatrix
+				VV = np.squeeze(Vmatrix)
 			# average over vertical levels  if the variable is 3D
 			if E['variable'] in var3d and type(lev) != np.float64:
 				M2 = np.mean(VV,axis=levdim)
@@ -766,7 +766,7 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	return VE,VT,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname='taurus',debug=False):
+def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname='taurus',debug=False,show_legend=False):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
@@ -817,14 +817,20 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
         # plot global diagnostic in in time
 	N = VE.shape[0]
 	VM = np.mean(VE,axis=0)
-	for iens in np.arange(0,N):
-		cs = plt.plot(t,VE[iens,:],color=color_ensemble)
+	cs = plt.plot(t,VE[0,:],color=color_ensemble,label='Ensemble')
+	for iens in np.arange(1,N):
+		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_')
 	plt.hold(True)
 	if truth_option is not None:
-		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0)
-	plt.plot(t,VM,color=color_mean)
-	#lg = plt.legend(names,loc='best')
-	#lg.draw_frame(False)
+		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0,label='Truth')
+	plt.plot(t,VM,color=color_mean,label='Ensemble Mean')
+
+	# show a legend if desired
+	if show_legend:
+		lg = plt.legend(loc='best')
+		lg.draw_frame(False)
+	else: 
+		lg=None
 
 	clim = E['clim']
 	if E['clim'] is not None:
@@ -847,7 +853,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 	fmt = mdates.DateFormatter('%b-%d')
 	plt.gca().xaxis.set_major_formatter(fmt)
 
-	return VE,VT,t
+	return VE,VT,t,lg
 
 def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,hostname='taurus',debug=False):
 
