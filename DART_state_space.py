@@ -856,7 +856,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 
 	return VE,VT,t,lg
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,x_as_days=False,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,x_as_days=False,hostname='taurus',debug=False):
 
 	"""
 	plot a given state-space diagnostic for a given variable field,
@@ -873,6 +873,8 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	colors: input a list of hex codes that give the colors of the experiments to plot 
 		the default is "None" -- in this case, choose Colorbrewer qualitative colormap "Dark2"
 	linestyles: input a list of linestyle strings that give the styles for each line plotted. 
+		the default is "None" - in this case, all lines are plotted as plain lines  
+	markers: input a list of marker strings that give the markers for each line plotted. 
 		the default is "None" - in this case, all lines are plotted as plain lines  
 	x_as_days: set to True to plot a count of days on the x-axis rather than dates
 
@@ -959,6 +961,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	if linestyles == None:
 		linestyles = ['-']*nE
 
+	# set all markers to None unless previously specified  
+	if markers is None:
+		markers = [None]*nE
+
         # plot global diagnostic in in time
 	MT = np.transpose(MM)
 	if x_as_days:
@@ -971,7 +977,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 			x = x0[~np.isnan(y0)]
 		else:
 			x = E['daterange']
-		cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE])
+		cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE],marker=markers[iE])
 
 	# include legend if desire
 	if include_legend:
