@@ -91,7 +91,8 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			VV = np.squeeze(Vmatrix)
 
 		# average over vertical levels  if the variable is 3D
-		if E['variable'] in var3d and type(lev) != np.float64:
+		# -- unless we have already selected a single level in DART_diagn_to_array
+		if (E['variable'] in var3d) and (type(lev) != np.float64) and (E['levrange'][0] != E['levrange'][1]):
 			# find the level dimension
 			nlev = len(lev)
 			for dimlength,idim in zip(VV.shape,range(len(VV.shape))):
@@ -109,7 +110,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			else:
 				VV = np.squeeze(Vmatrix)
 			# average over vertical levels  if the variable is 3D
-			if E['variable'] in var3d and type(lev) != np.float64:
+			if (E['variable'] in var3d) and (type(lev) != np.float64) and (E['levrange'][0] != E['levrange'][1]):
 				M2 = np.mean(VV,axis=levdim)
 			else:
 				M2 = np.squeeze(VV)
@@ -855,7 +856,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 
 	return VE,VT,t,lg
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,x_as_days=False,hostname='taurus',debug=False):
 
 	"""
 	plot a given state-space diagnostic for a given variable field,
@@ -867,10 +868,11 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	EE: a list of experiment dictionaries to loop over an plot
 	EEdiff: a list of experiments to subtract from the experiments in EE
 	ylim: y-limits of the figure
-	xlim: x-limits of the figure
+	xlim: x-limits of the figure - note that this is tricky if we use dates instead of numbers 
 	include_legend: set to False to get rid of the legennd (default is True)
 	colors: input a list of hex codes that give the colors of the experiments to plot 
 		the default is "None" -- in this case, choose Colorbrewer qualitative colormap "Dark2"
+	x_as_days: set to True to plot a count of days on the x-axis rather than dates
 
 	"""
 
@@ -883,8 +885,11 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	MM = np.zeros(shape=(nE, max_length_time), dtype=float)
 
 	# also set up an array that holds the day count for each experiment  
-	x = np.zeros(shape=(nE, max_length_time), dtype=float)
-	x[:,:] = np.NAN
+	if x_as_days:
+		x = np.zeros(shape=(nE, max_length_time), dtype=float)
+		x[:,:] = np.NAN
+	else: 
+		x = E['daterange']
 
 	# loop over experiment dictionaries and load the timeseries of the desired diagnostic
 	names = []
@@ -896,10 +901,11 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		# for each experiment loop over the input date range
 		for date, ii in zip(E['daterange'],range(len(E['daterange']))):  
 
-			# fill in the day count  
-			dt = date-E['daterange'][0]	
-			dtfrac = dt.days + dt.seconds/(24.0*60.0*60.0)
-			x[iE,ii] = dtfrac
+			# fill in the day count (if desired) 
+			if x_as_days:
+				dt = date-E['daterange'][0]	
+				dtfrac = dt.days + dt.seconds/(24.0*60.0*60.0)
+				x[iE,ii] = dtfrac
 
 			# load the data over the desired latitude and longitude range  
 			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
@@ -909,7 +915,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 				# average over latitude, longitude, and level  
 				Mlat = np.mean(VV,axis=0)
 				Mlatlon = np.mean(Mlat,axis=0)
-				Mlatlonlev = np.mean(Mlatlon,axis=0)
+				if E['variable'] in var3d:
+					Mlatlonlev = np.mean(Mlatlon,axis=0)
+				if E['variable'] in var2d:
+					Mlatlonlev = Mlatlon
 				M1 = Mlatlonlev
 
 				# repeat for the difference experiment
@@ -919,7 +928,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 					if VV is not None:
 						M2lat = np.mean(VV,axis=0)
 						M2latlon = np.mean(M2lat,axis=0)
-						M2latlonlev = np.mean(M2latlon,axis=0)
+						if E['variable'] in var3d:
+							M2latlonlev = np.mean(M2latlon,axis=0)
+						if E['variable'] in var2d:
+							M2latlonlev = M2latlon
 						M2 = M2latlonlev
 						M = M1-M2
 					else:
@@ -943,13 +955,16 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
         # plot global diagnostic in in time
 	MT = np.transpose(MM)
-	xx = x
-	xT = np.transpose(xx)
+	if x_as_days:
+		xT = np.transpose(x)
 	for iE in np.arange(0,nE):
 		y0 = MT[:,iE]
-		x0 = xT[:,iE]
 		y = y0[~np.isnan(y0)]
-		x = x0[~np.isnan(y0)]
+		if x_as_days:
+			x0 = xT[:,iE]
+			x = x0[~np.isnan(y0)]
+		else:
+			x = E['daterange']
 		cs = plt.plot(x,y,color=colors[iE],linewidth=2)
 
 	# include legend if desire
@@ -968,7 +983,16 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		ax = plt.gca()
 		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
-	return M,xx
+	if not x_as_days:
+		# format the x-axis labels to be dates
+		if len(x) > 30:
+			plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+		if len(x) < 10:
+			plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(t))))
+		fmt = mdates.DateFormatter('%b-%d')
+		plt.gca().xaxis.set_major_formatter(fmt)
+
+	return MT,x
 
 
 def state_space_colormap(E,Ediff=None):
