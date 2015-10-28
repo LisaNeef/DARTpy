@@ -4,13 +4,10 @@
 # load the required packages  
 import numpy as np
 import datetime
-#import time as time
 import os.path
-#import pandas as pd
 import DART as dart
-#from calendar import monthrange
 from netCDF4 import Dataset
-#import glob
+import experiment_settings as es
 
 #-------reading in merged ERA40/Interim files given a DART experiment dictionary----------------------
 def load_ERA_file(E,year,hostname='taurus',verbose=False):
@@ -30,7 +27,7 @@ def load_ERA_file(E,year,hostname='taurus',verbose=False):
 	"""
 
 	# find the file path corresponding to this experiment  
-	file_path_list,dum = dart.exp_paths_era(hostname=hostname)
+	file_path_list,dum = es.exp_paths_era(hostname=hostname)
 
 	ff = file_path_list[0]+'/ERA_u_v_z_t_msl_daily'+str(year)+'.nc'
 

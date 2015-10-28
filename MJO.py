@@ -588,8 +588,10 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 			if s == nT:
 				time_dim = ii
 		# if only retrieveing a single date, don't need to do any reshaping
+		# but might need to squeeze out a length-one time dimension
 		if nT == 1:
 			XclimR = XclimS
+			XX = np.squeeze(XX)
 		else:
 			# if time is the last dimension, don't need to reshape Xclim 
 			if time_dim == lastdim: 

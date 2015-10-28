@@ -139,22 +139,32 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 
 		# now select the relevant lat, lon, and lev regions -- different variables have different shapes, 
 		# so this depends on variable 
-		if E['variable'] == 'P0':
+		scalar_variables = ['P0']
+		variables_1d = ['hyam','hybm','hyai','hybi']
+		variables_2d = ['PS','FLUT']
+		variables_3d = ['US','VS','T','Z3']
+
+		if E['variable'] in scalar_variables:
 			# scalar 
 			Vout = VV
 
-		if (E['variable'] == 'hyam') or (E['variable'] == 'hybm'):
+		if E['variable'] in variables_1d:
 			# these variables just have dimensionality lev
 			Vout = VV[k1:k2+1]
 
-		if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
+		if E['variable'] in variables_2d:
 			# 2D variables have shape time x lat x lon
 			Vout = VV[:,j1:j2+1,i1:i2+1]
 			lev2 = None
 		
-		if (E['variable'] == 'US') or (E['variable'] == 'VS') or (E['variable'] == 'T'):
+		if E['variable'] in variables_3d:
 			# 3D variables have shape time x lev x lat x lon
 			Vout = VV[:,k1:k2+1,j1:j2+1,i1:i2+1]
+
+		# throw an error if variable has not been defined. 
+		if 'Vout' not in locals():
+			print "WACCM.py doesnt know what to do with variable "+E['variable']+" -- still need to code its shape in subroutine load_WACCM_multi_instance_h_file" 
+			return None,None,None,None
 
 		# if loading low-pass filtered data, several times are in one file -- choose the first.  
 		# (It shouldn't matter because we filtered fast stuff anyway)  

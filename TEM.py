@@ -2,7 +2,7 @@
 # Lisa Neef, 26 Aug 2015
 
 # load the required packages  
-#import numpy as np
+import numpy as np
 #import datetime
 import os.path
 from netCDF4 import Dataset
@@ -25,11 +25,10 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 	# if the variable given in E isn't a TEM diagnostic, change it to the default variable 
 	# wstar (residual vertical velocity)
 	tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
-	variable_name = E['variable'].upper()
-	if variable_name not in tem_variables_list:
+	variable_name = E['variable']
+	if variable_name.upper() not in tem_variables_list:
 		print(variable_name+' is not a TEM diagnostic -- retrieving w* instead')
 		variable_name = 'WSTAR'
-
 
 	# find the file path corresponding to this experiment  
 	import experiment_settings as es 
@@ -51,7 +50,9 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		f.close()
 
 		# bad flag is -999 -- turn it into np.nan
-		VV[VV==-999.]=np.nan
+		# actually there seem to be other large negative numbers in here that aren't physical - 
+		# maybe they were created by the daysplit step in CDO
+		VV[VV<=-900.]=np.nan
 
 		# select the vertical and lat ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it
@@ -76,14 +77,25 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 			k1 = idx
 			k2 = idx
 		else:
-			j2 = (np.abs(lat-latrange[1])).argmin()
-			j1 = (np.abs(lat-latrange[0])).argmin()
-			lat2 = lat[j1:j2+1]
+			# selection of the right latitude range depends on whether they go from south to north, or vice versa 
+			nlat = len(lat)
+			if lat[0] < lat[nlat-1]:
+				j2 = (np.abs(lat-latrange[1])).argmin()
+				j1 = (np.abs(lat-latrange[0])).argmin()
+				lat2 = lat[j1:j2+1]
+			else:
+				j1 = (np.abs(lat-latrange[1])).argmin()
+				j2 = (np.abs(lat-latrange[0])).argmin()
+				lat2 = lat[j1:j2+1]
 
 
 		# now select the relevant lat and lev regions 
-		# All the variables in Wuke's files have shape time x lev x lat x ensemble_member 
-		Vout = VV[:,k1:k2+1,j1:j2+1,:]
+		if E['exp_name'] == 'ERA':
+			# wuke's TEM diagnostics for ERA have shape time x lev x lat
+			Vout = VV[:,k1:k2+1,j1:j2+1]
+		else:
+			# All the variables in Wuke's TEM diagnostics for WACCM have shape time x lev x lat x ensemble_member 
+			Vout = VV[:,k1:k2+1,j1:j2+1,:]
 		
 	# for file not found 
 	else:

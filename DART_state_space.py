@@ -1736,16 +1736,19 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 	X,lat,lev = tem.load_Wang_TEM_file(E,datetime_in,hostname=hostname,verbose=debug)
 	CS = E['copystring']
 
-	# if the diagnostic is a single ensemble member, simply choose it out of the array and return 
-	if 'ensemble member' in CS:
-		ensindex = re.sub(r'ensemble member*','',CS).strip()
-		Dout = np.squeeze(X[:,:,:,int(ensindex)-1])	
-	
-	# can also compute simple ensemble statistics: mean, standard deviation, etc (other still need to be added)
-	if CS == 'ensemble mean':
-		Dout = np.squeeze(np.nanmean(X,axis=3))
-	if CS == 'ensemble std':
-		Dout = np.squeeze(np.nanstd(X,axis=3))
+	# if looking at ERA data, we don't have ensemble members. Here just return the array
+	if E['exp_name'] == 'ERA':
+		Dout = np.squeeze(X)	
+	else:
+		# if the diagnostic is a single ensemble member, simply choose it out of the array and return 
+		if 'ensemble member' in CS:
+			ensindex = re.sub(r'ensemble member*','',CS).strip()
+			Dout = np.squeeze(X[:,:,:,int(ensindex)-1])	
+		# can also compute simple ensemble statistics: mean, standard deviation, etc (other still need to be added)
+		if CS == 'ensemble mean':
+			Dout = np.squeeze(np.nanmean(X,axis=3))
+		if CS == 'ensemble std':
+			Dout = np.squeeze(np.nanstd(X,axis=3))
 		
 
 	return Dout,lat,lev
@@ -2042,7 +2045,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					file_type_found = True
 
 				# transformed Eulerian mean diagnostics have their own routine 
-				if E['variable'] in tem_variables_list:
+				if E['variable'].upper() in tem_variables_list:
 					V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
 					lon = None
 					file_type_found = True
