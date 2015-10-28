@@ -1884,7 +1884,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
 
-def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,hostname='taurus',debug=False):
+def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),hostname='taurus',debug=False):
 
 	"""
 	Retrieve TWO DART diagnostics (defined in the dictionary entry E['diagn']) over levels and latitude,  
@@ -1893,6 +1893,12 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,hos
 	of EP flux, e.g. E['variable'] = (x,y), where x is the x-component of the vectors, and y the y-component. 
 	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
 	all times in E['daterange']
+
+	INPUTS:
+	E - experiment dictionary  
+	Ediff - dictionary for the difference experiment (default is None)
+	alpha - tuple of scaling factors for the horizontal and vertical components, 
+		e.g. for EP flux alpha should be (4.899E-3,0)
 	"""
 
 	# throw an error if the desired variable is 2 dimensional 
@@ -1930,9 +1936,11 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,hos
 
 		# if computing a difference to another field, load that here  
 		if (Ediff != None):
+			Edtemp = Ediff.copy()
+			Edtemp['variable'] = vv
 
 			# load the desired DART diagnostic for the difference experiment dictionary
-			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Edtemp,hostname=hostname,debug=debug)
 
 			# average over time 
 			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -1961,13 +1969,18 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,hos
 	X,Y = np.meshgrid(lat,lev)
 
         # plot
-	plt.quiver(X,Y,Mlist[0],Mlist[1])
+	plt.quiver(X,Y,alpha[0]*Mlist[0],alpha[1]*Mlist[1],pivot='mid', units='inches')
+
 
 	# axis labels 
         plt.xlabel('Latitude')
         plt.ylabel('Pressure (hPa)')
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
+
+	# make sure the axes only go as far as the ranges in E
+	plt.ylim(E['levrange'])
+	plt.xlim(E['latrange'])
 
 	# return the colorbar handle if available, so we can adjust it later
 	return Mlist
