@@ -52,7 +52,8 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		# bad flag is -999 -- turn it into np.nan
 		# actually there seem to be other large negative numbers in here that aren't physical - 
 		# maybe they were created by the daysplit step in CDO
-		VV[VV<=-900.]=np.nan
+		# KLUDGE ALERT: just nan-ing everything over absolute value 900
+		VV[np.abs(VV)>900.]=np.nan
 
 		# select the vertical and lat ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it

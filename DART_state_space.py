@@ -1884,6 +1884,94 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
 
+def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,hostname='taurus',debug=False):
+
+	"""
+	Retrieve TWO DART diagnostics (defined in the dictionary entry E['diagn']) over levels and latitude,  
+	and then plot them as a "quiver" plot (i.e. vector field). 
+	In this case, E['variable'] should be a LIST or TUPLE of the two variable that we plot, e.g. FPHI and FZ for the components
+	of EP flux, e.g. E['variable'] = (x,y), where x is the x-component of the vectors, and y the y-component. 
+	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
+	all times in E['daterange']
+	"""
+
+	# throw an error if the desired variable is 2 dimensional 
+	if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
+		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
+		return
+
+	# throw an error if E['variable'] is not a list or a tuple
+	if (type(E['variable']) != tuple) and (type(E['variable']) != list):
+		print('----Trying to make a vector field plot but the requested variable is not a tuple or a list, but rather:')	
+		print(type(E['variable']))
+		return
+
+	# loop over the two variables and 
+	# load the desired DART diagnostic for each variable and daterange:
+	Mlist = []
+	for vv in E['variable']:
+		Etemp = E.copy()
+		Etemp['variable'] = vv
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+
+		# average over the last dimension, which is always time (by how we formed this array) 
+		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+		
+		# figure out which dimension is longitude and then average over that dimension 
+		# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
+		shape_tuple = VV.shape
+		if lon is not None:
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lon):
+					londim = ii
+			M1 = np.squeeze(np.mean(VV,axis=londim))
+		else:
+			M1 = np.squeeze(VV)
+
+		# if computing a difference to another field, load that here  
+		if (Ediff != None):
+
+			# load the desired DART diagnostic for the difference experiment dictionary
+			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+
+			# average over time 
+			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+			# average over longitudes 
+			if lon is not None:
+				M2 = np.squeeze(np.mean(VV,axis=londim))
+			else:
+				M2 = np.squeeze(VV)
+
+			# subtract the difference field out from the primary field  
+			M = M1-M2
+		else:
+			M = M1
+
+		# transpose the array if necessary  
+		if M.shape[0]==len(lat):
+			MT = np.transpose(M)
+		else:
+			MT = M
+
+		# MT is the field we want to plot --> append it to the list
+		Mlist.append(MT)
+
+	# create a mesh
+	X,Y = np.meshgrid(lat,lev)
+
+        # plot
+	plt.quiver(X,Y,Mlist[0],Mlist[1])
+
+	# axis labels 
+        plt.xlabel('Latitude')
+        plt.ylabel('Pressure (hPa)')
+	plt.yscale('log')
+	plt.gca().invert_yaxis()
+
+	# return the colorbar handle if available, so we can adjust it later
+	return Mlist
+
 def Nsq(E,date,hostname='taurus',debug=False):
 
 	"""
