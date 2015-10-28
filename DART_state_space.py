@@ -1869,7 +1869,6 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	if cbar is not None:
 		if (clim > 1000) or (clim < 0.001):
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
-			print('++exponential color labels+++')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
 	else: 
@@ -2020,7 +2019,7 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	for k in range(nlev):
 	    for i in range(nlon):
 		for j in range(nlat):
-		    P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* H['PS'][j,i]
+			P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 
 
 	# compute potential temperature  
@@ -2030,12 +2029,12 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	theta = H['T']*(H['P0']/P)**(Rd/cp)
 
 	# compute the vertical gradient in potential temperature 
-	dZ = np.gradient(H['Z3'])	# 3D gradient of geopotential height (with respect to model level) 
-	dthetadZ_3D = np.gradient(theta,dZ[0])
+	dZ = np.gradient(np.squeeze(H['Z3']))	# 3D gradient of geopotential height (with respect to model level) 
+	dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
 	dthetadZ = dthetadZ_3D[0] # this is the vertical temperature gradient with respect to pressure 
 
 	# compute the buoyancy frequency 
-	N2 = (g/theta)*dthetadZ
+	N2 = (g/np.squeeze(theta))*dthetadZ
 
 	return N2,lat,lon,lev
 
@@ -2202,12 +2201,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	# load the timeseries of data from either reanalysis (ERA-Interim) or DART  
 	# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
-	if E['exp_name'] == 'ERA':
-		M0,t,lat,lon,lev = era.retrieve_era_averaged(E,average_levels=False,hostname=hostname,verbose=debug)
-		Vmatrix = np.transpose(M0)	
-
-	else:
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	#if E['exp_name'] == 'ERA':
+	#	M0,t,lat,lon,lev = era.retrieve_era_averaged(E,average_levels=False,hostname=hostname,verbose=debug)
+	#	Vmatrix = np.transpose(M0)	
+	#else:
+	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
