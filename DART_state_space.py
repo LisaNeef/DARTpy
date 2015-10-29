@@ -1883,7 +1883,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
 
-def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),hostname='taurus',debug=False):
+def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),scale_by_pressure=False,hostname='taurus',debug=False):
 
 	"""
 	Retrieve TWO DART diagnostics (defined in the dictionary entry E['diagn']) over levels and latitude,  
@@ -1898,6 +1898,7 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 	Ediff - dictionary for the difference experiment (default is None)
 	alpha - tuple of scaling factors for the horizontal and vertical components, 
 		e.g. for EP flux alpha should be (4.899E-3,0)
+	scale_by_pressure: set to True to scale the arrows by the pressure at each point
 	"""
 
 	# throw an error if the desired variable is 2 dimensional 
@@ -1919,8 +1920,17 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 		Etemp['variable'] = vv
 		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
 
+		# if desired, scale the array by pressure (this is useful for EP flux vector)
+		if scale_by_pressure:
+			EP = E.copy()
+			EP['variable'] = 'P'
+			VP,dumlat,dumlon,dumlev,dumdaterange = DART_diagn_to_array(EP,hostname=hostname,debug=debug)
+			Vnorm = Vmatrix/VP
+		else:
+			Vnorm = Vmatrix
+
 		# average over the last dimension, which is always time (by how we formed this array) 
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+		VV = np.nanmean(Vnorm,axis=len(Vnorm.shape)-1)	
 		
 		# figure out which dimension is longitude and then average over that dimension 
 		# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
@@ -1966,6 +1976,7 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 
 	# create a mesh
 	X,Y = np.meshgrid(lat,lev)
+
 
         # plot
 	plt.quiver(X,Y,alpha[0]*Mlist[0],alpha[1]*Mlist[1],pivot='mid', units='inches')
@@ -2037,6 +2048,46 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	N2 = (g/np.squeeze(theta))*dthetadZ
 
 	return N2,lat,lon,lev
+
+
+def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
+
+	"""
+	given a DART experiment dictionary on a certain date and time,
+	recreate the pressure field given the hybrid model level parameters 
+	"""
+
+	# check whether the requested experiment uses a model with hybrid levels. 
+	# right now this just returns if the experiment is ERA-Interm.
+	# TODO: subroutine with a dictionary that shows 
+	# whether a given experiment has hybrid levels 
+	if E['exp_name'] == 'ERA':
+		print('ERA data are not on hybrid levels --need to retrieve ERA pressure data instead of calling P_from_hybrid_levels')
+		return None,None,None,None
+
+	# reconstruct the pressure field at each point from hybrid model variables 
+	varlist = ['hyam','hybm','P0','PS','T','Z3']
+	H = dict()
+	for vname in varlist:
+	    Ehyb = E.copy()
+	    Ehyb['variable'] = vname
+	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
+	    if vname == 'PS':
+		H['lev'] = lev
+		H['lat'] = lat
+		H['lon'] = lon        
+	    H[vname]=field
+
+	nlev = len(lev)
+	nlat = len(lat)
+	nlon = len(lon)
+	P = np.zeros(shape = (nlev,nlat,nlon))
+	for k in range(nlev):
+	    for i in range(nlon):
+		for j in range(nlat):
+			P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+
+	return P,lat,lon,lev
 
 def bootstrapci_from_anomalies(E,P=95,nsamples=1000,hostname='taurus',debug=False):
 
@@ -2153,6 +2204,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# another special case is buoyancy frequency -- this is computed in a separate routine 
 				if E['variable'] == 'Nsq':
 					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+					file_type_found = True
+					
+				# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
+				# TODO: make this model-specific, since not all models have hybrid levels
+				if E['variable'] == 'P':
+					V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
 		
 				# for all other variables, compute the diagnostic from model h files 
@@ -2276,5 +2333,8 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	if log_levels:
 		plt.yscale('log')
 	plt.gca().invert_yaxis()
-	#plt.axis('tight')
+
+	# make sure the axes only go as far as the ranges in E
+	plt.ylim(E['levrange'])
+	plt.xlim(E['latrange'])
 	return M
