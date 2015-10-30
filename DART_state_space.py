@@ -24,7 +24,7 @@ import experiment_settings as es
 
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
-var3d = ['U','US','V','VS','T','Z3']
+var3d = ['U','US','V','VS','T','Z3','DELF']
 var2d = ['PS','FLUT']
 var1d = ['hyam','hybm','hyai','hybi']
 
@@ -374,110 +374,108 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	return CB,cs,M
 
 
-def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar=True,debug=False,colorbar_label=None):
+def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,hostname='taurus',debug=False):
 
-	daterange = E['daterange']
+	"""
+	Given a DART experiment dictionary E, plot the desired diagnostic as a function of vertical level and time, 
+	averaging over the selected latitude and longitude ranges. 
 
-	# for ERA data, can load the entire time series, including averaging, from an external routine  
-	if E['exp_name'] == 'ERA':
-		M0,t,lat,lon,lev = era.retrieve_era_averaged(E,average_levels=False,hostname=hostname,verbose=debug)
-		MM = np.transpose(M0)	
+	INPUTS:
+	E: experiment dictionary defining the main diagnostic  
+	Ediff: experiment dictionary for the difference experiment
+	clim: color limits (single number, applied to both ends if the colormap is divergent)
+	hostname: name of the computer on which the code is running
+	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
+	reverse_colors: set to True to flip the colormap
+	scaling_factor: factor by which to multiply the array to be plotted 
+	"""
 
+	# throw an error if the desired variable is 2 dimensional 
+	if E['variable'].upper() not in var3d:
+		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
+		return
+
+	# load the desired DART diagnostic for the desired variable and daterange:
+	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# figure out which dimension is longitude and then average over that dimension 
+	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
+	shape_tuple = Vmatrix.shape
+	if lon is not None:
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lon):
+				londim = ii
+		Vlon = np.squeeze(np.mean(Vmatrix,axis=londim))
 	else:
-		#------loading DART timeseries-------------------------
-		for date, ii in zip(daterange,np.arange(0,len(daterange))):  
+		Vlon = np.squeeze(Vmatrix)  
 
-			# data loading for DART output  -- depends on diagnostic  
-			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-				if ii == 0:
-					lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-					nlev = len(lev)
-					refshape = Cov.shape
-				else:
-					dum1,dum2,dum3,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
+	# figure out which dimension is longitude and then average over that dimension 
+	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
+	shape_tuple = Vlon.shape
+	if lat is not None:
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lat):
+				latdim = ii
+		Vlonlat = np.squeeze(np.mean(Vmatrix,axis=latdim))
+	else:
+		Vlonlat = Vlon
 
+	# if computing a difference to another field, load that here  
+	if (Ediff != None):
 
-				if E['diagn'].lower() == 'covariance':
-					VV = Cov
-				if E['diagn'].lower() == 'correlation':
-					VV = Corr
-			else:
-				if ii == 0:
-					lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-					nlev = len(lev)
-					refshape = VV.shape
-				else:
-					dum1,dum2,dum3,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+		# load the desired DART diagnostic for the difference experiment dictionary
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 
-			# if the file was not found, VV will be undefined, so put in empties
-			if VV is None:
-				VV = np.empty(shape=refshape)
+		# average over longitudes 
+		if lon is not None:
+			Vlon2 = np.squeeze(np.mean(Vmatrix,axis=londim))
+		else:
+			Vlon2 = np.squeeze(Vmatrix)
 
-			# average over latitude and longitude
-			Mlat = np.mean(VV,axis=0)
-			Mlatlon = np.mean(Mlat,axis=0)
+		# average over latitudes
+		if lat is not None:
+			Vlonlat2 = np.squeeze(np.mean(Vlon2,axis=latdim))
+		else:
+			Vlonlat2 = np.squeeze(Vlon2)
 
-			M1 = Mlatlon
-
-			# repeat for the difference experiment
-			if (Ediff != None):
-				lev2,lat2,lon2,VV,dum1,dum2,dum3 = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-				M2lat = np.mean(VV,axis=0)
-				M2latlon = np.mean(M2lat,axis=0)
-				M2 = M2latlon
-				M = M1-M2
-			else:
-				M = M1
-
-
-			# append the resulting vector to the larger array (or initialize it)
-			if (ii==0) :
-				MM = np.zeros(shape=(nlev, len(daterange)), dtype=float)
-				names=[]
-			MM[:,ii] = M
-
-			# make a grid of levels and days
-			t = daterange
-		#------done loading timeseries of DART output  
+		# subtract the difference field out from the primary field  
+		M = Vlonlat-Vlonlat2
+	else:
+		M = Vlonlat
 
         # choose color map based on the variable in question
-	#cmap = state_space_colormap(E,Ediff)
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
 
-	# specify the color limits 
-	if debug:
-		print('++++++clim+++++')
-		print(clim)
+	# set the contour levels - it depends on the color limits and the number of colors we have  
+	if clim is None:
+		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	if cmap_type == 'divergent':
-		if clim is None:
-			clim = np.nanmax(np.absolute(MM))
 		L  = np.linspace(start=-clim,stop=clim,num=11)
 	else:
 		L  = np.linspace(start=0,stop=clim,num=11)
 
         # contour data 
-        cs = plt.contourf(t,lev,MM,L,cmap=cmap,extend="both")
+	t = new_daterange
+        cs = plt.contourf(t,lev,M,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 	else:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
 	#plt.xticks(rotation=45)
 
-	if cbar:
+	# add a colorbar if desired 
+	if cbar is not None:
 		if (clim > 1000) or (clim < 0.001):
-			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical',format='%.3f')
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
-			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical')
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
 	else: 
 		CB = None
 
@@ -1889,6 +1887,10 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
         plt.ylabel('Pressure (hPa)')
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
+
+	# make sure the axes only go as far as the ranges in E
+	plt.ylim(E['levrange'])
+	plt.xlim(E['latrange'])
 
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M
