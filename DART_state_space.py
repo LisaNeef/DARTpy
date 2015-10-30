@@ -1793,7 +1793,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1807,6 +1807,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
+	scaling_factor: factor by which to multiply the array to be plotted 
 	debug: set to True to get extra ouput
 	"""
 
@@ -1872,7 +1873,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		MT = M
 
         # plot
-        cs = plt.contourf(lat,lev,MT,L,cmap=cmap,extend="both")
+        cs = plt.contourf(lat,lev,scaling_factor*MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
