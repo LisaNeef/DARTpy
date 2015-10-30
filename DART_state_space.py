@@ -1793,12 +1793,21 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
 	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
 	all times in E['daterange']
+
+	INPUTS:
+	E: basic experiment dictionary
+	Ediff: experiment dictionary for the difference experiment
+	clim: color limits (single number, applied to both ends if the colormap is divergent)
+	hostname: name of the computer on which the code is running
+	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
+	reverse_colors: set to True to flip the colormap
+	debug: set to True to get extra ouput
 	"""
 
 	# throw an error if the desired variable is 2 dimensional 
@@ -1845,7 +1854,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 
         # choose a color map based on the variable in question
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
