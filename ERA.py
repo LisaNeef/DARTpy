@@ -62,6 +62,8 @@ def load_ERA_file(E,year,hostname='taurus',verbose=False):
 		if (variable_found == False):
 			if verbose:
 				print('Unable to find variable '+E['variable']+' in file '+ff)
+				f.close()
+				return
 		f.close()
 	
 		# select the vertical and lat/lon ranges specified in E

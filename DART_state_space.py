@@ -1924,8 +1924,13 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 		if scale_by_pressure:
 			EP = E.copy()
 			EP['variable'] = 'P'
-			VP,dumlat,dumlon,dumlev,dumdaterange = DART_diagn_to_array(EP,hostname=hostname,debug=debug)
-			Vnorm = Vmatrix/VP
+			VP,dumlat,lonP,dumlev,dumdaterange = DART_diagn_to_array(EP,hostname=hostname,debug=debug)
+			shape_tuple = VP.shape
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lonP):
+					londim = ii
+			VPlonave = np.squeeze(np.mean(VP,axis=londim))
+			Vnorm = Vmatrix/VPlonave
 		else:
 			Vnorm = Vmatrix
 
@@ -2207,7 +2212,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					file_type_found = True
 					
 				# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
-				# TODO: make this model-specific, since not all models have hybrid levels
 				if E['variable'] == 'P':
 					V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
