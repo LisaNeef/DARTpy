@@ -448,7 +448,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
-		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
+		clim = scaling_factor*np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	if cmap_type == 'divergent':
 		L  = np.linspace(start=-clim,stop=clim,num=11)
@@ -457,7 +457,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 
         # contour data 
 	t = new_daterange
-        cs = plt.contourf(t,lev,M,L,cmap=cmap,extend="both")
+        cs = plt.contourf(t,lev,M*scaling_factor,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
@@ -1968,8 +1968,22 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 			# load the desired DART diagnostic for the difference experiment dictionary
 			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Edtemp,hostname=hostname,debug=debug)
 
+			# if desired, scale the array by pressure (this is useful for EP flux vector)
+			if scale_by_pressure:
+				EdiffP = Ediff.copy()
+				EdiffP['variable'] = 'P'
+				VP,dumlat,lonP,dumlev,dumdaterange = DART_diagn_to_array(EdiffP,hostname=hostname,debug=debug)
+				shape_tuple = VP.shape
+				for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+					if dimlength == len(lonP):
+						londim = ii
+				VPlonave = np.squeeze(np.mean(VP,axis=londim))
+				Vnorm = Vmatrix/VPlonave
+			else:
+				Vnorm = Vmatrix
+
 			# average over time 
-			VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+			VV = np.nanmean(Vnorm,axis=len(Vnorm.shape)-1)	
 
 			# average over longitudes 
 			if lon is not None:
