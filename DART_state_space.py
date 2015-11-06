@@ -1841,7 +1841,12 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 		# average over longitudes 
+		# as before, look for the londim (it might be different this time) 
+		shape_tuple = VV.shape
 		if lon is not None:
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lon):
+					londim = ii
 			M2 = np.squeeze(np.mean(VV,axis=londim))
 		else:
 			M2 = np.squeeze(VV)
@@ -1875,7 +1880,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# add a colorbar if desired 
 	if cbar is not None:
-		if (clim > 1000) or (clim < 0.001):
+		if (clim > 1000) or (clim < 0.01):
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
@@ -2185,6 +2190,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	any extra computations needed (E['extras'])  
 	"""
 
+	Vmatrix_found = False
 	# if plotting anomalies from climatology, climatology, or a climatological standard deviation, 
 	# can load these using the `stds` and `ano` rubroutines in MJO.py  
 	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
@@ -2198,9 +2204,22 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		if 'climatological_std' in E['diagn']:
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
+		Vmatrix_found = True
 
-	else:
-		# for all other diagnostics, loop over dates given in the experiment dictionary and load the desired data  
+	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
+	# in this case, we also don't have to loop over dates.
+	era_variables_list = ['U','V','Z','T','MSLP']
+	if (E['exp_name']=='ERA') and (E['variable'].upper() in era_variables_list):
+		import ERA as era
+		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
+		# this SR returns an array with time in the first dimension. We want it in the last
+		# dimension, so transpose
+		Vmatrix = VV.transpose()
+		Vmatrix_found = True
+
+	if not Vmatrix_found:
+	# if neither of the above worked, we have to 
+	# loop over the dates given in the experiment dictionary and load the desired data  
 		Vlist = []
 		Vshape = None
 		for date in E['daterange']:
@@ -2366,5 +2385,4 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	# make sure the axes only go as far as the ranges in E
 	plt.ylim(E['levrange'])
-	plt.xlim(E['latrange'])
 	return M
