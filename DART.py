@@ -296,7 +296,7 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,date,hostname=hostname)
+	filename = es.find_paths(E,date,hostname=hostname,file_type='obs_epoch',debug=debug)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None
@@ -304,6 +304,10 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 	# load the file and select the observation we want
         else:
 		f = Dataset(filename,'r')
+		if debug:
+			print('Loading file '+filename)
+			for key in f.variables.iterkeys():
+			    print key
 		observations = f.variables['observations'][:]
 		time = f.variables['time'][:]
 		copy = f.variables['copy'][:]
