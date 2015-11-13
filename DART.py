@@ -322,6 +322,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		time = f.variables['time'][:]
 		copy = f.variables['copy'][:]
 		CopyMetaData = f.variables['CopyMetaData'][:]
+		ObsTypesMetaData = f.variables['ObsTypesMetaData'][:]
 		obs_type = f.variables['obs_type'][:]
 
 		# find the obs_type number corresponding to the desired observations
@@ -378,8 +379,13 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		print(obs_type_no_list)
 	for OTN in obs_type_no_list:
 		itemp = np.where(obs_type == OTN)
+		print('-------------------------------')
+		print np.squeeze(itemp)
 		if itemp is not None:
-			iobs.append(itemp[0][0])
+			iobs.append(list(np.squeeze(itemp)))
+	# iobs is a list of lists -- turn it into a single list of indices
+	iobs2 = [ii for sublist in iobs for ii in sublist]
+	print('retrieving '+str(len(iobs))+' observations')
 
 	if type(E['copystring']) is not list:
 		# in this case only a single copy, which is defined in E, is returned
@@ -429,12 +435,12 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 				print CMD[j]
 
 		# now select the observations corresponding to these copies 
-		obs1 = observations[iobs,:]
+		obs1 = observations[iobs2,:]
 		obs2 = obs1[:,jj]
 		obs_out = obs2
 		copy_names = [ CMD[i] for i in jj ]
 
-	return obs_out,copy_names,CMD,diagn
+	return obs_out,copy_names
 
 
 
