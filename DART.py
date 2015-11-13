@@ -280,23 +280,33 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 	#return ObsIndex_out, loc1_out, loc2_out, loc3_out, qc_out, obs_out, copynames
 	return DF
 
-def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_list=['ERP_PM1','ERP_LOD'],ens_status_list=['ensemble member'], hostname='taurus',debug=False):
+def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 
 	"""
 	 this function reads in an obs_epoch_XXX.nc file for a certain DART experiment, with the obs that we want 
 	 given in obs_type_list, and returns a vector of the desired observation. 
-	 the parameter ens_status_list= gives a list of all copy types to return, so for example if 
-	 ens_status_list=['ensemble member'], then return all the ensemble members, regardless of what E['copystring'] says.
-	 if this list is left blank, only return what's specified by the E['copystring'] entry in the experiment dictionary
-	"""
 
+	INPUTS:
+	E: an experiment dictionary 
+		if E['copystring'] is a list of copystrings, we cycle through them. 
+		if one of the strings in E['copystring'] is 'ensemble member', then return all the ensemble members. 
+		if E['obs_name'] is a list of observation types, we cycle through and load them all. 
+	date: the date on which we want to load the obs 
+		the default for this is None -- in this case, just choose the first entry of E['daterange']
+	hostname: computer name - default is Taurus 
+	debug: debugging flag; default is False. 
+
+	"""
+	# select the date 
+	if date_in is None:
+		date_in = E['daterange'][0]
 
 	# find the directory for this run   
 	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
 	# but written my each user -- it should take an experiment dictionary and the hostname 
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
-	filename = es.find_paths(E,date,hostname=hostname,file_type='obs_epoch',debug=debug)
+	filename = es.find_paths(E,date_in,hostname=hostname,file_type='obs_epoch',debug=debug)
 	if not os.path.exists(filename):
 		print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None
@@ -315,17 +325,21 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 		obs_type = f.variables['obs_type'][:]
 
 		# find the obs_type number corresponding to the desired observations
-		obs_type_no_list = []
-		for obs_type_string in obs_type_list:
-			obs_type_no_list.append(get_obs_type_number(f,obs_type_string))
+		if type(E['obs_name']) is list:
+			obs_type_no_list = []
+			for obs_type_string in E['obs_name']:
+				obs_type_no_list.append(get_obs_type_number(f,obs_type_string))
+		else:
+			obs_type_no = get_obs_type_number(f,obs_type_string)
+			obs_type_no_list = [obs_type_no]
 		
-		# if ens_status_list is empty, simply find the copy corresponding to copystring, and we're done
-		if ens_status_list is None:
-
+		if type(E['copystring']) is not list:
+			# if E['copystring'] is not a list and not 'ensemble', 
+			# we only have one copy number to get -- cc tells us the number of it 
 			cc = get_copy(f,E['diagn'].lower()+' '+E['copystring'])
 
 		else:
-
+			# if we have to retrieve more than one copy, 
 			# expand "CopyMetaData" into lists that hold ensemble status and diagnostic
 			diagn = []
 			ens_status = []
@@ -341,7 +355,7 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 				if 'truth' in temp:
 					diagn.append('Truth')
 					ens_status.append('Truth')
-				if 'observations' in temp:
+				if 'observation' in temp:
 					diagn.append('Observation')
 					ens_status.append('Observation')
 				if 'ensemble member' in temp:
@@ -357,7 +371,6 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
                 f.close()
 
 	# return the desired observations and copys, and the copy meta data
-	#for obs_type_no in obs_type_no_list:
 	iobs=[]
 	iensstatus=[]
 	if debug:
@@ -368,24 +381,52 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 		if itemp is not None:
 			iobs.append(itemp[0][0])
 
-	if ens_status_list is None:
+	if type(E['copystring']) is not list:
 		# in this case only a single copy, which is defined in E, is returned
 		obs_out = observations[iobs,cc]
 		copy_names = E['diagn'].lower()+' '+E['copystring']
 
 
 	else:
-		# in this case several copies are returned, everything corresponding to 
-		# the diagnostic in E and the ensemble statuses in ens_status_list
-		for ES in ens_status_list:
-			indices = [i for i, x in enumerate(ens_status) if x == ES]
+		# in this case several copies are returned
+		for CS in E['copystring']:
+
+			# ensemble member names are stored weirdly in DART output -- convert here
+			if 'ensemble member ' in CS:
+				import re
+				ensindex = re.sub(r'ensemble member*','',CS).strip()
+				if int(ensindex) < 10:
+					spacing = '      '
+				else:
+					spacing = '     '
+				CS = "ensemble member"+spacing+str(ensindex)		
+			if debug:
+				print('looking for copy '+CS)
+			if CS is 'ensemble':
+				# in this case look for all the copies that have ensemble status = "ensemble member"	
+				indices = [i for i, x in enumerate(ens_status) if x == 'ensemble member']
+			else:
+				# for all other copystrings, just look for the CopyMetaData entries that contrain that copystring
+				indices = [i for i, x in enumerate(CMD) if CS in x]
+			if debug:
+				print('here are the copy indices that fit this copystring')
+				print indices
 			iensstatus.extend(indices)
 		iensstatus.sort()	# this is the list of copies with the right ensemble status
 		idiagn = [i for i,x in enumerate(diagn) if x == E['diagn']]	# this is the list of copies with the right diagnostic
+		if debug:
+			print('here are the copy indices that fit the requested diagnostic')
+			print idiagn
 
 		# we are interested in the indices that appear in both iensstatus and idiagn
 		sdiagn = set(idiagn)
 		jj = [val for val in iensstatus if val in sdiagn]
+		if debug:
+			print('here are the copy indices that fit both the requested copystrings and the requested diagnostic')
+			print jj
+			print('this corresponds to the following:')
+			for j in jj:
+				print CMD[j]
 
 		# now select the observations corresponding to these copies 
 		obs1 = observations[iobs,:]
@@ -393,7 +434,7 @@ def load_DART_obs_epoch_file(E,date=datetime.datetime(2009,1,1,0,0,0),obs_type_l
 		obs_out = obs2
 		copy_names = [ CMD[i] for i in jj ]
 
-	return obs_out,copy_names
+	return obs_out,copy_names,CMD,diagn
 
 
 
