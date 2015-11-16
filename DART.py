@@ -321,6 +321,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		observations = f.variables['observations'][:]
 		time = f.variables['time'][:]
 		copy = f.variables['copy'][:]
+		location = f.variables['location'][:]
 		CopyMetaData = f.variables['CopyMetaData'][:]
 		ObsTypesMetaData = f.variables['ObsTypesMetaData'][:]
 		obs_type = f.variables['obs_type'][:]
@@ -371,23 +372,32 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 			
                 f.close()
 
-	# return the desired observations and copys, and the copy meta data
+	# find the desired observations, their observation types, and their locations 
 	iobs=[]
 	iensstatus=[]
 	obs_codes = []
+	lons = []
+	lats = []
+	levs = []
 	if debug:
 		print('this is the list of obs type numbers')
 		print(obs_type_no_list)
 	for OTN in obs_type_no_list:
-		itemp = np.where(obs_type == OTN)
+		itemp = np.where(obs_type == OTN)	# observation numbers of all obs that fit this obs type 
 		if itemp is not None:
 			iobs.append(list(np.squeeze(itemp)))
 			obs_codes.append(np.squeeze(obs_type[itemp]))
-	# iobs (the indices of the obs we're interested in) 
-	# and obs_codes (the numbers codes identifying what type of observation each obs is) 
-	# are lists of lists -- turn them into a single list of indices
+			lons.append(np.squeeze(location[itemp,0]))
+			lats.append(np.squeeze(location[itemp,1]))
+			levs.append(np.squeeze(location[itemp,2]))
+
+	# we now have several lists (as many as the number of obs types we requested)
+	#  of lists --> turn them into a single list of indices
 	iobs2 = [ii for sublist in iobs for ii in sublist]
 	obs_codes_list = [ii for sublist in obs_codes for ii in sublist]
+	lons_list = [ii for sublist in lons for ii in sublist]
+	lats_list = [ii for sublist in lats for ii in sublist]
+	levs_list = [ii for sublist in levs for ii in sublist]
 	print('retrieving '+str(len(iobs))+' observations')
 
 	# instead of obs number codes, return strings that identify the obs
@@ -446,7 +456,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		obs_out = obs2
 		copy_names = [ CMD[i] for i in jj ]
 
-	return obs_out,copy_names,obs_names_out
+	return obs_out,copy_names,obs_names_out,lons_list,lats_list,levs_list
 
 
 def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname='taurus',debug=False):
