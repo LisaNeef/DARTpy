@@ -374,6 +374,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 	# return the desired observations and copys, and the copy meta data
 	iobs=[]
 	iensstatus=[]
+	obs_codes = []
 	if debug:
 		print('this is the list of obs type numbers')
 		print(obs_type_no_list)
@@ -381,9 +382,16 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		itemp = np.where(obs_type == OTN)
 		if itemp is not None:
 			iobs.append(list(np.squeeze(itemp)))
-	# iobs is a list of lists -- turn it into a single list of indices
+			obs_codes.append(np.squeeze(obs_type[itemp]))
+	# iobs (the indices of the obs we're interested in) 
+	# and obs_codes (the numbers codes identifying what type of observation each obs is) 
+	# are lists of lists -- turn them into a single list of indices
 	iobs2 = [ii for sublist in iobs for ii in sublist]
+	obs_codes_list = [ii for sublist in obs_codes for ii in sublist]
 	print('retrieving '+str(len(iobs))+' observations')
+
+	# instead of obs number codes, return strings that identify the obs
+	obs_names_out = [ObsTypesMetaData[obs_code-1].tostring() for obs_code in obs_codes_list]
 
 	if type(E['copystring']) is not list:
 		# in this case only a single copy, which is defined in E, is returned
@@ -438,8 +446,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		obs_out = obs2
 		copy_names = [ CMD[i] for i in jj ]
 
-	return obs_out,copy_names
-
+	return obs_out,copy_names,obs_names_out
 
 
 def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname='taurus',debug=False):
