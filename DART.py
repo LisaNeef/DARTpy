@@ -379,8 +379,6 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		print(obs_type_no_list)
 	for OTN in obs_type_no_list:
 		itemp = np.where(obs_type == OTN)
-		print('-------------------------------')
-		print np.squeeze(itemp)
 		if itemp is not None:
 			iobs.append(list(np.squeeze(itemp)))
 	# iobs is a list of lists -- turn it into a single list of indices
