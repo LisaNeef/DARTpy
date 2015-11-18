@@ -332,7 +332,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 			for obs_type_string in E['obs_name']:
 				obs_type_no_list.append(get_obs_type_number(f,obs_type_string))
 		else:
-			obs_type_no = get_obs_type_number(f,obs_type_string)
+			obs_type_no = get_obs_type_number(f,E['obs_name'])
 			obs_type_no_list = [obs_type_no]
 		
 		if type(E['copystring']) is not list:
