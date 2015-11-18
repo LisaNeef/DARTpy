@@ -339,7 +339,12 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		if type(E['copystring']) is not list:
 			# if E['copystring'] is not a list and not 'ensemble', 
 			# we only have one copy number to get -- cc tells us the number of it 
-			cc = get_copy(f,E['diagn'].lower()+' '+E['copystring'])
+			# note also the prior and posterio diagnostics are not available for everything, i.e observations themselves
+			if 'observation' in E['copystring']:
+				cc = get_copy(f,E['copystring'])
+			else:
+				diagn = E['diagn']
+				cc = get_copy(f,diagn.lower()+' '+E['copystring'])
 
 		else:
 			# if we have to retrieve more than one copy, 
@@ -359,7 +364,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 					diagn.append('Truth')
 					ens_status.append('Truth')
 				if 'observation' in temp:
-					diagn.append('Observation')
+					diagn.append('')
 					ens_status.append('Observation')
 				if 'ensemble member' in temp:
 					ens_status.append('ensemble member')
