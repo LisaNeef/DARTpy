@@ -393,7 +393,8 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 
 	# create a dictionary to hold all available Quality Control flags
 	QCMetaData = [QCMD.tostring() for QCMD in QCMetaData_array]
-	QCdict = dict.fromkeys(QCMetaData,[])
+	QCdict = {k:[] for k in QCMetaData}
+
 
 	# loop over all obs and store the relevant obs for the ones where the type code matches the request
 	if debug:
@@ -414,9 +415,8 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 			# loop over all available QC flags and store in a list, then a dict
 			# note that DART QC copies start at 1, but python indices start at 0
 			for iqc,qcname in zip(qc_copy,QCMetaData):
-				qclist_temp = QCdict[qcname]
-				qclist_temp.append(np.squeeze(qc[itemp,iqc-1]))
-				QCdict[qcname] = qclist_temp
+				QCdict[qcname].append(np.squeeze(qc[itemp,iqc-1]))
+
 
 	# we now have several lists (as many as the number of obs types we requested)
 	#  of lists --> turn them into a single list of indices
