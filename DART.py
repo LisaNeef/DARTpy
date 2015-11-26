@@ -325,7 +325,10 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		CopyMetaData = f.variables['CopyMetaData'][:]
 		ObsTypesMetaData = f.variables['ObsTypesMetaData'][:]
 		obs_type = f.variables['obs_type'][:]
-
+		QCMetaData_array = f.variables['QCMetaData'][:]
+		qc = f.variables['qc'][:]
+		qc_copy = f.variables['qc_copy'][:]
+		
 		# find the obs_type number corresponding to the desired observations
 		if type(E['obs_name']) is list:
 			obs_type_no_list = []
@@ -378,13 +381,21 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 			
                 f.close()
 
-	# find the desired observations, their observation types, and their locations 
+	#------locations, quality control, and observation codes for requested obs types 
+
+	# empty lists to hold various traits of the observations that fit the requested obs types
 	iobs=[]
 	iensstatus=[]
 	obs_codes = []
 	lons = []
 	lats = []
 	levs = []
+
+	# create a dictionary to hold all available Quality Control flags
+	QCMetaData = [QCMD.tostring() for QCMD in QCMetaData_array]
+	QCdict = dict.fromkeys(QCMetaData,[])
+
+	# loop over all obs and store the relevant obs for the ones where the type code matches the request
 	if debug:
 		print('this is the list of obs type numbers')
 		print(obs_type_no_list)
@@ -400,6 +411,13 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 			lats.append(np.squeeze(location[itemp,1]))
 			levs.append(np.squeeze(location[itemp,2]))
 
+			# loop over all available QC flags and store in a list, then a dict
+			# note that DART QC copies start at 1, but python indices start at 0
+			for iqc,qcname in zip(qc_copy,QCMetaData):
+				qclist_temp = QCdict[qcname]
+				qclist_temp.append(np.squeeze(qc[itemp,iqc-1]))
+				QCdict[qcname] = qclist_temp
+
 	# we now have several lists (as many as the number of obs types we requested)
 	#  of lists --> turn them into a single list of indices
 	iobs2 = [ii for sublist in iobs for ii in sublist]
@@ -407,18 +425,22 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 	lons_list = [ii for sublist in lons for ii in sublist]
 	lats_list = [ii for sublist in lats for ii in sublist]
 	levs_list = [ii for sublist in levs for ii in sublist]
+	for qcname in QCMetaData:
+		old_list = QCdict[qcname]
+		new_list = [ii for sublist in old_list for ii in sublist]
+		QCdict[qcname] = new_list
 	if debug:
 		print('retrieving '+str(len(iobs2))+' observations')
 
 	# instead of obs number codes, return strings that identify the obs
 	obs_names_out = [ObsTypesMetaData[obs_code-1].tostring() for obs_code in obs_codes_list]
 
+	#------observation values for requested copies of the requested observations
+
 	if type(E['copystring']) is not list:
 		# in this case only a single copy, which is defined in E, is returned
 		obs_out = observations[iobs2,cc]
 		copy_names = E['diagn'].lower()+' '+E['copystring']
-
-
 	else:
 		# in this case several copies are returned
 		for CS in E['copystring']:
@@ -466,7 +488,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		obs_out = obs2
 		copy_names = [ CMD[i] for i in jj ]
 
-	return obs_out,copy_names,obs_names_out,lons_list,lats_list,levs_list,iobs
+	return obs_out,copy_names,obs_names_out,lons_list,lats_list,levs_list,QCdict
 
 
 def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname='taurus',debug=False):
