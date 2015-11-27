@@ -8,9 +8,9 @@ from mpl_toolkits.basemap import Basemap
 import DART as dart
 import brewer2mpl
 import pandas as pd
+import matplotlib.pyplot as plt
 
 #import matplotlib as mpl
-#import matplotlib.pyplot as plt
 #import matplotlib.dates as mdates
 #import datetime
 #from netCDF4 import Dataset
@@ -79,7 +79,7 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 	map.fillcontinents(color=land_color,lake_color=water_color,alpha=0.2)
 
 	#--------- load the obs on the given day 
-	OBS,copy_names,obs_names,lons,lats,levs = dart.load_DART_obs_epoch_file(E,debug=debug,hostname=hostname)
+	OBS,copy_names,obs_names,lons,lats,levs,QCdict = dart.load_DART_obs_epoch_file(E,debug=debug,hostname=hostname)
 
 	#---------loop over obs types-----------------
 	# loop over obs types given in E
@@ -103,6 +103,68 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 
 	return 
 
+def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostname='taurus',debug=False):
+
+	"""
+	This code plots a scatterplot DART assimilated or evaluated
+	observations on on a level-longitude slice  
+	
+	INPUTS:
+	E: a DART experiment dictionary. The relevant keys are: 
+		'latrange' : gives the lat limits of the plot
+		'lonrange' : gives the range of longitudes over which we count all the observations 
+		'levrange' : gives the vertical level range of the plot  
+		'copystring': a string giving the DART copies to show. If it's a list, we loop over the list
+		'obs_name': a string giving the DART observation to show. If it's a list, we loop over the list
+		'daterange': range of dates over which to plot the observations 
+	obs_color: list of colors assigned to the different types of obs plotted. Default is colorbrewer Paired 
+	yscale: the scale of the levels axis -- choose 'linear' or 'log' -- default is log
+	alpha: the degree of transparency. default is 0.5
+	"""
+
+	#--------- load the obs on the given day 
+	OBS,copy_names,obs_names,lons,lats,levs_Pa,QCdict = dart.load_DART_obs_epoch_file(E,debug=debug,hostname=hostname)
+
+	# conver the levels from Pa to hPa
+	levs = [ll/100.0 for ll in levs_Pa]
+
+	#---------loop over obs types-----------------
+	if type(E['obs_name']) is not list:
+		obs_type_list = [E['obs_name']]
+	else:
+		obs_type_list = E['obs_name']
+
+	# define a list of colors if needed 
+	if obs_colors is None:
+		nobstypes = len(obs_type_list)
+		ncol = np.min([nobstypes,12])
+		bmap = brewer2mpl.get_map('Paired', 'qualitative', ncol)
+		obs_colors = bmap.mpl_colors
+
+	# select the lats and levs for the desired obs types 
+	for obs_type,ii in zip(obs_type_list,range(len(obs_type_list))):
+		levs_obstype = [levs[i] for i,x in enumerate(obs_names) if obs_type in x]
+		lats_obstype = [lats[i] for i,x in enumerate(obs_names) if obs_type in x]
+
+		# scatter the obs over the map 
+		y = levs_obstype
+		x = lats_obstype
+		plt.scatter(x,y,s=10,color=obs_colors[ii],alpha=alpha)
+
+	# axis labels 
+        plt.xlabel('Latitude')
+        plt.ylabel('Pressure (hPa)')
+	plt.yscale(yscale)
+	plt.gca().invert_yaxis()
+
+	# change the plot limits 
+	plt.xlim(E['latrange'])
+	plt.ylim(E['levrange'])
+
+	# add a legend
+
+	return 
+#
 def count_Nobs_in_time(E,output_interval=0,DART_qc_flags_list=[0]):
 
 	"""
