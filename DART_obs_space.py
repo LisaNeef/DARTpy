@@ -112,7 +112,6 @@ def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostna
 	INPUTS:
 	E: a DART experiment dictionary. The relevant keys are: 
 		'latrange' : gives the lat limits of the plot
-		'lonrange' : gives the range of longitudes over which we count all the observations 
 		'levrange' : gives the vertical level range of the plot  
 		'copystring': a string giving the DART copies to show. If it's a list, we loop over the list
 		'obs_name': a string giving the DART observation to show. If it's a list, we loop over the list
@@ -138,6 +137,8 @@ def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostna
 	if obs_colors is None:
 		nobstypes = len(obs_type_list)
 		ncol = np.min([nobstypes,12])
+		if ncol < 3:
+			ncol=3
 		bmap = brewer2mpl.get_map('Paired', 'qualitative', ncol)
 		obs_colors = bmap.mpl_colors
 
