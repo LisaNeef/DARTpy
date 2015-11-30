@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 #import experiment_settings as es
 
 
+
+
 def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_color="#CCF3FF",land_color="#996600",obs_colors=None,hostname='taurus',debug=False):
 
 	"""
@@ -103,7 +105,7 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 
 	return 
 
-def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),yscale='log',alpha=0.5,hostname='taurus',debug=False):
+def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),yscale='log',alpha=0.5,hostname='taurus',debug=False,add_legend=False):
 
 	"""
 	This code plots a scatterplot DART assimilated or evaluated
@@ -119,12 +121,13 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 		'obs_name': a string giving the DART observation to show. If it's a list, we loop over the list
 		'daterange': range of dates over which to plot the observations 
 	colors: list of colors assigned to either the different types of obs plotted, or the QC values. 
-		Default is None, which selected the colorbrewer 'Paired' palette  
+		Default is None, which selected the colorbrewer qualitative 'Dark2' palette  
 	compare: select either 'QC' to color code the QC values, or 'obs_type' to color code the observation types
 		Default is 'QC'
 	QC_list = list of QC values to plot. The default is all values from 0 to 7
 	yscale: the scale of the levels axis -- choose 'linear' or 'log' -- default is log
 	alpha: the degree of transparency. default is 0.5
+	add_legend: set to True to show a legend. Default is False. 
 	"""
 
 	#--------- load the obs on the given day 
@@ -147,7 +150,7 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 		ncol = np.min([NN,12])
 		if ncol < 3:
 			ncol=3
-		bmap = brewer2mpl.get_map('Paired', 'qualitative', ncol)
+		bmap = brewer2mpl.get_map('Dark2', 'qualitative', ncol)
 		colors = bmap.mpl_colors
 
 	# if comparing different observation types, loop over the list of obs
@@ -186,6 +189,14 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 	plt.ylim(E['levrange'])
 
 	# add a legend
+	if add_legend:
+		if compare is 'QC':	
+			QCdef = DART_QC_values()
+			QCnames = [QCdef[QCvalue] for QCvalue in QC_list]
+			L = plt.legend(QCnames,loc='best')
+		if compare is 'obs_type':
+			L = plt.legend(obs_type_list,loc='best')
+		return L 
 
 	return 
 #
@@ -260,3 +271,28 @@ def count_Nobs_in_time(E,output_interval=0,DART_qc_flags_list=[0]):
 	DF = pd.DataFrame(Sdict)
 
 	return DF
+
+def DART_QC_values():
+
+	"""
+	Returns a dictionary giving the meanings of the DART observation quality control flags  
+	0= Assimilated  
+	1= Evaluated only  
+	2= Assimilated but posterior forward observation operator(s) failed  
+	3= Evaluated only but posterior forward observation operator(s) failed  
+	4= Not used, prior forward observation operator(s) failed  
+	5= Not used because not selected in obs_kind_nml  
+	6= Not used, failed prior quality control check  
+	7= Not used, violated outlier threshold  
+	"""
+
+	QCdef = {0:'Assimilated',\
+		1: 'Evaluated only',\
+		2: 'Assimilated but posterior forward observation operator(s) failed',\
+		3: 'Evaluated only but posterior forward observation operator(s) failed',\
+		4: 'Not used, prior forward observation operator(s) failed',\
+		5: 'Not used because not selected in obs_kind_nml',\
+		6: 'Not used, failed prior quality control check',\
+		7: 'Not used, violated outlier threshold'}
+
+	return QCdef
