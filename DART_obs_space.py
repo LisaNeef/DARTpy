@@ -103,11 +103,13 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 
 	return 
 
-def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostname='taurus',debug=False):
+def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),yscale='log',alpha=0.5,hostname='taurus',debug=False):
 
 	"""
 	This code plots a scatterplot DART assimilated or evaluated
-	observations on on a level-longitude slice  
+	observations on on a level-longitude slice.
+	It is possible to simultaneously plot several obs types (listed in E['obs_name']), or 
+	different DART quality control flags (listed in QC_list)  
 	
 	INPUTS:
 	E: a DART experiment dictionary. The relevant keys are: 
@@ -116,7 +118,11 @@ def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostna
 		'copystring': a string giving the DART copies to show. If it's a list, we loop over the list
 		'obs_name': a string giving the DART observation to show. If it's a list, we loop over the list
 		'daterange': range of dates over which to plot the observations 
-	obs_color: list of colors assigned to the different types of obs plotted. Default is colorbrewer Paired 
+	colors: list of colors assigned to either the different types of obs plotted, or the QC values. 
+		Default is None, which selected the colorbrewer 'Paired' palette  
+	compare: select either 'QC' to color code the QC values, or 'obs_type' to color code the observation types
+		Default is 'QC'
+	QC_list = list of QC values to plot. The default is all values from 0 to 7
 	yscale: the scale of the levels axis -- choose 'linear' or 'log' -- default is log
 	alpha: the degree of transparency. default is 0.5
 	"""
@@ -124,33 +130,50 @@ def plot_DARTobs_scatter_lev_lat(E,obs_colors=None,yscale='log',alpha=0.5,hostna
 	#--------- load the obs on the given day 
 	OBS,copy_names,obs_names,lons,lats,levs_Pa,QCdict = dart.load_DART_obs_epoch_file(E,debug=debug,hostname=hostname)
 
-	# conver the levels from Pa to hPa
+	# convert the levels from Pa to hPa
 	levs = [ll/100.0 for ll in levs_Pa]
 
-	#---------loop over obs types-----------------
-	if type(E['obs_name']) is not list:
-		obs_type_list = [E['obs_name']]
-	else:
-		obs_type_list = E['obs_name']
 
 	# define a list of colors if needed 
-	if obs_colors is None:
-		nobstypes = len(obs_type_list)
-		ncol = np.min([nobstypes,12])
+	if colors is None:
+		if compare is 'obs_type':
+			if type(E['obs_name']) is not list:
+				obs_type_list = [E['obs_name']]
+			else:
+				obs_type_list = E['obs_name']
+			NN = len(obs_type_list)
+		if compare is 'QC':
+			NN = len(QC_list)
+		ncol = np.min([NN,12])
 		if ncol < 3:
 			ncol=3
 		bmap = brewer2mpl.get_map('Paired', 'qualitative', ncol)
-		obs_colors = bmap.mpl_colors
+		colors = bmap.mpl_colors
 
-	# select the lats and levs for the desired obs types 
-	for obs_type,ii in zip(obs_type_list,range(len(obs_type_list))):
-		levs_obstype = [levs[i] for i,x in enumerate(obs_names) if obs_type in x]
-		lats_obstype = [lats[i] for i,x in enumerate(obs_names) if obs_type in x]
+	# if comparing different observation types, loop over the list of obs
+	# and select the lats and levs for the desired obs types 
+	if compare is 'obs_type':
+		for obs_type,ii in zip(obs_type_list,range(len(obs_type_list))):
+			levs_obstype = [levs[i] for i,x in enumerate(obs_names) if obs_type in x]
+			lats_obstype = [lats[i] for i,x in enumerate(obs_names) if obs_type in x]
 
-		# scatter the obs over the map 
-		y = levs_obstype
-		x = lats_obstype
-		plt.scatter(x,y,s=10,color=obs_colors[ii],alpha=alpha)
+			# scatter the obs over the map 
+			y = levs_obstype
+			x = lats_obstype
+			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha)
+
+	# if comparing different QC values , loop over the list of obs
+	# and select the lats and levs for the desired obs types 
+	if compare is 'QC':
+		DQC = QCdict['DART quality control            ']
+		for QC,ii in zip(QC_list,range(len(QC_list))):
+			levs_obstype = [levs[i] for i,x in enumerate(DQC) if QC == x]
+			lats_obstype = [lats[i] for i,x in enumerate(DQC) if QC == x]
+
+			# scatter the obs over the map 
+			y = levs_obstype
+			x = lats_obstype
+			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha)
 
 	# axis labels 
         plt.xlabel('Latitude')
