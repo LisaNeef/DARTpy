@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 
 
-def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_color="#CCF3FF",land_color="#996600",obs_colors=None,hostname='taurus',debug=False):
+def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_color="#CCF3FF",land_color="#996600",colors=None,compare='QC',QC_list=range(8),alpha=0.5,hostname='taurus',debug=False):
 
 	"""
 	This code plots a scatterplot of the horizontal distribution of DART assimilated or evaluated
@@ -43,6 +43,10 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 	water_color: color given to oceans and lakes (default is cyan/blue)
 	land_color: color given to continents (default is an earthy brown)
 	obs_color: list of colors assigned to the different types of obs plotted. Default is colorbrewer Paired 
+	compare: select either 'QC' to color code the QC values, or 'obs_type' to color code the observation types
+		Default is 'QC'
+	QC_list = list of QC values to plot. The default is all values from 0 to 7
+	alpha: the degree of transparency. default is 0.5
 	"""
 
 	#---------set up the map-----------------
@@ -78,7 +82,7 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
         # draw lat/lon grid lines every 30 degrees.
         map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
         map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
-	map.fillcontinents(color=land_color,lake_color=water_color,alpha=0.2)
+	map.fillcontinents(color=land_color,lake_color=water_color,alpha=alpha)
 
 	#--------- load the obs on the given day 
 	OBS,copy_names,obs_names,lons,lats,levs,QCdict = dart.load_DART_obs_epoch_file(E,debug=debug,hostname=hostname)
@@ -91,18 +95,42 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 		obs_type_list = E['obs_name']
 
 	# define a list of colors if needed 
-	if obs_colors is None:
-		bmap = brewer2mpl.get_map('Set1', 'qualitative', 7)
-		obs_colors = bmap.mpl_colors
+	if colors is None:
+		if compare is 'obs_type':
+			if type(E['obs_name']) is not list:
+				obs_type_list = [E['obs_name']]
+			else:
+				obs_type_list = E['obs_name']
+			NN = len(obs_type_list)
+		if compare is 'QC':
+			NN = len(QC_list)
+		ncol = np.min([NN,12])
+		if ncol < 3:
+			ncol=3
+		bmap = brewer2mpl.get_map('Dark2', 'qualitative', ncol)
+		colors = bmap.mpl_colors
 
-	for obs_type,ii in zip(obs_type_list,range(len(obs_type_list))):
-		lons_obstype = [lons[i] for i,x in enumerate(obs_names) if obs_type in x]
-		lats_obstype = [lats[i] for i,x in enumerate(obs_names) if obs_type in x]
+	# if comparing observation types, loop over them and scatter plot individually 
+	if compare is 'obs_type':
+		for obs_type,ii in zip(obs_type_list,range(len(obs_type_list))):
+			lons_obstype = [lons[i] for i,x in enumerate(obs_names) if obs_type in x]
+			lats_obstype = [lats[i] for i,x in enumerate(obs_names) if obs_type in x]
 
-		# scatter the obs over the map 
-		x, y = map(lons_obstype,lats_obstype)
-		map.scatter(x,y,3,marker='o',color=obs_colors[ii])
+			# scatter the obs over the map 
+			x, y = map(lons_obstype,lats_obstype)
+			map.scatter(x,y,3,marker='o',color=colors[ii],rasterized=True)
 
+	# if comparing different QC values , loop over the list of obs
+	# and select the lats and levs for the desired obs types 
+	if compare is 'QC':
+		DQC = QCdict['DART quality control            ']
+		for QC,ii in zip(QC_list,range(len(QC_list))):
+			lons_obstype = [lons[i] for i,x in enumerate(DQC) if QC == x]
+			lats_obstype = [lats[i] for i,x in enumerate(DQC) if QC == x]
+
+			# scatter the obs over the map 
+			x, y = map(lons_obstype,lats_obstype)
+			map.scatter(x,y,3,marker='o',color=colors[ii],rasterized=True)
 	return 
 
 def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),yscale='log',alpha=0.5,hostname='taurus',debug=False,add_legend=False):
@@ -163,7 +191,7 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 			# scatter the obs over the map 
 			y = levs_obstype
 			x = lats_obstype
-			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha)
+			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha,rasterized=True)
 
 	# if comparing different QC values , loop over the list of obs
 	# and select the lats and levs for the desired obs types 
@@ -176,7 +204,7 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 			# scatter the obs over the map 
 			y = levs_obstype
 			x = lats_obstype
-			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha)
+			plt.scatter(x,y,s=10,color=colors[ii],alpha=alpha,rasterized=True)
 
 	# axis labels 
         plt.xlabel('Latitude')
