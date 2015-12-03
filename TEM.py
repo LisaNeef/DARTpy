@@ -21,13 +21,41 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 	hostname	: default is taurus  
 	verbose		: default is False  
 
+	These are the variables that this subroutine can read (and what is allowed 
+	in E['variable']:
+
+        float VTy(time, lev, lat, ens) ;
+                VTy:long_name = "VTy: Vstar*dT/dy" ;
+                VTy:units = "K/day" ;
+        float WS(time, lev, lat, ens) ;
+                WS:long_name = "WS: Wstar*S, S=H*N2/R" ;
+                WS:units = "K/day" ;
+
+        float VSTAR(time, lev, lat, ens) ;
+                VSTAR:long_name = "VSTAR" ;
+                VSTAR:units = "M/S" ;
+        float WSTAR(time, lev, lat, ens) ;
+                WSTAR:long_name = "WSTAR" ;
+                WSTAR:units = "M/S" ;
+        float FPHI(time, lev, lat, ens) ;
+                FPHI:long_name = "FPHI" ;
+                FPHI:units = "KG/S2" ;
+        float FZ(time, lev, lat, ens) ;
+                FZ:long_name = "FZ" ;
+                FZ:units = "KG/S2" ;
+        float DELF(time, lev, lat, ens) ;
+                DELF:long_name = "DELF" ;
+                DELF:units = "M/S2" ;
+
+
 	"""
 	# if the variable given in E isn't a TEM diagnostic, change it to the default variable 
 	# wstar (residual vertical velocity)
 	tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
+	dynamical_heating_rates_list = ['VTY','WS']
 	variable_name = E['variable']
-	if variable_name.upper() not in tem_variables_list:
-		print(variable_name+' is not a TEM diagnostic -- retrieving w* instead')
+	if variable_name.upper() not in tem_variables_list+dynamical_heating_rates_list:
+		print(variable_name+' is not a valid diagnostic -- retrieving w* instead')
 		variable_name = 'WSTAR'
 
 	# find the file path corresponding to this experiment  

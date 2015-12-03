@@ -2239,6 +2239,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# TODO: subroutine that reads the control variables specific to each model/experiment
 				dart_control_variables_list = ['US','VS','T','PS']
 				tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
+				dynamical_heating_rates_list = ['VTY','WS']
 
 				# DART control variables are in the Prior_Diag and Posterior_Diag files 
 				if E['variable'] in dart_control_variables_list:
@@ -2246,7 +2247,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					file_type_found = True
 
 				# transformed Eulerian mean diagnostics have their own routine 
-				if E['variable'].upper() in tem_variables_list:
+				if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
 					V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
 					lon = None
 					file_type_found = True
