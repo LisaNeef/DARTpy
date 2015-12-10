@@ -401,6 +401,9 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	# figure out which dimension is longitude and then average over that dimension 
 	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
 	shape_tuple = Vmatrix.shape
+	if debug:
+		print('shape of array after concatenating dates:')
+		print shape_tuple
 	if lon is not None:
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
 			if dimlength == len(lon):
@@ -408,6 +411,9 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		Vlon = np.squeeze(np.mean(Vmatrix,axis=londim))
 	else:
 		Vlon = np.squeeze(Vmatrix)  
+	if debug:
+		print('shape of array after averaging out longitude:')
+		print Vlon.shape
 
 	# figure out which dimension is longitude and then average over that dimension 
 	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
@@ -416,9 +422,12 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
 			if dimlength == len(lat):
 				latdim = ii
-		Vlonlat = np.squeeze(np.mean(Vmatrix,axis=latdim))
+		Vlonlat = np.squeeze(np.mean(Vlon,axis=latdim))
 	else:
 		Vlonlat = Vlon
+	if debug:
+		print('shape of array after averaging out latitude:')
+		print Vlonlat.shape
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
@@ -457,6 +466,9 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 
         # contour data 
 	t = new_daterange
+	if debug:
+		print('shape of the array to be plotted:')
+		print M.shape
         cs = plt.contourf(t,lev,M*scaling_factor,L,cmap=cmap,extend="both")
 
 	# fix the date exis
