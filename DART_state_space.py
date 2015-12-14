@@ -1048,12 +1048,22 @@ def state_space_colormap(E,Ediff=None):
 
 	return cmap
 
-def state_space_HCL_colormap(E,Ediff=None,reverse=False,debug=False):
+def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=18,debug=False):
 
 	"""
 	loads colormaps (not a matplotlib colormap, but just a list of colors)
 	based on the HCL theory put forth in Stauffer et al 2014
 	other sample color maps are available here:  http://hclwizard.org/why-hcl/  
+
+	INPUTS:
+	E: a DART experiment dictionary. Relevant entries are:
+		variable: if the variable is a positive definite quantity, use a sequential colormap  
+		extras: if this indicates a postitive definite quantity, use a sequential colormap  
+	Ediff: the differenence experiment dictionary. Used to determine if we are taking a difference, in 
+		which case we would want a divergent colormap. 
+	reverse: flip the colormap -- default is False 
+	ncol: how many colors? Currently only 11 and 18 are supported for divergent maps, and only 11 for 
+		sequential maps. Default is 18. 
 	"""
 
         # appropriate color maps for state space plots
@@ -1090,10 +1100,6 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,debug=False):
 			colors_sequential = False
 	if 'anomaly' in E['diagn']:
                 colors_sequential = False
-		
-
-	# TEMP---maybe we can do without the sequential map altogether? Python automatically adjusts it so that 0 is white
-	#colors_sequential = False
 
         # choose sequential or diverging colormap
         if colors_sequential:
@@ -1105,18 +1111,13 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,debug=False):
 			print('loading a sequential HCL colormap')
 		type='sequential'
         else:
-		#---pretty pastels with white center---
-		#colors = ("#F79CD4","#F6B8DD","#F5CEE5","#F3E1EB","#F1EEF0","#FFFFFF","#EBEFEF",
-		#	  "#D5EAE7","#B3E3DC","#81D9CF","#0FCFC0")
-		#---pretty pastels!---
-		#colors = ("#F79CD4","#F6B8DD","#F5CEE5","#F3E1EB","#F1EEF0","#EBEFEF",
-		#	  "#D5EAE7","#B3E3DC","#81D9CF","#0FCFC0")
 		#---red negative and blue positive with white center instead of gray--
-		colors = ("#D33F6A","#DB6581","#E28699","#E5A5B1","#E6C4C9","#FFFFFF",
-			  "#FFFFFF","#C7CBE3","#ABB4E2","#8F9DE1","#7086E1","#4A6FE3")
-		#---red negative and blue positive---
-		#colors = ("#D33F6A","#DB6581","#E28699","#E5A5B1","#E6C4C9","#E2E2E2",
-		#	  "#C7CBE3","#ABB4E2","#8F9DE1","#7086E1","#4A6FE3")
+		colordict = {11:("#D33F6A","#DB6581","#E28699","#E5A5B1","#E6C4C9","#FFFFFF","#FFFFFF","#C7CBE3","#ABB4E2","#8F9DE1","#7086E1","#4A6FE3"),
+				 19:("#D33F6A","#DA5779","#E26C88","#E88197","#EE94A7","#F3A8B6",
+					  "#F7BBC6","#FBCED6","#FDE2E6","#FFFFFF","#FFFFFF","#E4E7FB",
+					  "#D3D8F7","#C1C9F4","#AFBAF1","#9DABED","#8B9CEA","#788DE6",
+					  "#637EE4","#4A6FE3")}
+		colors=colordict[ncol]
 
 		if debug:
 			print('loading a diverging HCL colormap')
@@ -1803,7 +1804,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=18,scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1817,6 +1818,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
+	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
 	scaling_factor: factor by which to multiply the array to be plotted 
 	debug: set to True to get extra ouput
 	"""
@@ -1870,16 +1872,16 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 
         # choose a color map based on the variable in question
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors,ncol=ncolors)
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
 		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=11)
+		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
 	else:
-		L  = np.linspace(start=0,stop=clim,num=11)
+		L  = np.linspace(start=0,stop=clim,num=ncolors)
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(lat):
