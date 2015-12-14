@@ -80,8 +80,9 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		# bad flag is -999 -- turn it into np.nan
 		# actually there seem to be other large negative numbers in here that aren't physical - 
 		# maybe they were created by the daysplit step in CDO
-		#VV[np.abs(VV)>900.]=np.nan
-		VV[VV==-999]=np.nan
+		VV[np.abs(VV)>900.]=np.nan
+		#VV[VV==-999]=np.nan
+		#VV[VV<-500]=np.nan
 
 		# select the vertical and lat ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it
@@ -125,6 +126,11 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		else:
 			# All the variables in Wuke's TEM diagnostics for WACCM have shape time x lev x lat x ensemble_member 
 			Vout = VV[:,k1:k2+1,j1:j2+1,:]
+
+		# finally, for dynamical heating due to vertical residual circulation, we are actually interested in -wstar*S, 
+		# whereas Wuke's data just has wstar*S -- so reverse the sign here. 
+		if variable_name is 'WS':
+			Vout = -Vout
 		
 	# for file not found 
 	else:
