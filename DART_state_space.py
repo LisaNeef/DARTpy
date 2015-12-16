@@ -1804,7 +1804,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=18,scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=18,colorbar_label=None,scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1819,6 +1819,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
 	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
+	colorbar_label: string with which to label the colorbar  
 	scaling_factor: factor by which to multiply the array to be plotted 
 	debug: set to True to get extra ouput
 	"""
@@ -1900,6 +1901,9 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
 	else: 
 		CB = None
+
+	if colorbar_label is not None:
+		CB.set_label(colorbar_label)
 
 	# axis labels 
         plt.xlabel('Latitude')
