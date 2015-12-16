@@ -7,6 +7,12 @@ import numpy as np
 import os.path
 from netCDF4 import Dataset
 
+
+
+#-------- constants 
+H = 7.0				# approximate scale height 
+Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
+
 def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 	"""
@@ -141,4 +147,55 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		lev2 = None
 
 	return Vout,lat2,lev2
+
+def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
+
+	"""
+	Birner (2010) used the thermodynamic equation in the TEM form to derive an expression 
+	for the rate of change of static stability (N2) due to residual motion and diabatic heating. 
+
+	This subroutine compares those terms from the dynamical heating rates computed by Wuke Wang. 
+	The vertical motion (wstar) term is -d(wsar*Nsq)/dz.  
+	Wuke already computed WS = -wstar*HNsq/R, so it's easiest to load that data, divide out H and R, and then take the vertical gradient. 
+
+	** the meridional term still needs to be coded!**  
+
+	INPUTS:
+	E: a DART experiment dictionary. Relevant fields are:
+		E['exp_name'] - the experiment name
+		E['daterange'] - helps to choose which date to load in case this isn't specifically given
+	datetime_in: the date for which we want to compute this diagnostic. 
+		default is None -- in this case, just choose the fist date in E['daterange']
+
+
+	OUTPUTS:
+	dXdZ: Nsquared forcing term by wstar  
+	lev
+	lat 
+	"""
+
+
+	# load the dynamical heating due to residual vertical velocity
+	E['variable']='WS'
+	WS,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+
+	# divide out the constants
+	X = (Rd/H)*WS
+
+	# the geopotential height for each date
+	Z3,lat,lon,lev,new_daterange = DSS.DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# average the GPH zonally 
+	Z3zon = np.squeeze(np.average(Z3,axis=3))
+
+	# vertical derivative  
+	dZ = np.gradient(Z3zon)   # 3D gradient of geopotential height (with respect to model level) 
+	dXdZ_3D = np.gradient(np.squeeze(X),dZ[0])
+	dXdZ = dXdZ_3D[0] # this is the vertical gradient with respect to ...height --- CHECK 
+
+	return dXdZ,lat,lev
+
+
+
+
 
