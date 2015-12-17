@@ -6,11 +6,11 @@ import numpy as np
 #import datetime
 import os.path
 from netCDF4 import Dataset
-
+import DART_state_space as DSS
 
 
 #-------- constants 
-H = 7.0				# approximate scale height 
+H = 7.0E3			# approximate scale height 
 Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
 
 def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
@@ -176,26 +176,28 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 
 
 	# load the dynamical heating due to residual vertical velocity
-	E['variable']='WS'
-	WS,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+	EWS = E.copy()
+	EWS['variable']='WS'
+	WS,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(EWS,datetime_in,hostname=hostname,debug=debug)
 
 	# divide out the constants
 	X = (Rd/H)*WS
 
-	# the geopotential height for each date
-	Z3,lat,lon,lev,new_daterange = DSS.DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# the geopotential height for  the given data and average zonally 
+	# so far this only accomidates DART-WACCM runs and ERA-Interim data 
+	EZ=E.copy()
+	EZ['variable']='Z3'
+	if EZ['exp_name'] is 'ERA':
+		import ERA as era
+		Z3zon,time,lat,lon,lev=era.retrieve_era_averaged(EZ,average_latitude=False,average_levels=False)
+	else:
+		Z3,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EZ,datetime_in,verbose=debug,hostname=hostname)
+		Z3zon = np.squeeze(np.average(Z3,axis=3))
 
-	# average the GPH zonally 
-	Z3zon = np.squeeze(np.average(Z3,axis=3))
 
 	# vertical derivative  
-	dZ = np.gradient(Z3zon)   # 3D gradient of geopotential height (with respect to model level) 
+	dZ = np.gradient(np.squeeze(Z3zon))   # 3D gradient of geopotential height (with respect to model level) 
 	dXdZ_3D = np.gradient(np.squeeze(X),dZ[0])
-	dXdZ = dXdZ_3D[0] # this is the vertical gradient with respect to ...height --- CHECK 
+	dXdZ = dXdZ_3D[0] # this is the vertical gradient with respect to height 
 
 	return dXdZ,lat,lev
-
-
-
-
-

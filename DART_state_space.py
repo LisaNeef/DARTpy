@@ -2275,6 +2275,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
 					
+				# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
+				# from a separate routine
+				if E['variable'] == 'Nsq_wstar_forcing':
+					V,lat,lev = tem.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
+					lon = None
+					file_type_found = True
+
 				# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
 				if E['variable'] == 'P':
 					V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
