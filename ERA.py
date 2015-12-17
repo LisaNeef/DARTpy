@@ -52,18 +52,17 @@ def load_ERA_file(E,year,hostname='taurus',verbose=False):
 		if (E['variable']=='V') or (E['variable']=='VS'):
 			VV = f.variables['var132'][:]
 			variable_found = True
-		if (E['variable']=='Z') or (E['variable']=='GPH'):
+		if (E['variable']=='Z') or (E['variable']=='GPH') or (E['variable']=='Z3'):
 			VV = f.variables['var129'][:]
 			variable_found = True
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
 			VV = f.variables['var151'][:]
 			variable_found = True
 
-		if (variable_found == False):
-			if verbose:
-				print('Unable to find variable '+E['variable']+' in file '+ff)
-				f.close()
-				return
+		if (variable_found is False):
+			print('Unable to find variable '+E['variable']+' in file '+ff)
+			f.close()
+			return
 		f.close()
 	
 		# select the vertical and lat/lon ranges specified in E
