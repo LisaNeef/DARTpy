@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 import experiment_settings as es
 
 #-------reading in merged ERA40/Interim files given a DART experiment dictionary----------------------
-def load_ERA_file(E,year,hostname='taurus',verbose=False):
+def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 
 	"""
 	This subroutine loads a file from our merged ERA-40/Interim data 
@@ -24,12 +24,20 @@ def load_ERA_file(E,year,hostname='taurus',verbose=False):
 	Note also that even though the ERA data have levels in Pa, here we 
 	convert them to hPa, to make stuff comparable to DART-WACCM.  
 
+	INPUTS:
+	E: a standard DART experiment dictionary. Relevant fields are: 
+		variable - the variable to load 
+		daterange - determines which dates are returned 
+		latrange | lonrange | latrange - selects the points that fall into these spatial ranges 
+	datetime_in: a datetime-type variable giving the data that we are loading. 
+		**TODO: currently the 2.5 degree data is yearly, while the TEM and 1.5 degree data are daily 
+		should unify this. 
+	resol: which resolution should be loaded? Default is 2.5 
 	"""
 
 	# find the file path corresponding to this experiment  
-	file_path_list,dum = es.exp_paths_era(hostname=hostname)
-
-	ff = file_path_list[0]+'/ERA_u_v_z_t_msl_daily'+str(year)+'.nc'
+	#file_path_list,dum = es.exp_paths_era(hostname=hostname,resolution=resol)
+	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol)
 
 	variable_found = False
 
