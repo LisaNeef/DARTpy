@@ -184,7 +184,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	X = (Rd/H)*WS
 
 	# the geopotential height for  the given data and average zonally 
-	# so far this only accomidates DART-WACCM runs and ERA-Interim data 
+	# so far this only accomodates DART-WACCM runs and ERA-Interim data 
 	EZ=E.copy()
 	EZ['variable']='Z3'
 	if EZ['exp_name'] is 'ERA':
@@ -193,7 +193,6 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	else:
 		Z3,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EZ,datetime_in,verbose=debug,hostname=hostname)
 		Z3zon = np.squeeze(np.average(Z3,axis=3))
-
 
 	# vertical derivative  
 	dZ = np.gradient(np.squeeze(Z3zon))   # 3D gradient of geopotential height (with respect to model level) 
