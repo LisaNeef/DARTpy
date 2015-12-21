@@ -126,7 +126,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 
 		# now select the relevant lat and lev regions 
-		if E['exp_name'] == 'ERA':
+		if (E['exp_name'] == 'ERA') or (E['exp_name'] == 'ERA1.5'):
 			# wuke's TEM diagnostics for ERA have shape time x lev x lat
 			Vout = VV[:,k1:k2+1,j1:j2+1]
 		else:
@@ -189,7 +189,8 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	EZ['variable']='Z3'
 	if EZ['exp_name'] is 'ERA':
 		import ERA as era
-		Z3zon,time,lat,lon,lev=era.retrieve_era_averaged(EZ,average_latitude=False,average_levels=False)
+		Z3,lat,lon,lev,dum = era.load_ERA_file(EZ,datetime_in,resol=1.5,verbose=debug,hostname=hostname)
+		Z3zon = np.squeeze(np.average(Z3,axis=3))
 	else:
 		Z3,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EZ,datetime_in,verbose=debug,hostname=hostname)
 		Z3zon = np.squeeze(np.average(Z3,axis=3))
