@@ -1748,7 +1748,7 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 	CS = E['copystring']
 
 	# if looking at ERA data, we don't have ensemble members. Here just return the array
-	if E['exp_name'] == 'ERA':
+	if (E['exp_name'] == 'ERA') or (E['exp_name'] == 'ERA1.5'):
 		Dout = np.squeeze(X)	
 	else:
 		# if the diagnostic is a single ensemble member, simply choose it out of the array and return 
@@ -2245,7 +2245,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 
 			# 1.5-degree ERA data are loaded by their own routine  
-			if E['exp_name'] == 'ERA1.5':
+			if E['exp_name'] == 'ERA1.5' and (E['variable'].upper() in era_variables_list):
 				import ERA as era
 				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
 
