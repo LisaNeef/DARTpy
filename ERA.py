@@ -99,8 +99,8 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 			else:
 				# level order is reversed in 2.5 and 1.5 degree data 
 				if resol == 1.5:
-					k1 = (np.abs(lev-levrange[1]*100.0)).argmin()
-					k2 = (np.abs(lev-levrange[0]*100.0)).argmin()
+					k1 = (np.abs(lev-levrange[1])).argmin()
+					k2 = (np.abs(lev-levrange[0])).argmin()
 				if resol == 2.5:
 					k2 = (np.abs(lev-levrange[1]*100.0)).argmin()
 					k1 = (np.abs(lev-levrange[0]*100.0)).argmin()
