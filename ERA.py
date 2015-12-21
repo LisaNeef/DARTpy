@@ -46,9 +46,14 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 		if verbose:  
 			print('Loading ERA file '+ff)
 		f = Dataset(ff,'r')
-		lat = f.variables['lat'][:]
-		lon = f.variables['lon'][:]
-		lev = f.variables['lev'][:]
+		if resol == 1.5:
+			lat = f.variables['latitude'][:]
+			lon = f.variables['longitude'][:]
+			lev = f.variables['level'][:]
+		if resol == 2.5:
+			lat = f.variables['lat'][:]
+			lon = f.variables['lon'][:]
+			lev = f.variables['lev'][:]
 		time = f.variables['time'][:]
 		
 		if (E['variable']=='T') or (E['variable']=='TS'):
@@ -61,7 +66,10 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 			VV = f.variables['var132'][:]
 			variable_found = True
 		if (E['variable']=='Z') or (E['variable']=='GPH') or (E['variable']=='Z3'):
-			VV = f.variables['var129'][:]
+			if resol == 1.5:
+				VV = f.variables['z'][:]
+			if resol == 2.5:
+				VV = f.variables['var129'][:]
 			variable_found = True
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
 			VV = f.variables['var151'][:]
@@ -89,8 +97,13 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 				k1 = idx
 				k2 = idx
 			else:
-				k2 = (np.abs(lev-levrange[1]*100.0)).argmin()
-				k1 = (np.abs(lev-levrange[0]*100.0)).argmin()
+				# level order is reversed in 2.5 and 1.5 degree data 
+				if resol == 1.5:
+					k1 = (np.abs(lev-levrange[1]*100.0)).argmin()
+					k2 = (np.abs(lev-levrange[0]*100.0)).argmin()
+				if resol == 2.5:
+					k2 = (np.abs(lev-levrange[1]*100.0)).argmin()
+					k1 = (np.abs(lev-levrange[0]*100.0)).argmin()
 				# put the output level in hPa
 				lev2 = lev[k1:k2+1]*0.01
 
