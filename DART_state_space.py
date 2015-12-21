@@ -2226,7 +2226,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
 	# in this case, we also don't have to loop over dates.
-	era_variables_list = ['U','V','Z','T','MSLP']
+	era_variables_list = ['U','V','Z','T','MSLP','Z3']
 	if (E['exp_name']=='ERA') and (E['variable'].upper() in era_variables_list):
 		import ERA as era
 		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
@@ -2235,6 +2235,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		Vmatrix = VV.transpose()
 		Vmatrix_found = True
 
+
 	if not Vmatrix_found:
 	# if neither of the above worked, we have to 
 	# loop over the dates given in the experiment dictionary and load the desired data  
@@ -2242,13 +2243,11 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		Vshape = None
 		for date in E['daterange']:
 
-			# for covariances and correlations
-			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-				lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-				if E['diagn'].lower() == 'covariance':
-					V = Cov
-				if E['diagn'].lower() == 'correlation':
-					V = Corr
+
+			# 1.5-degree ERA data are loaded by their own routine  
+			if E['exp_name'] == 'ERA1.5':
+				import ERA as era
+				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
 
 			# for regular diagnostic, the file we retrieve depends on the variable in question  
 			else:
@@ -2258,6 +2257,15 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				dart_control_variables_list = ['US','VS','T','PS']
 				tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
 				dynamical_heating_rates_list = ['VTY','WS']
+
+				# for covariances and correlations
+				if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
+					lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
+					if E['diagn'].lower() == 'covariance':
+						V = Cov
+					if E['diagn'].lower() == 'correlation':
+						V = Corr
+					file_type_found = True
 
 				# DART control variables are in the Prior_Diag and Posterior_Diag files 
 				if E['variable'] in dart_control_variables_list:
@@ -2286,7 +2294,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				if E['variable'] == 'P':
 					V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 					file_type_found = True
-		
+
 				# for all other variables, compute the diagnostic from model h files 
 				if not file_type_found:
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
