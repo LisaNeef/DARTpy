@@ -106,8 +106,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		time = f.variables['time'][:]
 		VV = f.variables[E['variable']][:]
 		if VV is None:
-			if verbose:
-				print('Unable to find variable '+E['variable']+' in file '+ff)
+			print('Unable to find variable '+E['variable']+' in file '+ff)
 		f.close()
 
 
@@ -176,8 +175,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 
 	# for file not found 
 	else:
-		if verbose: 
-			print('Unable to find WACCM file '+ff)
+		print('Unable to find WACCM file '+ff)
 		Vout = None
 		lat2 = None
 		lon2 = None
