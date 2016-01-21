@@ -30,7 +30,7 @@ var1d = ['hyam','hybm','hyai','hybi']
 
 
 
-def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False,stat_sig=None):
+def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,ncolors=19,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False,stat_sig=None):
 
 	"""
 	plot a given state-space diagnostic on a given calendar day and for a given variable 
@@ -54,6 +54,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	debug
 	colorbar_label: string with which to label the colorbar  
 	reverse_colors: set to false to reverse the colors in the 
+	ncolors: how many colors in the contours - default is 19
 	stat_sig: a dictionary giving the settings for estimating statistical significance with boostrap.
 		Entries in this dict are: 
 			P: the probability level at which we estimate the confidence intervals
@@ -225,9 +226,9 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=11)
+		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
 	else:
-		L  = np.linspace(start=0,stop=clim,num=11)
+		L  = np.linspace(start=0,stop=clim,num=ncolors)
 
 
         # contour data over the map.
@@ -244,11 +245,10 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 			CB = plt.colorbar(cs, shrink=0.6, extend='both',format='%.1e', orientation=cbar)
 		else:
 			CB = plt.colorbar(cs, shrink=0.6, extend='both', orientation=cbar)
-	if colorbar_label is not None:
-		CB.set_label(colorbar_label)
-
-	else:
-		CB = None
+		if colorbar_label is not None:
+			CB.set_label(colorbar_label)
+		else:
+			CB = None
 
 	# if desired, add shading for statistical significance - this only works for when we plot anomalies
 	if stat_sig is not None:
@@ -361,11 +361,11 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.3f')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
+		if colorbar_label is not None:
+			CB.set_label(colorbar_label)
 	else: 
 		CB = None
 
-	if colorbar_label is not None:
-		CB.set_label(colorbar_label)
 
 	#plt.gca().invert_yaxis()
         plt.ylabel('Time')
@@ -488,11 +488,11 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
+		if colorbar_label is not None:
+			CB.set_label(colorbar_label)
 	else: 
 		CB = None
 
-	if colorbar_label is not None:
-		CB.set_label(colorbar_label)
 
         plt.xlabel('time')
         plt.ylabel('Pressure (hPa)')
@@ -1048,7 +1048,7 @@ def state_space_colormap(E,Ediff=None):
 
 	return cmap
 
-def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=18,debug=False):
+def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 
 	"""
 	loads colormaps (not a matplotlib colormap, but just a list of colors)
@@ -1899,11 +1899,11 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
+		if colorbar_label is not None:
+			CB.set_label(colorbar_label)
 	else: 
 		CB = None
 
-	if colorbar_label is not None:
-		CB.set_label(colorbar_label)
 
 	# axis labels 
         plt.xlabel('Latitude')
