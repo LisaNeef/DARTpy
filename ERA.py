@@ -67,7 +67,8 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 			variable_found = True
 		if (E['variable']=='Z') or (E['variable']=='GPH') or (E['variable']=='Z3'):
 			if resol == 1.5:
-				VV = f.variables['z'][:]
+				# for ERA we have Geopotential (z) but not Geopotential height
+				VV = (1/9.8)*f.variables['z'][:]
 			if resol == 2.5:
 				VV = f.variables['var129'][:]
 			variable_found = True
@@ -101,11 +102,13 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 				if resol == 1.5:
 					k1 = (np.abs(lev-levrange[1])).argmin()
 					k2 = (np.abs(lev-levrange[0])).argmin()
+					# put the output level in hPa
+					lev2 = lev[k1:k2+1]
 				if resol == 2.5:
 					k2 = (np.abs(lev-levrange[1]*100.0)).argmin()
 					k1 = (np.abs(lev-levrange[0]*100.0)).argmin()
-				# put the output level in hPa
-				lev2 = lev[k1:k2+1]*0.01
+					# put the output level in hPa
+					lev2 = lev[k1:k2+1]*0.01
 
 		latrange=E['latrange']
 		j1 = (np.abs(lat-latrange[1])).argmin()
@@ -164,28 +167,33 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 
 	"""
 
-	# make a list of the years in this daterange  
-	D0 = E['daterange'][0]
-	DF = E['daterange'][len(E['daterange'])-1]
-	y0 = D0.year
-	yF = DF.year
 
-	# if the desired daterange is all within one year, it's easy
-	if yF==y0:
-		V,lat,lon,lev,time = load_ERA_file(E,yF,hostname=hostname,verbose=verbose)
-		time_out = np.array(time)
-	else:
-		# loop over years and load the data 
-		VV=[]
-		tt=[]
-		for year in range(y0,yF+1):
-			Vtemp,lat,lon,lev,time = load_ERA_file(E,year,hostname=hostname,verbose=verbose)
-			VV.append(Vtemp)
-			tt.extend(time)
+	# -- this next part is deprecated - it loops over files separated by year. 
+	# -- but it's more efficient to put files in days and only load the days we want 
+	## make a list of the years in this daterange  
+	#D0 = E['daterange'][0]
+	#DF = E['daterange'][len(E['daterange'])-1]
+	#y0 = D0.year
+	#yF = DF.year
 
-		# turn the list of arrays into an extra long array  
-		V = np.concatenate([v for v in VV],axis=0)
-		time_out = np.array(tt)
+	## if the desired daterange is all within one year, it's easy
+	#if yF==y0:
+	#	V,lat,lon,lev,time = load_ERA_file(E,yF,hostname=hostname,verbose=verbose)
+	#	time_out = np.array(time)
+	#else:
+		## loop over years and load the data 
+		#VV=[]
+		#tt=[]
+		#for year in range(y0,yF+1):
+		#	Vtemp,lat,lon,lev,time = load_ERA_file(E,year,hostname=hostname,verbose=verbose)
+		#	VV.append(Vtemp)
+		#	tt.extend(time)
+
+	## turn the list of arrays into an extra long array  
+	#V = np.concatenate([v for v in VV],axis=0)
+	#time_out = np.array(tt)
+
+	V,lat,lon,lev,time_out = load_ERA_file(E,E['daterange'][0],hostname=hostname,verbose=verbose)
 
 
 	# if desired, average over lat, lon, and lev  
