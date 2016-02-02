@@ -2338,8 +2338,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			bad = [i for i, j in enumerate(Vlist) if j is None]
 			new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
 
-			# turn the list of variable fields into a matrix 
-				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
+	# turn the list of variable fields into a matrix 
+	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
 
 	return Vmatrix,lat,lon,lev,new_daterange
 
