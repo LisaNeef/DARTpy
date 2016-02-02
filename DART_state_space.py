@@ -912,6 +912,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		# store the name of this experiment
 		names.append(E['title'])
 
+		# TODO: instead of looping over dates, load the entire timeseries using this subroutine
+		# for each experiment, load the desired DART diagnostic for the desired variable and daterange:
+		#Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
 		# for each experiment loop over the input date range
 		for date, ii in zip(E['daterange'],range(len(E['daterange']))):  
 
@@ -923,6 +927,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 			# load the data over the desired latitude and longitude range  
 			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+
 
 			# compute global average only if the file was found
 			if VV is not None:
@@ -2208,7 +2213,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	any extra computations needed (E['extras'])  
 	"""
 
-	Vmatrix_found = False
+	#----------------ANOMALIES------------------------------
 	# if plotting anomalies from climatology, climatology, or a climatological standard deviation, 
 	# can load these using the `stds` and `ano` rubroutines in MJO.py  
 	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
@@ -2222,8 +2227,9 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		if 'climatological_std' in E['diagn']:
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
-		Vmatrix_found = True
+		return Vmatrix,lat,lon,lev,new_daterange
 
+	#----------------ERA data------------------------------
 	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
 	# in this case, we also don't have to loop over dates.
 	era_variables_list = ['U','V','Z','T','MSLP','Z3']
@@ -2233,92 +2239,106 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		# this SR returns an array with time in the first dimension. We want it in the last
 		# dimension, so transpose
 		Vmatrix = VV.transpose()
-		Vmatrix_found = True
+		return Vmatrix,lat,lon,lev,new_daterange
+
+	#----------------OTHER DATA------------------------------
+
+	# if loading variables that are saved in monthly means, change the input daterange 
+	# to be monthly, and then only loop over those dates.
+	# WACCM h0 files are always monthly, so for now use the h-file-lookup routine in the WACCM module
+	# to figure out whether the requested variable is monthly
+	# **still need to make this able to handle other monthly variables and other models/systems 
+	hnum = waccm.history_file_lookup(E)
+	if hnum == 0:
+		# instead of days, loop over months  
+		DR2 = E['daterange']
+		DRm = [datetime.datetime(dd.year,dd.month,1,12,0) for dd in DR2]
+		DR = list(set(DRm))
+	else:
+		DR = E['daterange']
 
 
-	if not Vmatrix_found:
-	# if neither of the above worked, we have to 
+	# if none of the above worked, we have to 
 	# loop over the dates given in the experiment dictionary and load the desired data  
-		Vlist = []
-		Vshape = None
-		for date in E['daterange']:
+	Vlist = []
+	Vshape = None
+	for date in DR:
 
+		# 1.5-degree ERA data are loaded by their own routine  
+		if E['exp_name'] == 'ERA1.5' and (E['variable'].upper() in era_variables_list):
+			import ERA as era
+			V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
 
-			# 1.5-degree ERA data are loaded by their own routine  
-			if E['exp_name'] == 'ERA1.5' and (E['variable'].upper() in era_variables_list):
-				import ERA as era
-				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
+		# for regular diagnostic, the file we retrieve depends on the variable in question  
+		else:
+			file_type_found = False
+			# here are the different categories of variables:
+			# TODO: subroutine that reads the control variables specific to each model/experiment
+			dart_control_variables_list = ['US','VS','T','PS','Q']
+			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
+			dynamical_heating_rates_list = ['VTY','WS']
 
-			# for regular diagnostic, the file we retrieve depends on the variable in question  
-			else:
-				file_type_found = False
-				# here are the different categories of variables:
-				# TODO: subroutine that reads the control variables specific to each model/experiment
-				dart_control_variables_list = ['US','VS','T','PS']
-				tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
-				dynamical_heating_rates_list = ['VTY','WS']
+			# for covariances and correlations
+			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
+				lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
+				if E['diagn'].lower() == 'covariance':
+					V = Cov
+				if E['diagn'].lower() == 'correlation':
+					V = Corr
+				file_type_found = True
 
-				# for covariances and correlations
-				if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
-					lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
-					if E['diagn'].lower() == 'covariance':
-						V = Cov
-					if E['diagn'].lower() == 'correlation':
-						V = Corr
-					file_type_found = True
+			# DART control variables are in the Prior_Diag and Posterior_Diag files 
+			if E['variable'] in dart_control_variables_list:
+				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
 
-				# DART control variables are in the Prior_Diag and Posterior_Diag files 
-				if E['variable'] in dart_control_variables_list:
-					lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-					file_type_found = True
+			# transformed Eulerian mean diagnostics have their own routine 
+			if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
+				V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+				lon = None
+				file_type_found = True
 
-				# transformed Eulerian mean diagnostics have their own routine 
-				if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
-					V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
-					lon = None
-					file_type_found = True
+			# another special case is buoyancy frequency -- this is computed in a separate routine 
+			if E['variable'] == 'Nsq':
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
+				
+			# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
+			# from a separate routine
+			if E['variable'] == 'Nsq_wstar_forcing':
+				V,lat,lev = tem.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
+				lon = None
+				file_type_found = True
 
-				# another special case is buoyancy frequency -- this is computed in a separate routine 
-				if E['variable'] == 'Nsq':
-					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-					file_type_found = True
-					
-				# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
-				# from a separate routine
-				if E['variable'] == 'Nsq_wstar_forcing':
-					V,lat,lev = tem.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
-					lon = None
-					file_type_found = True
+			# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
+			if E['variable'] == 'P':
+				V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
+				file_type_found = True
 
-				# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
-				if E['variable'] == 'P':
-					V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
-					file_type_found = True
+			# for all other variables, compute the diagnostic from model h files 
+			if not file_type_found:
+				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
-				# for all other variables, compute the diagnostic from model h files 
-				if not file_type_found:
-					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+		# add the variable field just loaded to the list:
+		Vlist.append(V)
 
-			# add the variable field just loaded to the list:
-			Vlist.append(V)
+		# store the dimensions of the array V one time 
+		if (V is not None) and (Vshape is None):
+			Vshape = V.shape
 
-			# store the dimensions of the array V one time 
-			if (V is not None) and (Vshape is None):
-				Vshape = V.shape
+		# if Vlist still has length 0, we didn't find any data -- abort 
+		if len(Vlist)==0:
+			d1 = E['daterange'][0].strftime("%Y-%m-%d")
+			d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+			print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+			Vmatrix = None
+		else:
+			# first remove and Nones that might be in there  
+			Vlist2 = [V for V in Vlist if V is not None]
+			bad = [i for i, j in enumerate(Vlist) if j is None]
+			new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
 
-			# if Vlist still has length 0, we didn't find any data -- abort 
-			if len(Vlist)==0:
-				d1 = E['daterange'][0].strftime("%Y-%m-%d")
-				d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
-				print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-				Vmatrix = None
-			else:
-				# first remove and Nones that might be in there  
-				Vlist2 = [V for V in Vlist if V is not None]
-				bad = [i for i, j in enumerate(Vlist) if j is None]
-				new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
-
-				# turn the list of variable fields into a matrix 
+			# turn the list of variable fields into a matrix 
 				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
 
 	return Vmatrix,lat,lon,lev,new_daterange
