@@ -2384,7 +2384,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	else:
 		Mlat = VV
 	if lon is not None:
-		M1 = np.nanmean(Mlat,axis=latdim)
+		M1 = np.nanmean(Mlat,axis=londim)
 	else:
 		M1 = Mlat
 
@@ -2416,7 +2416,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		else:
 			Mlat = VV
 		if lon is not None:
-			M2 = np.nanmean(Mlat,axis=latdim)
+			M2 = np.nanmean(Mlat,axis=londim)
 		else:
 			M2 = Mlat
 		
