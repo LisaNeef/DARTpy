@@ -74,13 +74,20 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 	# put the filename together from the available information  
 	stub = waccm_experiment_full_names(E)
 	if (special_flag == None):
-		datestring = datetime_in.strftime("%Y-%m-%d")
-		seconds = datetime_in.hour*60*60
-		if seconds == 0:
-			timestring = '00000'
+		if hnum == 0:
+			# h0 files are monthly means
+			datestring = datetime_in.strftime("%Y-%m")
+			fname = stub+'.cam_'+instance_str+'.h'+str(hnum)+'.'+datestring+'.nc'
+
 		else:
-			timestring = str(seconds)
-		fname = stub+'.cam_'+instance_str+'.h'+str(hnum)+'.'+datestring+'-'+timestring+'.nc'
+			# currently this is set up for h1 files, which we've saved daily 
+			datestring = datetime_in.strftime("%Y-%m-%d")
+			seconds = datetime_in.hour*60*60
+			if seconds == 0:
+				timestring = '00000'
+			else:
+				timestring = str(seconds)
+			fname = stub+'.cam_'+instance_str+'.h'+str(hnum)+'.'+datestring+'-'+timestring+'.nc'
 	if (special_flag == 'lowpass6day'):
 		month = datetime_in.month
 		day = datetime_in.day
