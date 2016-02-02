@@ -217,6 +217,10 @@ def history_file_lookup(E):
 	'hybm':1,
 	'P0':1,
 	'PS':1,
+	'Q':1,
+	'QRL':0,
+	'QRL_TOT':0,
+	'QRS_TOT':0
 	}
 		
 	hnumber = H[E['variable']]
