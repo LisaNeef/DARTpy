@@ -2371,23 +2371,23 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 	# find the latidue and longitude dimensions and average 
-	shape_tuple = VV.shape
-	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-		if lat is not None:
-			if dimlength == len(lat):
-				latdim = ii
-		if lon is not None:
-			if dimlength == len(lon):
-				londim = ii
 	if lat is not None:
-		Mlat = np.nanmean(VV,axis=latdim)
+	    shape_tuple = VV.shape
+	    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+		if dimlength == len(lat):
+		    latdim = ii
+	    Mlat = np.nanmean(VV,axis=latdim)
 	else:
-		Mlat = VV
+	    Mlat = VV
 	if lon is not None:
-		M1 = np.nanmean(Mlat,axis=londim)
+	    shape_tuple = Mlat.shape
+	    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+		if dimlength == len(lon):
+		    londim = ii
+	    Mlon = np.nanmean(Mlat,axis=londim)
 	else:
-		M1 = Mlat
-
+	    Mlon = Mlat
+	M1 = np.squeeze(Mlon)
 
 	# repeat everything for the difference experiment
 	if (Ediff != None):
@@ -2403,22 +2403,23 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 		# find the latidue and longitude dimensions and average 
-		shape_tuple = VV.shape
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if lat is not None:
-				if dimlength == len(lat):
-					latdim = ii
-			if lon is not None:
-				if dimlength == len(lon):
-					londim = ii
 		if lat is not None:
-			Mlat = np.nanmean(VV,axis=latdim)
+		    shape_tuple = VV.shape
+		    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lat):
+			    latdim = ii
+		    Mlat = np.nanmean(VV,axis=latdim)
 		else:
-			Mlat = VV
+		    Mlat = VV
 		if lon is not None:
-			M2 = np.nanmean(Mlat,axis=londim)
+		    shape_tuple = Mlat.shape
+		    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lon):
+			    londim = ii
+		    Mlon = np.nanmean(Mlat,axis=londim)
 		else:
-			M2 = Mlat
+		    Mlon = Mlat
+		M2 = np.squeeze(Mlon)
 		
 		# take the difference
 		M = M1-M2
