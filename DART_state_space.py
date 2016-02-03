@@ -2249,13 +2249,16 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	# to figure out whether the requested variable is monthly
 	# **still need to make this able to handle other monthly variables and other models/systems 
 	hnum = waccm.history_file_lookup(E)
-	if hnum == 0:
-		# instead of days, loop over months  
-		DR2 = E['daterange']
-		DRm = [datetime.datetime(dd.year,dd.month,1,12,0) for dd in DR2]
-		DR = list(set(DRm))
-	else:
+	if hnum is None:
 		DR = E['daterange']
+	else:	
+		if hnum == 0:
+			# instead of days, loop over months  
+			DR2 = E['daterange']
+			DRm = [datetime.datetime(dd.year,dd.month,1,12,0) for dd in DR2]
+			DR = list(set(DRm))
+		else:
+			DR = E['daterange']
 
 
 	# if none of the above worked, we have to 
