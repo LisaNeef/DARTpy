@@ -30,8 +30,6 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 		daterange - determines which dates are returned 
 		latrange | lonrange | latrange - selects the points that fall into these spatial ranges 
 	datetime_in: a datetime-type variable giving the data that we are loading. 
-		**TODO: currently the 2.5 degree data is yearly, while the TEM and 1.5 degree data are daily 
-		should unify this. 
 	resol: which resolution should be loaded? Default is 2.5 
 	"""
 
@@ -84,7 +82,6 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 	
 		# select the vertical and lat/lon ranges specified in E
 		# if only one number is specified, find the lev,lat, or lon closest to it
-		# TODO: still need to add this option for lat and lon slices
 
 		# note that in the ERA data, levels are given in Pa (whereas in CESM, CAM, WACCM 
 		# they are in hPa) -- so multiply the requested range by 100. 
@@ -193,9 +190,16 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 	#V = np.concatenate([v for v in VV],axis=0)
 	#time_out = np.array(tt)
 
-	V,lat,lon,lev,time_out = load_ERA_file(E,E['daterange'][0],hostname=hostname,verbose=verbose)
-
-
+	# loop over requested daterange and append arrays 
+	VV=[]
+	tt=[]
+	for date in E['daterange']:
+		Vtemp,lat,lon,lev,time_out = load_ERA_file(E,date,hostname=hostname,verbose=verbose)
+		VV.append(Vtemp)
+		tt.append(time_out)
+	V = np.concatenate([v for v in VV],axis=0)
+	time = np.array(tt)
+	
 	# if desired, average over lat, lon, and lev  
 	if average_latitude:
 		V = np.mean(V,axis=2,keepdims=True)
@@ -207,4 +211,4 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 	# squeeze out any dimensions that have been reduced to one by averaging
 	Vout = np.squeeze(V)
 
-	return Vout,time_out,lat,lon,lev
+	return Vout,time,lat,lon,lev
