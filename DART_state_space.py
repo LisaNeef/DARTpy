@@ -626,154 +626,59 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	# query the ensemble size for this experiment
 	N = es.get_ensemble_size_per_run(E['exp_name'])
 
-	# if the input daterange is a single date, we don't have to loop over files
-	if not isinstance(daterange,list):
-		nT = 1
-		sample_date = daterange
-	else:
-		nT = len(daterange)
-		sample_date = daterange[0]
-
-	# initialize an empty array to hold the ensemble
-	if averaging:
-		VE = np.zeros(shape=(N,nT))+np.NaN
-		VT = np.zeros(shape=(1,nT))+np.NaN
-	else:
-		lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,sample_date,hostname=hostname,debug=debug)
-		if VV is None:
-			return None, None, None, None, None
-		nlev = len(lev)
-		nlat = len(lat)
-		nlon = len(lon)
-		if E['variable']=='PS':
-			VE = np.zeros(shape=(N,nlat,nlon,nT))+np.NaN
-			VT = np.zeros(shape=(1,nlat,nlon,nT))+np.NaN
+	# loop over the ensemble members and timeseries for each ensemble member, and add to a list
+	Eens = E.copy()
+	VElist = []
+	for iens in np.arange(1,N+1):
+		if iens < 10:
+			spacing = '      '
 		else:
-			VE = np.zeros(shape=(N,nlev,nlat,nlon,nT))+np.NaN
-			VT = np.zeros(shape=(1,nlev,nlat,nlon,nT))+np.NaN
-	
+			spacing = '     '
+		copystring = "ensemble member"+spacing+str(iens)		
+		Eens['copystring'] = copystring
 
-	if not isinstance(daterange,list):
-		date = daterange
-		ii=0
-
-		# load the ensemble over the desired latitude and longitude range, by looping over the ensemble  
-		Eens = E.copy()
-		Eens['extras'] = 'None'
-		
-		for iens in np.arange(1,N+1):
-			if iens < 10:
-				spacing = '      '
-			else:
-				spacing = '     '
-			copystring = "ensemble member"+spacing+str(iens)		
-			Eens['copystring'] = copystring
-			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Eens,date,hostname=hostname,debug=debug)
-			# exit if the data are not available  
-			if VV is None:
-				return None, None, None, None, None
-
-			# average over latitude, longitude, and level  
-			if averaging:
-				Mlat = np.mean(VV,axis=0)
-				Mlatlon = np.mean(Mlat,axis=0)
-				if E['variable'] != 'PS':
-					Mlatlonlev = np.mean(Mlatlon,axis=0)
-				else:
-					mlatlonlev = Mlatlon
-				VE[iens-1,ii] = np.mean(Mlatlonlev,axis=0)
-			else:
-				if E['variable'] == 'PS':
-					VE[iens-1,:,:,ii] = VV
-				else:
-					VE[iens-1,:,:,:,ii] = np.transpose(VV,(2,0,1))
-
-		# load the corresponding truth, if desired or if it exists
-		if include_truth:
-			Etr = E.copy()
-			Etr['diagn'] = 'Truth'
-			Etr['copystring'] = 'true state'
-			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
-			if VV is None:
-				VT = None
-			else:	
-				if averaging:
-					Mlat = np.mean(VV,axis=0)
-					Mlatlon = np.mean(Mlat,axis=0)
-					if E['variable'] != 'PS':
-						Mlatlonlev = np.mean(Mlatlon,axis=0)
-					else:
-						Mlatlonlev = Mlatlon
-					VT = np.mean(Mlatlonlev,axis=0)
-				else:
-					if E['variable'] == 'PS':
-						VT[0,:,:,ii] = VV
-					else:
-						VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
-
-	else:
-
-		# loop over the input date range
-		for date, ii in zip(daterange,np.arange(0,len(daterange))):  
-
-			# load the ensemble over the desired latitude and longitude range, by looping over the ensemble  
-			Eens = E.copy()
-			Eens['extras'] = 'None'
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
 			
-			for iens in np.arange(1,N+1):
-				if iens < 10:
-					spacing = '      '
-				else:
-					spacing = '     '
-				copystring = "ensemble member"+spacing+str(iens)		
-				Eens['copystring'] = copystring
-				lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Eens,date,hostname=hostname,debug=debug)
-				if VV is None:
-					# end the loop if we have no data 
-					break
-				# average over latitude, longitude, and level  
-				if averaging:
-					Mlat = np.mean(VV,axis=0)
-					Mlatlon = np.mean(Mlat,axis=0)
-					if E['variable'] != 'PS':
-						Mlatlonlev = np.mean(Mlatlon,axis=0)
-					else:
-						Mlatlonlev = Mlatlon
-					#---mistake?---VE[iens-1,ii] = np.mean(Mlatlonlev,axis=0)
-					VE[iens-1,ii] = Mlatlonlev
-				else:
-					if E['variable'] == 'PS':
-						VE[iens-1,:,:,ii] = VV
-					else:
-						VE[iens-1,:,:,:,ii] = np.transpose(VV,(2,0,1))
-
-			# load the truth if it exists 
-			if include_truth:
-				Etr = E.copy()
-				Etr['diagn'] = 'Truth'
-				Etr['copystring'] = 'true state'
-				lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Etr,date,hostname=hostname,debug=debug)
-				if VV is not None:
-					if averaging:
-						Mlat = np.mean(VV,axis=0)
-						Mlatlon = np.mean(Mlat,axis=0)
-						if E['variable'] != 'PS':
-							Mlatlonlev = np.mean(Mlatlon,axis=0)
-						else:
-							Mlatlonlev = Mlatlon
-						#---mistake?---VT[0,ii] = np.mean(Mlatlonlev,axis=0)
-						VT[0,ii] = Mlatlonlev
-					else:
-						if E['variable'] == 'PS':
-							VT[0,:,:,ii] = VV
-						else:
-							VT[0,:,:,:,ii] = np.transpose(VV,(2,0,1))
-				else:
-					VT = None
+		# if averaging, do that here
+		if averaging:
+			Mlat = np.mean(Vmatrix,axis=0)
+			Mlatlon = np.mean(Mlat,axis=0)
+			if E['variable'] != 'PS':
+				Mlatlonlev = np.mean(Mlatlon,axis=0)
 			else:
-				VT = None
+				Mlatlonlev = Mlatlon
+		else:
+			Mlatlonlev = Vmatrix
 
-		# output
+		# append ensemble member to list
+		VElist.append(Mlatlonlev)
+
+
+	# turn the list of ensemble states into a matrix 
+	VE = np.concatenate([V[np.newaxis,...] for V in VElist], axis=0)
+
+	# load the corresponding truth, if desired or if it exists
+	if include_truth:
+		Etr = E.copy()
+		Etr['diagn'] = 'Truth'
+		Etr['copystring'] = 'true state'
+
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Etr,hostname=hostname,debug=debug)
+
+		# average the true state, if desired 
+		if averaging:
+			Mlat = np.mean(Vmatrix,axis=0)
+			Mlatlon = np.mean(Mlat,axis=0)
+			if E['variable'] != 'PS':
+				VT = np.mean(Mlatlon,axis=0)
+			else:
+				VT = Mlatlon
+		else:
+			VT = Vmatrix
+	else:
+		VT = None
+
+	# output
 	return VE,VT,lev,lat,lon
 
 
@@ -798,6 +703,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 	# retrieve the ensemble
 	if truth_option == 'pmo':
 		include_truth = True
+		truth_label='Truth'
 	else:
 		include_truth = False
 	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=include_truth,hostname=hostname,debug=debug)
@@ -805,6 +711,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 	# retrieve ERA data if desired
 	if truth_option=='ERA':
 		VT,t_tr,lat2,lon2,lev2 = era.retrieve_era_averaged(E)
+		truth_label='ERA'
 
 	# set up a  time grid 
 	t = E['daterange']
@@ -833,7 +740,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_')
 	plt.hold(True)
 	if truth_option is not None:
-		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0,label='Truth')
+		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0,label=truth_label)
 	plt.plot(t,VM,color=color_mean,label='Ensemble Mean')
 
 	# show a legend if desired
@@ -2293,7 +2200,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			# DART control variables are in the Prior_Diag and Posterior_Diag files 
 			if E['variable'] in dart_control_variables_list:
 				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
+				# if the above returns an error (bc we can't find the DART output files), we can still look 
+				# for the same data in model output files. 
+				if V is None:
+					file_type_found = False
+					print('---> looking for model output files instead')
+				else:
+					file_type_found = True
 
 			# transformed Eulerian mean diagnostics have their own routine 
 			if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
@@ -2321,6 +2234,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			# for all other variables, compute the diagnostic from model h files 
 			if not file_type_found:
 				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+				print('*******')
+				print V.shape
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
@@ -2346,7 +2261,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',log_levels=True,debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',log_levels=True,debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -2390,7 +2305,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	    Mlon = np.nanmean(Mlat,axis=londim)
 	else:
 	    Mlon = Mlat
-	M1 = np.squeeze(Mlon)
+	M1 = scaling_factor*np.squeeze(Mlon)
 
 	# repeat everything for the difference experiment
 	if (Ediff != None):
@@ -2398,7 +2313,6 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		if Ediff['exp_name'] == 'ERA':
 			M0,t,lat,lon,lev = era.retrieve_era_averaged(Ediff,average_levels=False,hostname=hostname,verbose=debug)
 			Vmatrix = np.transpose(M0)	
-
 		else:
 			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 
@@ -2422,7 +2336,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		    Mlon = np.nanmean(Mlat,axis=londim)
 		else:
 		    Mlon = Mlat
-		M2 = np.squeeze(Mlon)
+		M2 = scaling_factor*np.squeeze(Mlon)
 		
 		# take the difference
 		M = M1-M2
@@ -2443,4 +2357,4 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	# make sure the axes only go as far as the ranges in E
 	plt.ylim(E['levrange'])
-	return M
+	return M,lev
