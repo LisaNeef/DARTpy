@@ -2233,6 +2233,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 			# for all other variables, compute the diagnostic from model h files 
 			if not file_type_found:
+
+				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
+				# because that's what's in the WACCM output 
+				if E['variable'] is 'US':
+					E['variable'] = 'U'
+				if E['variable'] is 'VS':
+					E['variable'] = 'V'
 				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 				print('*******')
 				print V.shape

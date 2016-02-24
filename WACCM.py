@@ -148,7 +148,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		scalar_variables = ['P0']
 		variables_1d = ['hyam','hybm','hyai','hybi']
 		variables_2d = ['PS','FLUT']
-		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT']
+		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V']
 
 		if E['variable'] in scalar_variables:
 			# scalar 
@@ -198,6 +198,8 @@ def waccm_experiment_full_names(E):
 		full_name = 'waccm-dart-assimilate-pmo-32'
 	if E['exp_name'] == 'NODA_WACCM':
 		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-assim'
+	if E['exp_name'] == 'W0910_NODART':
+		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-dart'
 	if E['exp_name'] == 'W0910_NODA':
 		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-assim-01'
 	if E['exp_name'] == 'W0910_GLOBAL':
