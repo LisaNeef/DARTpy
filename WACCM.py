@@ -148,7 +148,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		scalar_variables = ['P0']
 		variables_1d = ['hyam','hybm','hyai','hybi']
 		variables_2d = ['PS','FLUT']
-		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V']
+		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V','Q']
 
 		if E['variable'] in scalar_variables:
 			# scalar 
