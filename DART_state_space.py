@@ -2204,7 +2204,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# for the same data in model output files. 
 				if V is None:
 					file_type_found = False
-					print('---> looking for model output files instead')
+					if debug:
+						print('---> looking for model output files instead')
 				else:
 					file_type_found = True
 
@@ -2241,8 +2242,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
 				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
-				print('*******')
-				print V.shape
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
