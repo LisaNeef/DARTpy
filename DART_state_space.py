@@ -638,17 +638,21 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 		Eens['copystring'] = copystring
 
 		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
+
+		# for individual ensemble mmbers, DART_diagn_to_array leaves a length-1 dimension in the 0th
+		# spot -- need to squeeze that out
+		VV = np.squeeze(Vmatrix)
 			
 		# if averaging, do that here
 		if averaging:
-			Mlat = np.mean(Vmatrix,axis=0)
+			Mlat = np.mean(VV,axis=0)
 			Mlatlon = np.mean(Mlat,axis=0)
 			if E['variable'] != 'PS':
 				Mlatlonlev = np.mean(Mlatlon,axis=0)
 			else:
 				Mlatlonlev = Mlatlon
 		else:
-			Mlatlonlev = Vmatrix
+			Mlatlonlev = VV
 
 		# append ensemble member to list
 		VElist.append(Mlatlonlev)
@@ -664,17 +668,20 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 		Etr['copystring'] = 'true state'
 
 		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Etr,hostname=hostname,debug=debug)
+		# for individual ensemble mmbers, DART_diagn_to_array leaves a length-1 dimension in the 0th
+		# spot -- need to squeeze that out
+		VV = np.squeeze(Vmatrix)
 
 		# average the true state, if desired 
 		if averaging:
-			Mlat = np.mean(Vmatrix,axis=0)
+			Mlat = np.mean(VV,axis=0)
 			Mlatlon = np.mean(Mlat,axis=0)
 			if E['variable'] != 'PS':
 				VT = np.mean(Mlatlon,axis=0)
 			else:
 				VT = Mlatlon
 		else:
-			VT = Vmatrix
+			VT = VV
 	else:
 		VT = None
 
