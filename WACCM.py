@@ -198,6 +198,8 @@ def waccm_experiment_full_names(E):
 		full_name = 'waccm-dart-assimilate-pmo-32'
 	if E['exp_name'] == 'NODA_WACCM':
 		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-assim'
+	if E['exp_name'] == 'W0910_NOSTOP':
+		full_name = 'nechpc-waccm-dart-gpsro-ncep-nostop'
 	if E['exp_name'] == 'W0910_NODART':
 		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-dart'
 	if E['exp_name'] == 'W0910_NODA':
