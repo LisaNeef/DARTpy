@@ -35,7 +35,7 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 
 	# find the file path corresponding to this experiment  
 	#file_path_list,dum = es.exp_paths_era(hostname=hostname,resolution=resol)
-	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol)
+	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol,diagnostic=E['diagn'])
 
 	variable_found = False
 
