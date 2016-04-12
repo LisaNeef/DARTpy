@@ -79,8 +79,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		time = f.variables['time'][:]
 		VV = f.variables[variable_name][:]
 		if VV is None:
-			if verbose:
-				print('Unable to find variable '+E['variable']+' in file '+ff)
+			print('Unable to find variable '+E['variable']+' in file '+ff)
 		f.close()
 
 		# bad flag is -999 -- turn it into np.nan
@@ -140,8 +139,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 		
 	# for file not found 
 	else:
-		if verbose: 
-			print('Unable to find TEM diagnostic file '+ff)
+		print('Unable to find TEM diagnostic file '+ff)
 		Vout = None
 		lat2 = None
 		lev2 = None
@@ -187,7 +185,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	# so far this only accomodates DART-WACCM runs and ERA-Interim data 
 	EZ=E.copy()
 	EZ['variable']='Z3'
-	if EZ['exp_name'] is 'ERA':
+	if (EZ['exp_name'] == 'ERA') or (EZ['exp_name'] == 'ERA1.5'):
 		import ERA as era
 		Z3,lat,lon,lev,dum = era.load_ERA_file(EZ,datetime_in,resol=1.5,verbose=debug,hostname=hostname)
 		Z3zon = np.squeeze(np.average(Z3,axis=3))

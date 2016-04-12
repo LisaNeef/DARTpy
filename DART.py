@@ -106,7 +106,8 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date,hostname=hostname)
 	if not os.path.exists(filename):
-		print("+++cannot find files that look like  "+filename+' -- returning None')
+		if debug:
+			print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None
 
 	# load the file and select the observation we want
@@ -309,7 +310,8 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date_in,hostname=hostname,file_type='obs_epoch',debug=debug)
 	if not os.path.exists(filename):
-		print("+++cannot find files that look like  "+filename+' -- returning None')
+		if debug:
+			print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None
 
 	# load the file and select the observation we want
@@ -525,7 +527,8 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date,'diag',hostname=hostname,debug=debug)
 	if not os.path.exists(filename):
-		print("+++cannot find files that look like  "+filename+' -- returning None')
+		if debug:
+			print("+++cannot find files that look like  "+filename+' -- returning None')
 		return None,None,None,None,None,None,None
 	else:
 		if debug:

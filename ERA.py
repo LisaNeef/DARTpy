@@ -88,24 +88,35 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 		levrange=E['levrange']
 	
 		if levrange is not None:
+			# first check whether the levels are given in hPa or Pa 
+			# (levrange should be in hPa)
+			if max(lev) > 10000:
+				# in this casethe levels are in Pascal so levrange must be scaled
+				levrange_to_Pa = 100.0
+			else:
+				# in this case the levels are in hPa, so same units as levrange
+				levrange_to_Pa = 1.0
+
 			if levrange[0] == levrange[1]:
-				ll = levrange[0]*100.0
+				ll = levrange[0]*levrange_to_Pa
 				idx = (np.abs(lev-ll)).argmin()
 				lev2 = lev[idx]
 				k1 = idx
 				k2 = idx
 			else:
 				# level order is reversed in 2.5 and 1.5 degree data 
-				if resol == 1.5:
+				# if levels are sorted from surface to TOA
+				if lev[0] < lev[len(lev)-1]:
 					k1 = (np.abs(lev-levrange[1])).argmin()
 					k2 = (np.abs(lev-levrange[0])).argmin()
 					# put the output level in hPa
 					lev2 = lev[k1:k2+1]
-				if resol == 2.5:
-					k2 = (np.abs(lev-levrange[1]*100.0)).argmin()
-					k1 = (np.abs(lev-levrange[0]*100.0)).argmin()
+				# if levels are sorted from TOA to bottom:
+				if lev[0] > lev[len(lev)-1]:
+					k2 = (np.abs(lev-levrange[1]*levrange_to_Pa)).argmin()
+					k1 = (np.abs(lev-levrange[0]*levrange_to_Pa)).argmin()
 					# put the output level in hPa
-					lev2 = lev[k1:k2+1]*0.01
+					lev2 = lev[k1:k2+1]*(1/levrange_to_Pa)
 
 		latrange=E['latrange']
 		j1 = (np.abs(lat-latrange[1])).argmin()
