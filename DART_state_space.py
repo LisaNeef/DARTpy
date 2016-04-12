@@ -1816,8 +1816,10 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Returning with nothing plotted...')
 		return None,None
 
-	if (MT.shape[0] != len(lat)) |  (MT.shape[1] != len(lev)):
+	if (MT.shape[0] != len(lev)) |  (MT.shape[1] != len(lat)):
 		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
+		print (MT.shape[0] != len(lat))
+		print (MT.shape[1] != len(lev))
 		print MT.shape
 		print len(lev)
 		print len(lat)
