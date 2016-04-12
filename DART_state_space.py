@@ -1810,6 +1810,20 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		MT = M
 
         # plot
+	if len(MT.shape) < 2:
+		print('plot_diagnostic_lev_lat: the derived array is not 2-dimensional. This is its shape:')
+		print MT.shape
+		print('Returning with nothing plotted...')
+		return None,None
+
+	if (MT.shape[0] != len(lat)) |  (MT.shape[1] != len(lev)):
+		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
+		print MT.shape
+		print len(lev)
+		print len(lat)
+		print('Returning with nothing plotted...')
+		return None,None
+
         cs = plt.contourf(lat,lev,scaling_factor*MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
