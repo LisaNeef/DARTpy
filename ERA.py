@@ -47,16 +47,29 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 		if resol == 1.5:
 			lat = f.variables['latitude'][:]
 			lon = f.variables['longitude'][:]
-			lev = f.variables['level'][:]
+			lev0 = f.variables['level']
 		if resol == 2.5:
 			lat = f.variables['lat'][:]
 			lon = f.variables['lon'][:]
-			lev = f.variables['lev'][:]
+			lev0 = f.variables['lev']
 		time = f.variables['time'][:]
 		
+		# if the level is in level numbers (rather than approximate pressures) 
+		# convert this array to midpoint pressures 
+		# (note that these are approximate -- below about 200hPa, the hybrid levels 
+		# really follow topography, so there could be use differences in the approximate
+		# pressure and the actual pressure at that point  
+		if lev0.long_name == 'model_level_number':
+			levlist = [0.1, 0.292, 0.51, 0.796, 1.151, 1.575, 2.077, 2.666, 3.362, 4.193, 5.201, 6.444, 7.984, 9.892, 12.257, 15.186, 18.815, 23.311, 28.882, 35.784, 44.335, 54.624, 66.623, 80.397, 95.978, 113.421, 132.758, 153.995, 177.118, 202.086, 228.839, 257.356, 287.638, 319.631, 353.226, 388.27, 424.571,461.9,500, 538.591, 577.375, 616.042, 654.273, 691.752, 728.163, 763.205, 796.588, 828.047, 857.342, 884.266, 908.651, 930.37, 949.349, 965.567, 979.063, 989.944, 998.385, 1004.644, 1009.056, 1012.049]
+			lev = np.asarray(levlist)
+		else:
+			lev = lev0[:]
+
 		# first set a general factor that we can scale the variable array by if needed
 		prefac = 1.0
 
+
+		# load the requested dynamical variable  
 		if (E['variable']=='T') or (E['variable']=='TS'):
 			V = f.variables['var130']
 			variable_found = True
