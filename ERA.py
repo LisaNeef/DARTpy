@@ -54,30 +54,41 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 			lev = f.variables['lev'][:]
 		time = f.variables['time'][:]
 		
+		# first set a general factor that we can scale the variable array by if needed
+		prefac = 1.0
+
 		if (E['variable']=='T') or (E['variable']=='TS'):
-			VV = f.variables['var130'][:]
+			V = f.variables['var130']
 			variable_found = True
 		if (E['variable']=='U') or (E['variable']=='US'):
-			VV = f.variables['var131'][:]
+			V = f.variables['var131']
 			variable_found = True
 		if (E['variable']=='V') or (E['variable']=='VS'):
-			VV = f.variables['var132'][:]
+			V = f.variables['var132']
 			variable_found = True
 		if (E['variable']=='Z') or (E['variable']=='GPH') or (E['variable']=='Z3'):
 			if resol == 1.5:
-				# for ERA we have Geopotential (z) but not Geopotential height
-				VV = (1/9.8)*f.variables['z'][:]
+				# the 1.5 resolution files have Geopotential (z) but not Geopotential height
+				# so need to scale by g 
+				# TODO: this is a kludge and needs to be made more general 
+				prefac = 1/9.8
+				V = f.variables['z']
 			if resol == 2.5:
-				VV = f.variables['var129'][:]
+				V = f.variables['var129']
 			variable_found = True
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
-			VV = f.variables['var151'][:]
+			V = f.variables['var151']
 			variable_found = True
 
 		if (variable_found is False):
 			print('Unable to find variable '+E['variable']+' in file '+ff)
 			f.close()
 			return
+		else:
+			# if everything checks out, store the variable, and replace its bad 
+			# values with NaNs
+			VV = prefac*V[:]
+			VV[VV==V._FillValue]=np.nan
 		f.close()
 	
 		# select the vertical and lat/lon ranges specified in E
