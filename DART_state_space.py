@@ -1020,6 +1020,10 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 	if 'anomaly' in E['diagn']:
                 colors_sequential = False
 
+	# also turn off the sequential colors if the diagnostic is increment  
+	if E['diagn'].lower()=='increment':
+                colors_sequential = False
+
         # choose sequential or diverging colormap
         if colors_sequential:
 		# yellow to blue
