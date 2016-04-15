@@ -101,7 +101,8 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 			# if everything checks out, store the variable, and replace its bad 
 			# values with NaNs
 			VV = prefac*V[:]
-			VV[VV==V._FillValue]=np.nan
+			if hasattr(V,'_FillValue'):
+				VV[VV==V._FillValue]=np.nan
 		f.close()
 	
 		# select the vertical and lat/lon ranges specified in E
