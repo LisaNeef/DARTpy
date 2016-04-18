@@ -706,7 +706,8 @@ def basic_experiment_dict():
 	'obs_name':'T',
 	'run_category' : None ,
 	'daterange':daterange(),
-	'clim':None
+	'clim':None,
+	'levtype':'hybrid',		# type of vertical levels in the requested data 
 	}
 
 	return E
