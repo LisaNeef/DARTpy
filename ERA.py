@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 import experiment_settings as es
 
 #-------reading in merged ERA40/Interim files given a DART experiment dictionary----------------------
-def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
+def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 
 	"""
 	This subroutine loads a file from our merged ERA-40/Interim data 
@@ -34,8 +34,7 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 	"""
 
 	# find the file path corresponding to this experiment  
-	#file_path_list,dum = es.exp_paths_era(hostname=hostname,resolution=resol)
-	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol,diagnostic=E['diagn'])
+	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol,diagnostic=E['diagn'],variable=E['variable'])
 
 	variable_found = False
 
@@ -71,35 +70,52 @@ def load_ERA_file(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
 
 		# load the requested dynamical variable  
 		if (E['variable']=='T') or (E['variable']=='TS'):
-			V = f.variables['var130']
+			if resol == 2.5:
+				varname='var130'
+			else:
+				varname='t'
 			variable_found = True
 		if (E['variable']=='U') or (E['variable']=='US'):
-			V = f.variables['var131']
+			if resol == 2.5:
+				varname='var131'
+			else:
+				varname='u'
 			variable_found = True
 		if (E['variable']=='V') or (E['variable']=='VS'):
-			V = f.variables['var132']
-			variable_found = True
-		if (E['variable']=='Z') or (E['variable']=='GPH') or (E['variable']=='Z3'):
-			if resol == 1.5:
-				# the 1.5 resolution files have Geopotential (z) but not Geopotential height
-				# so need to scale by g 
-				# TODO: this is a kludge and needs to be made more general 
-				prefac = 1/9.8
-				V = f.variables['z']
 			if resol == 2.5:
+				varname='var132'
+			else:
+				varname='v'
+			variable_found = True
+		if (E['variable']=='Z') or (E['variable']=='geopotential'):
+			if resol == 2.5:
+				varname='var129'
+			else:
+				varname='z'
+			variable_found = True
+		if (E['variable']=='GPH') or (E['variable']=='Z3'):
+			if resol == 2.5:
+				varname='var129'
+				prefac = 1/9.8    # convert geopotential to geopotential height
 				V = f.variables['var129']
+			if resol == 1.5:
+				varname='z'
+				prefac = 1/9.8
 			variable_found = True
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
-			V = f.variables['var151']
+			if resol == 2.5:
+				varname='var151'
+			else:
+				varname='msl'
 			variable_found = True
-
 		if (variable_found is False):
-			print('Unable to find variable '+E['variable']+' in file '+ff)
+			print('load_ERA_file: Still need to code settings to find variable '+E['variable']+' in file '+ff)
 			f.close()
 			return
 		else:
 			# if everything checks out, store the variable, and replace its bad 
 			# values with NaNs
+			V = f.variables[varname]
 			VV = prefac*V[:]
 			if hasattr(V,'_FillValue'):
 				VV[VV==V._FillValue]=np.nan
@@ -248,3 +264,40 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 	Vout = np.squeeze(V)
 
 	return Vout,time,lat,lon,lev
+
+def construct_era_pressures_from_hybrid(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
+
+	"""
+	Given a certain date, construct the 3d grid of pressure from the hybrid model variables and the 
+	ERA surface pressure field 
+
+	This is based on code by Robin Pilch writtin in R. 
+	It requires presence of a file called 
+
+	a_b_file="/data/c1/rpilch/ERAint/ERAint_L60/ERAint_L60_hybrid_constants"
+	a_b_file=scan(a_b_file,sep="\n",what='raw',quiet=TRUE)a_b=array(NA,dim=c(61,3)) ## Nlev,a,b
+	for (i in 1:61){
+	a_b[i,1]=as.numeric(substr(a_b_file[i],4,5))
+	a_b[i,2]=as.numeric(substr(a_b_file[i],11,22))
+	a_b[i,3]=as.numeric(substr(a_b_file[i],27,36))
+	}
+	##############################################################
+	12:33
+	## ...
+	library(ncdf)
+	## ...
+	###### ---> for a given lon-lat-time:
+	surface_pres=get.var.ncdf(nc_surface,varid="lnsp",start=c(lon_slot,lat_slot,time_slot_surface),count=c(1,1,1))
+	surface_pres=(exp(1)^surface_pres)/100 ## to hPa### pressure at 61 interfaces
+	p_interfaces=array(NA,dim=c(61))for (i in 1:61){
+	p_interfaces[i]=(a_b[i,2]+a_b[i,3]*surface_pres*100)/100 ## output in hPa
+	}p_full_lev=array(NA,dim=c(60))
+	### pressure at full levels
+	for (i in 1:60){
+	N=61-i
+	p_full_lev[N]=(p_interfaces[N+1]+p_interfaces[N])/2
+	}
+	"""
+
+
+	
