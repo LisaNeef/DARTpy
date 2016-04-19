@@ -30,7 +30,8 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		daterange - determines which dates are returned 
 		latrange | lonrange | latrange - selects the points that fall into these spatial ranges 
 	datetime_in: a datetime-type variable giving the data that we are loading. 
-	resol: which resolution should be loaded? Default is 2.5 
+	resol: which resolution should be loaded? Default is 1.5  -- this is actually something 
+		that should go in the personal experiment_settings module, so I need to eventually take this out
 	"""
 
 	# find the file path corresponding to this experiment  

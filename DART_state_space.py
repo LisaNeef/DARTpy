@@ -2003,33 +2003,63 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	"""
 
 
-	# reconstruct the pressure field at each point from hybrid model variables 
-	varlist = ['hyam','hybm','P0','PS','T','Z3']
-	H = dict()
-	for vname in varlist:
-	    Ehyb = E.copy()
-	    Ehyb['variable'] = vname
-	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
-	    if vname == 'PS':
-		H['lev'] = lev
-		H['lat'] = lat
-		H['lon'] = lon        
-	    H[vname]=field
+	# if the data are on hybrid levels, reconstruct the pressure field at each point from hybrid model variables 
+	if E['levtype']=='hybrid':
+		varlist = ['hyam','hybm','P0','PS','T','Z3']
+		H = dict()
+		for vname in varlist:
+		    Ehyb = E.copy()
+		    Ehyb['variable'] = vname
+		    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
+		    if vname == 'PS':
+			H['lev'] = lev
+			H['lat'] = lat
+			H['lon'] = lon        
+		    H[vname]=field
 
-	nlev = len(lev)
-	nlat = len(lat)
-	nlon = len(lon)
-	P = np.zeros(shape = (nlev,nlat,nlon))
-	for k in range(nlev):
-	    for i in range(nlon):
-		for j in range(nlat):
-			P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+		nlev = len(lev)
+		nlat = len(lat)
+		nlon = len(lon)
+		P = np.zeros(shape = (nlev,nlat,nlon))
+		for k in range(nlev):
+		    for i in range(nlon):
+			for j in range(nlat):
+				P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 
+
+	# if the data are on pressure levels, simply retrieve the pressure grid and turn it into a 3d field  
+	# TODO: add code for loading DART/WACCM output on constant pressure levels. Right now this 
+	# only works for ERA data. 
+	if E['levtype']=='pressure':
+		varlist = ['T','Z3']
+		H = dict()
+		if ('ERA' in E['exp_name']):
+			for vname in varlist:
+				Etemp = E.copy()
+				Etemp['variable']=vname
+				field,lat,lon,lev,time_out = era.load_ERA_file(Etemp,date,hostname=hostname,verbose=debug)
+				print vname
+				print field.shape
+				H[vname]=np.squeeze(field)
+			# 3D pressure array from 1D array
+			nlat = len(lat)
+			nlon = len(lon)
+			P1 = np.repeat(lev[:,np.newaxis],nlat,axis=1)
+			P = np.repeat(P1[:,:,np.newaxis],nlon,axis=2)
+
+			# create a 2d array for the reference pressure
+			pref = 1030.0  
+			preflat = np.repeat(pref,nlat)
+			H['P0'] = np.repeat(preflat[:,np.newaxis],nlon,axis=1)
 
 	# compute potential temperature  
 	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
 	g = 9.80616                     # Acceleration due to gravity       m/s^2
 	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
+	print('----shapes of T, P0, and P------')
+	print H['T'].shape
+	print H['P0'].shape
+	print P.shape
 	theta = H['T']*(H['P0']/P)**(Rd/cp)
 
 	# compute the vertical gradient in potential temperature 
@@ -2181,7 +2211,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	# to be monthly, and then only loop over those dates.
 	# WACCM h0 files are always monthly, so for now use the h-file-lookup routine in the WACCM module
 	# to figure out whether the requested variable is monthly
-	# **still need to make this able to handle other monthly variables and other models/systems 
+	#still need to make this able to handle other monthly variables and other models/systems 
 	hnum = waccm.history_file_lookup(E)
 	if hnum is None:
 		DR = E['daterange']
