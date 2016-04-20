@@ -2038,8 +2038,6 @@ def Nsq(E,date,hostname='taurus',debug=False):
 				Etemp = E.copy()
 				Etemp['variable']=vname
 				field,lat,lon,lev,time_out = era.load_ERA_file(Etemp,date,hostname=hostname,verbose=debug)
-				print vname
-				print field.shape
 				H[vname]=np.squeeze(field)
 			# 3D pressure array from 1D array
 			nlat = len(lat)
@@ -2056,10 +2054,6 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
 	g = 9.80616                     # Acceleration due to gravity       m/s^2
 	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
-	print('----shapes of T, P0, and P------')
-	print H['T'].shape
-	print H['P0'].shape
-	print P.shape
 	theta = H['T']*(H['P0']/P)**(Rd/cp)
 
 	# compute the vertical gradient in potential temperature 
@@ -2329,7 +2323,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
 	averaged over the date, latitude, and longitude ranges given in the 
-	experiment dictionary 
+	experiment dictionary.
+
+	Instead of the zonal or meridional mean, we can also take the max of one of those dimensions. 
+	To do this, add the words 'lonmax' or 'latmax' to the E['extras'] entry of the experiment 
+	dictionary.  
 	"""
 
 
@@ -2351,23 +2349,31 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
-	# find the latidue and longitude dimensions and average 
+	# find the latidue dimension and average (or take the max, if that option is chosen)
 	if lat is not None:
-	    shape_tuple = VV.shape
-	    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-		if dimlength == len(lat):
-		    latdim = ii
-	    Mlat = np.nanmean(VV,axis=latdim)
+		shape_tuple = VV.shape
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lat):
+			    latdim = ii
+		Mlat = np.nanmean(VV,axis=latdim)
+	 	if E['extras'] is not None:
+			if 'latmax' in E['extras']:
+				Mlat = np.nanmax(VV,axis=latdim)
 	else:
-	    Mlat = VV
+		Mlat = VV
+
+	# find the longitude dimension and average (or take the max, if that option is chosen)
 	if lon is not None:
-	    shape_tuple = Mlat.shape
-	    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-		if dimlength == len(lon):
-		    londim = ii
-	    Mlon = np.nanmean(Mlat,axis=londim)
+		shape_tuple = Mlat.shape
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lon):
+			    londim = ii
+		Mlon = np.nanmean(Mlat,axis=londim)
+	 	if E['extras'] is not None:
+			if 'lonmax' in E['extras']:
+				Mlon = np.nanmax(Mlat,axis=londim)
 	else:
-	    Mlon = Mlat
+		Mlon = Mlat
 	M1 = scaling_factor*np.squeeze(Mlon)
 
 	# repeat everything for the difference experiment
