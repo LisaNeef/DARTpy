@@ -511,6 +511,10 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	variable = E['variable']
 	experiment = E['exp_name']
 
+	# a list of 2d variables -- if the var is 2d, don't need to load vertical levels 
+	# TODO: add other 2d variables to this list 
+	variables_2d = ['PS','ptrop']
+
 	# if the diagnostic is the Truth, then the copy string can only be one thing
 	copystring = E['copystring']
 	if (E['diagn'] == 'Truth'):
@@ -534,10 +538,20 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		if debug:
 			print('opening file  '+filename)
 		f = Dataset(filename,'r')
-		lev = f.variables['lev'][:]
-		P0 = f.variables['P0'][:]
-		hybm = f.variables['hybm'][:]
-		hyam = f.variables['hyam'][:]
+		if variable in variables_2d:
+			# don't need info about hybrid model levels if the variable is 2d
+			lev=None
+			P0=None
+			hybm=None
+			hyam=None
+		else:
+			# TODO: add a check so that hybrid model level info is only loaded 
+			# for models with hybrid vertical levels 
+			lev = f.variables['lev'][:]
+			P0 = f.variables['P0'][:]
+			hybm = f.variables['hybm'][:]
+			hyam = f.variables['hyam'][:]
+
 		VV = f.variables[variable]
 		if (variable=='US'):
 			lat = f.variables['slat'][:]
@@ -555,10 +569,13 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		copy = get_copy(f,copystring)
 
 		# figure out which vertical level range we want
-		levrange=E['levrange']
-		k1 = (np.abs(lev-levrange[1])).argmin()
-		k2 = (np.abs(lev-levrange[0])).argmin()
-		lev2 = lev[k1:k2+1]
+		if variable in variables_2d:
+			lev2 = None
+		else:
+			levrange=E['levrange']
+			k1 = (np.abs(lev-levrange[1])).argmin()
+			k2 = (np.abs(lev-levrange[0])).argmin()
+			lev2 = lev[k1:k2+1]
 
 		# figure out which latitude range we want
 		latrange=E['latrange']
@@ -573,7 +590,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		lon2 = lon[i1:i2+1]
 
 
-		if (variable=='PS'):
+		if variable in variables_2d:
 			VV2 = VV[0,copy,j1:j2+1,i1:i2+1]
 		else:
 			VV2 = VV[0,copy,j1:j2+1,i1:i2+1,k1:k2+1]
