@@ -2003,29 +2003,64 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	"""
 
 
-	# if the data are on hybrid levels, reconstruct the pressure field at each point from hybrid model variables 
+	# if the data are on hybrid levels, check if pressure data are available somewhere 
+	# otherwise, reconstruct the pressure field at each point from hybrid model variables 
 	if E['levtype']=='hybrid':
-		varlist = ['hyam','hybm','P0','PS','T','Z3']
 		H = dict()
-		for vname in varlist:
-		    Ehyb = E.copy()
-		    Ehyb['variable'] = vname
-		    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
-		    if vname == 'PS':
-			H['lev'] = lev
-			H['lat'] = lat
-			H['lon'] = lon        
-		    H[vname]=field
+		EP = E.copy()
+		EP['variable']='P'
+		lev,lat,lon,P,P0,hybm,hyam = dart.load_DART_diagnostic_file(EP,date,debug=debug)
+		# TODO: if P is not in a DART diagnostic file, it could also be in a model history file, 
+		# so need to add a line of code to try looking for that as well 
+		if P is None:
+			if debug:
+				print('Pressure not available for requested date - recreating from hybrid levels (this takes a while....)')
+			varlist = ['hyam','hybm','P0','PS','T','Z3']
+			for vname in varlist:
+			    Ehyb = E.copy()
+			    Ehyb['variable'] = vname
+			    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
+			    if vname == 'PS':
+				H['lev'] = lev
+				H['lat'] = lat
+				H['lon'] = lon        
+			    H[vname]=field
 
-		nlev = len(lev)
-		nlat = len(lat)
-		nlon = len(lon)
-		P = np.zeros(shape = (nlev,nlat,nlon))
-		for k in range(nlev):
-		    for i in range(nlon):
-			for j in range(nlat):
-				P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
-
+			nlev = len(lev)
+			nlat = len(lat)
+			nlon = len(lon)
+			P = np.zeros(shape = (nlev,nlat,nlon))
+			for k in range(nlev):
+			    for i in range(nlon):
+				for j in range(nlat):
+					P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+		else:
+			# if 3d Pressure was available, package it, along with the other needed variables,
+			# into a single dictionary 
+			varlist = ['P0','T','Z3']
+			for vname in varlist:
+				Etemp = E.copy()
+				Etemp['variable'] = vname
+				field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Etemp,date,verbose=debug)
+				if vname == 'T':
+					H['lev'] = lev
+					H['lat'] = lat
+					H['lon'] = lon        
+				H[vname]=field
+			# Kludge: 
+			# currently P is retrieved from DART diagnostic files and the others from model history
+			# files, which means that they have a different shape  
+			# --> reshape P so that it fits with its friends  
+			# TODO later: make these codes return arrays for the same shape 
+			P2 = H['T']*0	
+			nlev = H['T'].shape[1]
+			nlat = H['T'].shape[2]
+			nlon = H['T'].shape[3]
+			for ilev in range(nlev):
+				for ilat in range(nlat):
+					for ilon in range(nlon):
+						P2[0,ilev,ilat,ilon] = P[ilat,ilon,ilev]
+			P = P2
 
 	# if the data are on pressure levels, simply retrieve the pressure grid and turn it into a 3d field  
 	# TODO: add code for loading DART/WACCM output on constant pressure levels. Right now this 
