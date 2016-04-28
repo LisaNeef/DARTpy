@@ -2225,8 +2225,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	#----------------ERA data------------------------------
 	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
 	# in this case, we also don't have to loop over dates.
-	era_variables_list = ['U','V','Z','T','MSLP','Z3']
-	if (E['exp_name']=='ERA') and (E['variable'].upper() in era_variables_list):
+	era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop']
+	if (E['exp_name']=='ERA') and (E['variable'] in era_variables_list):
 		import ERA as era
 		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
 		# this SR returns an array with time in the first dimension. We want it in the last
@@ -2261,7 +2261,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	for date in DR:
 
 		# 1.5-degree ERA data are loaded by their own routine  
-		if E['exp_name'] == 'ERA1.5' and (E['variable'].upper() in era_variables_list):
+		if E['exp_name'] == 'ERA1.5' and (E['variable'] in era_variables_list):
 			import ERA as era
 			V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
 
