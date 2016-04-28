@@ -44,14 +44,26 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		if verbose:  
 			print('Loading ERA file '+ff)
 		f = Dataset(ff,'r')
+		
+		# a list of 2d variables, in which case we don't need to load level  
+		# TODO: add other 2d vars to this list 
+		variables_2d = ['PS','ptrop']
+
+		# load the grid variables 
 		if resol == 1.5:
 			lat = f.variables['latitude'][:]
 			lon = f.variables['longitude'][:]
-			lev0 = f.variables['level']
+			if E['variable'] in variables_2d:
+				lev0 = None
+			else:
+				lev0 = f.variables['level']
 		if resol == 2.5:
 			lat = f.variables['lat'][:]
 			lon = f.variables['lon'][:]
-			lev0 = f.variables['lev']
+			if E['variable'] in variables_2d:
+				lev0 = None
+			else:
+				lev0 = f.variables['lev']
 		time = f.variables['time'][:]
 		
 		# if the level is in level numbers (rather than approximate pressures) 
@@ -59,11 +71,14 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		# (note that these are approximate -- below about 200hPa, the hybrid levels 
 		# really follow topography, so there could be use differences in the approximate
 		# pressure and the actual pressure at that point  
-		if lev0.long_name == 'model_level_number':
-			levlist = [0.1, 0.292, 0.51, 0.796, 1.151, 1.575, 2.077, 2.666, 3.362, 4.193, 5.201, 6.444, 7.984, 9.892, 12.257, 15.186, 18.815, 23.311, 28.882, 35.784, 44.335, 54.624, 66.623, 80.397, 95.978, 113.421, 132.758, 153.995, 177.118, 202.086, 228.839, 257.356, 287.638, 319.631, 353.226, 388.27, 424.571,461.9,500, 538.591, 577.375, 616.042, 654.273, 691.752, 728.163, 763.205, 796.588, 828.047, 857.342, 884.266, 908.651, 930.37, 949.349, 965.567, 979.063, 989.944, 998.385, 1004.644, 1009.056, 1012.049]
-			lev = np.asarray(levlist)
+		if lev0 is not None:
+			if lev0.long_name == 'model_level_number':
+				levlist = [0.1, 0.292, 0.51, 0.796, 1.151, 1.575, 2.077, 2.666, 3.362, 4.193, 5.201, 6.444, 7.984, 9.892, 12.257, 15.186, 18.815, 23.311, 28.882, 35.784, 44.335, 54.624, 66.623, 80.397, 95.978, 113.421, 132.758, 153.995, 177.118, 202.086, 228.839, 257.356, 287.638, 319.631, 353.226, 388.27, 424.571,461.9,500, 538.591, 577.375, 616.042, 654.273, 691.752, 728.163, 763.205, 796.588, 828.047, 857.342, 884.266, 908.651, 930.37, 949.349, 965.567, 979.063, 989.944, 998.385, 1004.644, 1009.056, 1012.049]
+				lev = np.asarray(levlist)
+			else:
+				lev = lev0[:]
 		else:
-			lev = lev0[:]
+			lev = lev0
 
 		# first set a general factor that we can scale the variable array by if needed
 		prefac = 1.0
@@ -110,15 +125,13 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 				varname='msl'
 			variable_found = True
 		if (variable_found is False):
-			print('load_ERA_file: Still need to code settings to find variable '+E['variable']+' in file '+ff)
-			f.close()
-			return
-		else:
-			# if everything checks out, store the variable, and replace its bad 
-			# values with NaNs
-			V = f.variables[varname]
-			VV = prefac*V[:]
-			if hasattr(V,'_FillValue'):
+			# if  the variable can't be found, simply try to load what was asked for  
+			varname=E['variable']
+		# next load the variable, and replace its bad 
+		# values with NaNs
+		V = f.variables[varname]
+		VV = prefac*V[:]
+		if hasattr(V,'_FillValue'):
 				VV[VV==V._FillValue]=np.nan
 		f.close()
 	
@@ -128,37 +141,37 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		# note that in the ERA data, levels are given in Pa (whereas in CESM, CAM, WACCM 
 		# they are in hPa) -- so multiply the requested range by 100. 
 		levrange=E['levrange']
-	
-		if levrange is not None:
-			# first check whether the levels are given in hPa or Pa 
-			# (levrange should be in hPa)
-			if max(lev) > 10000:
-				# in this casethe levels are in Pascal so levrange must be scaled
-				levrange_to_Pa = 100.0
-			else:
-				# in this case the levels are in hPa, so same units as levrange
-				levrange_to_Pa = 1.0
+		if lev is not None:
+			if levrange is not None:
+				# first check whether the levels are given in hPa or Pa 
+				# (levrange should be in hPa)
+				if max(lev) > 10000:
+					# in this casethe levels are in Pascal so levrange must be scaled
+					levrange_to_Pa = 100.0
+				else:
+					# in this case the levels are in hPa, so same units as levrange
+					levrange_to_Pa = 1.0
 
-			if levrange[0] == levrange[1]:
-				ll = levrange[0]*levrange_to_Pa
-				idx = (np.abs(lev-ll)).argmin()
-				lev2 = lev[idx]
-				k1 = idx
-				k2 = idx
-			else:
-				# level order is reversed in 2.5 and 1.5 degree data 
-				# if levels are sorted from surface to TOA
-				if lev[0] < lev[len(lev)-1]:
-					k1 = (np.abs(lev-levrange[1])).argmin()
-					k2 = (np.abs(lev-levrange[0])).argmin()
-					# put the output level in hPa
-					lev2 = lev[k1:k2+1]
-				# if levels are sorted from TOA to bottom:
-				if lev[0] > lev[len(lev)-1]:
-					k2 = (np.abs(lev-levrange[1]*levrange_to_Pa)).argmin()
-					k1 = (np.abs(lev-levrange[0]*levrange_to_Pa)).argmin()
-					# put the output level in hPa
-					lev2 = lev[k1:k2+1]*(1/levrange_to_Pa)
+				if levrange[0] == levrange[1]:
+					ll = levrange[0]*levrange_to_Pa
+					idx = (np.abs(lev-ll)).argmin()
+					lev2 = lev[idx]
+					k1 = idx
+					k2 = idx
+				else:
+					# level order is reversed in 2.5 and 1.5 degree data 
+					# if levels are sorted from surface to TOA
+					if lev[0] < lev[len(lev)-1]:
+						k1 = (np.abs(lev-levrange[1])).argmin()
+						k2 = (np.abs(lev-levrange[0])).argmin()
+						# put the output level in hPa
+						lev2 = lev[k1:k2+1]
+					# if levels are sorted from TOA to bottom:
+					if lev[0] > lev[len(lev)-1]:
+						k2 = (np.abs(lev-levrange[1]*levrange_to_Pa)).argmin()
+						k1 = (np.abs(lev-levrange[0]*levrange_to_Pa)).argmin()
+						# put the output level in hPa
+						lev2 = lev[k1:k2+1]*(1/levrange_to_Pa)
 
 		latrange=E['latrange']
 		j1 = (np.abs(lat-latrange[1])).argmin()
