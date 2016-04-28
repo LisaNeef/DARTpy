@@ -2462,3 +2462,122 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	# make sure the axes only go as far as the ranges in E
 	plt.ylim(E['levrange'])
 	return M,lev
+
+def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,log_levels=False,invert_yaxis=False,debug=False):
+
+	"""
+	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) and plot it 
+	as a function of latitude 
+	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
+	all times in E['daterange'], and if the quantity is 3d, average over vertical levels  
+
+	INPUTS:
+	E: basic experiment dictionary
+	Ediff: experiment dictionary for the difference experiment
+	hostname: name of the computer on which the code is running
+	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
+	colorbar_label: string with which to label the colorbar  
+	scaling_factor: factor by which to multiply the array to be plotted 
+	debug: set to True to get extra ouput
+	"""
+
+	# load the desired DART diagnostic for the desired variable and daterange:
+	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# and average over the last dimension, which is always time (by how we formed this array) 
+	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+	# figure out which dimension is longitude and then average over that dimension 
+	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
+	shape_tuple = VV.shape
+	if lon is not None:
+		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+			if dimlength == len(lon):
+				londim = ii
+		Mlon = np.squeeze(np.mean(VV,axis=londim))
+	else:
+		Mlon = np.squeeze(VV)
+
+	# if it's a 3d variable, figure out which dimension is vertical levels and then average over that dimension  
+	shape_tuple2 = Mlon.shape
+	if lev is not None:
+		for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
+			if dimlength == len(lev):
+				levdim = ii
+		Mlonlev = np.squeeze(np.mean(Mlon,axis=levdim))
+	else:
+		Mlonlev = np.squeeze(Mlon)
+
+	# if computing a difference to another field, load that here  
+	if (Ediff != None):
+
+		# load the desired DART diagnostic for the difference experiment dictionary
+		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+
+		# average over time 
+		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
+
+		# average over longitudes 
+		# as before, look for the londim (it might be different this time) 
+		shape_tuple = VV.shape
+		if lon is not None:
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lon):
+					londim = ii
+			Mlon2 = np.squeeze(np.mean(VV,axis=londim))
+		else:
+			Mlon2 = np.squeeze(VV)
+
+		# average over vertical levels if needed 
+		shape_tuple2 = Mlon2.shape
+		if lev is not None:
+			for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
+				if dimlength == len(lev):
+					levdim = ii
+			Mlonlev2 = np.squeeze(np.mean(Mlon2,axis=levdim))
+		else:
+			Mlonlev2 = np.squeeze(Mlon2)
+
+		# subtract the difference field out from the primary field  
+		M = Mlonlev-Mlonlev2
+	else:
+		M = Mlonlev
+
+
+
+	# transpose the array if necessary  
+	if M.shape[0]==len(lat):
+		MT = np.transpose(M)
+	else:
+		MT = M
+
+        # plot
+	if len(MT.shape) < 1:
+		print('plot_diagnostic_lev_lat: the derived array is not 1-dimensional. This is its shape:')
+		print MT.shape
+		print('Returning with nothing plotted...')
+		return None,None
+
+	if (MT.shape[0] != len(lat)):
+		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the latitude arrays we are plotting against. Here are their shapes:")
+		print MT.shape
+		print len(lat)
+		print('Returning with nothing plotted...')
+		return None,None
+
+        plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+
+	# axis labels 
+        plt.xlabel('Latitude')
+
+	# vertical axis adjustments if desired (e.g. if plotting tropopause height) 
+	if log_levels:
+		plt.yscale('log')
+	if invert_yaxis:
+		plt.gca().invert_yaxis()
+
+	# make sure the axes only go as far as the ranges in E
+	plt.xlim(E['latrange'])
+
+	return MT
+
