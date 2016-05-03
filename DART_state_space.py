@@ -604,7 +604,7 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 
 	return cs,CB
 
-def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname='taurus',debug=False):
+def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',include_truth=False,hostname='taurus',debug=False):
 
 	"""
 	retrieve the prior or posterior ensemble averaged over some region of the state,
@@ -614,6 +614,7 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	INPUTS:
 	E: standard experiment dictionary 
 	averaging: set to True to average over the input latitude, longitude, and level ranges (default=True).
+	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
 	include_truth: set to True to include the true state for this run. Note that if the truth does not exist but is requested, this 
 		subroutine will throw an error. 
 	hostname
@@ -623,13 +624,17 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	# query the daterange of E
 	daterange = E['daterange']
 
-	# query the ensemble size for this experiment
-	N = es.get_ensemble_size_per_run(E['exp_name'])
+	# decide what ensemble members to loop over here - specific ones, or the whole set?
+	if type(ensemble_members) is list:
+		ens_list = ensemble_members
+	else:
+		N = es.get_ensemble_size_per_run(E['exp_name'])
+		ens_list = np.arange(1,N+1)
 
 	# loop over the ensemble members and timeseries for each ensemble member, and add to a list
 	Eens = E.copy()
 	VElist = []
-	for iens in np.arange(1,N+1):
+	for iens in ens_list:
 		if iens < 10:
 			spacing = '      '
 		else:
@@ -691,7 +696,7 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	return VE,VT,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False):
+def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
@@ -702,6 +707,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth
 	'pmo': plots the reference (or "truth") state, available only for PMO experiments. 
 	'ERA': plots corresponding ERA-40 or ERA-Interin data  
 	None: plots no true state.  
+	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
 
 	input color_choice chooses a different color palette: 
 	1 = gray ensemble with black ensemble mean (boring but straightforward)
@@ -715,7 +721,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth
 		truth_label='Truth'
 	else:
 		include_truth = False
-	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=include_truth,hostname=hostname,debug=debug)
+	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=include_truth,hostname=hostname,debug=debug,ensemble_members=ensemble_members)
 
 	# retrieve ERA data if desired
 	if truth_option=='ERA':
