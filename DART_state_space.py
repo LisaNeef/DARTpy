@@ -640,8 +640,10 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
 
 		# for individual ensemble mmbers, DART_diagn_to_array leaves a length-1 dimension in the 0th
-		# spot -- need to squeeze that out
-		VV = np.squeeze(Vmatrix)
+		# spot -- 
+		# EDIT: don't think we need this step any longer, but need to check to make sure 
+		#VV = np.squeeze(Vmatrix)
+		VV=Vmatrix
 			
 		# if averaging, do that here
 		if averaging:
