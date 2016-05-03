@@ -691,7 +691,7 @@ def retrieve_state_space_ensemble(E,averaging=True,include_truth=False,hostname=
 	return VE,VT,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname='taurus',debug=False,show_legend=False):
+def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
@@ -750,7 +750,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,hostname=
 	plt.hold(True)
 	if truth_option is not None:
 		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0,label=truth_label)
-	plt.plot(t,VM,color=color_mean,label='Ensemble Mean')
+	plt.plot(t,VM,color=color_mean,label='Ensemble Mean',linewidth=linewidth,alpha=alpha,linestyle=linestyle)
 
 	# show a legend if desired
 	if show_legend:
