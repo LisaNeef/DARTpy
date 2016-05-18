@@ -72,7 +72,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 
 
 	# put the filename together from the available information  
-	stub = waccm_experiment_full_names(E)
+	stub = es.get_long_names(E['exp_name'])
 	if (special_flag == None):
 		if hnum == 0:
 			# h0 files are monthly means
@@ -191,26 +191,6 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 	return Vout,lat2,lon2,lev2
 
 
-#-------full names of waccm experiments--------------------------------------
-def waccm_experiment_full_names(E):
-
-	if E['exp_name'] == 'PMO32':
-		full_name = 'waccm-dart-assimilate-pmo-32'
-	if E['exp_name'] == 'NODA_WACCM':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-assim'
-	if E['exp_name'] == 'W0910_NOSTOP':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-nostop'
-	if E['exp_name'] == 'W0910_NODART':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-dart'
-	if E['exp_name'] == 'W0910_NODA':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-no-assim-01'
-	if E['exp_name'] == 'W0910_GLOBAL':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-global-01'
-	if E['exp_name'] == 'W0910_TROPICS':
-		full_name = 'nechpc-waccm-dart-gpsro-ncep-30S-30N-01'
-
-	return full_name
-#-------full names of waccm experiments--------------------------------------
 
 
 #-------dictionaries of WACCM h-file numbers--------------------------------------
