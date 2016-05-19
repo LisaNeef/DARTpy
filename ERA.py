@@ -50,20 +50,24 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		variables_2d = ['PS','ptrop']
 
 		# load the grid variables 
-		if resol == 1.5:
+		# check whether lat/lon/lev are named as such, or whether the full 
+		# words are given 
+		if 'latitude' in f.variables:
 			lat = f.variables['latitude'][:]
-			lon = f.variables['longitude'][:]
-			if E['variable'] in variables_2d:
-				lev0 = None
-			else:
-				lev0 = f.variables['level']
-		if resol == 2.5:
+		else:
 			lat = f.variables['lat'][:]
+		if 'longitude' in f.variables:
+			lon = f.variables['longitude'][:]
+		else:
 			lon = f.variables['lon'][:]
 			if E['variable'] in variables_2d:
 				lev0 = None
 			else:
-				lev0 = f.variables['lev']
+				if 'level' in f.variables:
+					lev0 = f.variables['level']
+				else:
+					lev0 = f.variables['lev']
+			
 		time = f.variables['time'][:]
 		
 		# if the level is in level numbers (rather than approximate pressures) 
@@ -83,53 +87,34 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		# first set a general factor that we can scale the variable array by if needed
 		prefac = 1.0
 
-
-		# load the requested dynamical variable  
+		# load the requested dynamical variable  - these can have different names, so 
+		# first we have to look for the right one 
 		if (E['variable']=='T') or (E['variable']=='TS'):
-			if resol == 2.5:
-				varname='var130'
-			else:
-				varname='t'
-			variable_found = True
+			possible_varnames = ['T','t','var130']
 		if (E['variable']=='U') or (E['variable']=='US'):
-			if resol == 2.5:
-				varname='var131'
-			else:
-				varname='u'
-			variable_found = True
+			possible_varnames = ['U','u','var131']
 		if (E['variable']=='V') or (E['variable']=='VS'):
-			if resol == 2.5:
-				varname='var132'
-			else:
-				varname='v'
-			variable_found = True
+			possible_varnames = ['V','v','var132']
 		if (E['variable']=='Z') or (E['variable']=='geopotential'):
-			if resol == 2.5:
-				varname='var129'
-			else:
-				varname='z'
-			variable_found = True
+			possible_varnames = ['Z','z','var129']
 		if (E['variable']=='GPH') or (E['variable']=='Z3'):
-			if resol == 2.5:
-				varname='var129'
-				prefac = 1/9.8    # convert geopotential to geopotential height
-				V = f.variables['var129']
-			if resol == 1.5:
-				varname='z'
-				prefac = 1/9.8
-			variable_found = True
+			possible_varnames = ['Z','z','var129']
+			prefac = 1/9.8    # convert geopotential to geopotential height
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
-			if resol == 2.5:
-				varname='var151'
-			else:
-				varname='msl'
-			variable_found = True
+			possible_varnames = ['msl','var151']
+
+		# loop over the list of possible variable names and load the first one we find 
+		for varname in possible_varnames:
+			if varname in f.variables:
+				varname_load = varname
+				variable_found = True
 		if (variable_found is False):
 			# if  the variable can't be found, simply try to load what was asked for  
-			varname=E['variable']
+			varname_load=E['variable']
+
 		# next load the variable, and replace its bad 
 		# values with NaNs
-		V = f.variables[varname]
+		V = f.variables[varname_load]
 		VV = prefac*V[:]
 		if hasattr(V,'_FillValue'):
 				VV[VV==V._FillValue]=np.nan
