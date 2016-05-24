@@ -156,46 +156,50 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	The vertical motion (wstar) term is -d(wsar*Nsq)/dz.  
 	Wuke already computed WS = -wstar*HNsq/R, so it's easiest to load that data, divide out H and R, and then take the vertical gradient. 
 
-	** the meridional term still needs to be coded!**  
+	The horizontal term is -g d(vstar/theta * d(theta)dy)/dz. 
+	Wuke already computed the heating rate term v*dtheta/dy = v*dTdy, 
+	so the easiest thing to do is to multiply the heating rates by g/theta
+	and then take the vertical gradient. 
 
 	INPUTS:
 	E: a DART experiment dictionary. Relevant fields are:
 		E['exp_name'] - the experiment name
 		E['daterange'] - helps to choose which date to load in case this isn't specifically given
+		E['variable'] - if this is set to N2_forcing_vstar, the code returns the N2 forcing due to 
+			meridional residual circulation. For anything else, it returns the forcing 
+			due to vertical residual circulation. 
 	datetime_in: the date for which we want to compute this diagnostic. 
 		default is None -- in this case, just choose the fist date in E['daterange']
 
 
 	OUTPUTS:
-	dXdZ: Nsquared forcing term by wstar  
+	N2_forcing: Nsquared forcing term 
 	lev
 	lat 
 	"""
 
 
 	# load the dynamical heating due to residual vertical velocity
-	EWS = E.copy()
-	EWS['variable']='WS'
-	WS,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(EWS,datetime_in,hostname=hostname,debug=debug)
+	ERC = E.copy()
+	if E['variable'] = 'Nsq_forcing_vstar':
+		ERC['variable']='VTy'
+	else:
+		ERC['variable']='WS'
+	RC,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
 
 	# divide out the constants
-	X = (Rd/H)*WS
-
-	# the geopotential height for  the given data and average zonally 
-	# so far this only accomodates DART-WACCM runs and ERA-Interim data 
-	EZ=E.copy()
-	EZ['variable']='Z3'
-	if (EZ['exp_name'] == 'ERA') or (EZ['exp_name'] == 'ERA1.5'):
-		import ERA as era
-		Z3,lat,lon,lev,dum = era.load_ERA_file(EZ,datetime_in,resol=1.5,verbose=debug,hostname=hostname)
-		Z3zon = np.squeeze(np.average(Z3,axis=3))
+	if E['variable'] = 'Nsq_forcing_vstar':
+		# TODO: insert command that loads theta (once we have a tool that builds theta arrays for DART output) and then computes the zonal mean 
+		X = (g/theta_zm)*RC
 	else:
-		Z3,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EZ,datetime_in,verbose=debug,hostname=hostname)
-		Z3zon = np.squeeze(np.average(Z3,axis=3))
+		X = (Rd/H)*RC
 
-	# vertical derivative  
-	dZ = np.gradient(np.squeeze(Z3zon))   # 3D gradient of geopotential height (with respect to model level) 
-	dXdZ_3D = np.gradient(np.squeeze(X),dZ[0])
-	dXdZ = dXdZ_3D[0] # this is the vertical gradient with respect to height 
+	# convert pressure levels to approximate altitude and take the vertical gradient  
+	H=7.0
+	p0=1000.0
+	zlev = H*np.log(p0/lev)
+	dZ = np.gradient(zlev)   # gradient of vertical levels in km
+	dXdZ_3D = np.gradient(np.squeeze(X),dZ)
+	N2_forcing = dXdZ_3D[0] # this is the vertical gradient with respect to height 
 
-	return dXdZ,lat,lev
+	return N2_forcing,lat,lev
