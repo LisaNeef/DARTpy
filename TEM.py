@@ -181,18 +181,17 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 
 	# load the dynamical heating due to residual vertical velocity
 	ERC = E.copy()
-	if E['variable'] = 'Nsq_forcing_vstar':
+	if E['variable'] == 'Nsq_vstar_forcing':
 		ERC['variable']='VTy'
+		# TODO: insert command that loads theta (once we have a tool that builds theta arrays for DART output) and then computes the zonal mean 
+		factor = g/theta_m
 	else:
 		ERC['variable']='WS'
+		factor = Rd/H
 	RC,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
 
 	# divide out the constants
-	if E['variable'] = 'Nsq_forcing_vstar':
-		# TODO: insert command that loads theta (once we have a tool that builds theta arrays for DART output) and then computes the zonal mean 
-		X = (g/theta_zm)*RC
-	else:
-		X = (Rd/H)*RC
+	X = factor*RC
 
 	# convert pressure levels to approximate altitude and take the vertical gradient  
 	H=7.0
