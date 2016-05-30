@@ -21,8 +21,8 @@ def figexport(fig_name):
 	and embed them into markdown, etc. 
 	"""
 
-	fig_name_pdf = '../Plots/'+'fig_name'+'.pdf'
-	fig_name_png = '../Plots/'+'fig_name'+'.png'
+	fig_name_pdf = '../Plots/'+fig_name+'.pdf'
+	fig_name_png = '../Plots/'+fig_name+'.png'
 	
 	print('saving figure as')
 	print(fig_name_pdf)
