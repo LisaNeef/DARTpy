@@ -2298,8 +2298,9 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# for the same data in model output files. 
 				if V is None:
 					file_type_found = False
-					if debug:
-						print('---> looking for model output files instead')
+					print('Cannot find variable '+E['variable']+' in DART output')
+					print('for experiment '+E['exp_name'])
+					print('---> looking for model output files instead')
 				else:
 					file_type_found = True
 
