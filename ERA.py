@@ -102,6 +102,10 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 			prefac = 1/9.8    # convert geopotential to geopotential height
 		if (E['variable']=='msl') or (E['variable']=='MSLP'):
 			possible_varnames = ['msl','var151']
+		if (E['variable']=='O3'):
+			possible_varnames = ['O3','o3']
+		if (E['variable']=='Q'): 
+			possible_varnames = ['Q']
 
 		# loop over the list of possible variable names and load the first one we find 
 		for varname in possible_varnames:

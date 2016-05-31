@@ -2233,7 +2233,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	#----------------ERA data------------------------------
 	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
 	# in this case, we also don't have to loop over dates.
-	era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop']
+	era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3']
 	if (E['exp_name']=='ERA') and (E['variable'] in era_variables_list):
 		import ERA as era
 		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
