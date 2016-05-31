@@ -60,13 +60,13 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 			lon = f.variables['longitude'][:]
 		else:
 			lon = f.variables['lon'][:]
-			if E['variable'] in variables_2d:
-				lev0 = None
+		if E['variable'] in variables_2d:
+			lev0 = None
+		else:
+			if 'level' in f.variables:
+				lev0 = f.variables['level']
 			else:
-				if 'level' in f.variables:
-					lev0 = f.variables['level']
-				else:
-					lev0 = f.variables['lev']
+				lev0 = f.variables['lev']
 			
 		time = f.variables['time'][:]
 		
