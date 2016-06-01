@@ -989,8 +989,8 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 	Ediff: the differenence experiment dictionary. Used to determine if we are taking a difference, in 
 		which case we would want a divergent colormap. 
 	reverse: flip the colormap -- default is False 
-	ncol: how many colors? Currently only 11 and 18 are supported for divergent maps, and only 11 for 
-		sequential maps. Default is 18. 
+	ncol: how many colors? Currently only 11 and 19 are supported for divergent maps, and only 11 for 
+		sequential maps. Default is 19. 
 	"""
 
         # appropriate color maps for state space plots
@@ -1735,7 +1735,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 
 	return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=18,colorbar_label=None,scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
