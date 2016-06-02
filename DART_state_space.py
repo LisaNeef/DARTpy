@@ -2278,7 +2278,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			file_type_found = False
 			# here are the different categories of variables:
 			# TODO: subroutine that reads the control variables specific to each model/experiment
-			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop']
+			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq']
 			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
 			dynamical_heating_rates_list = ['VTY','WS']
 
