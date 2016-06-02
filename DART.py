@@ -552,7 +552,43 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			hybm = f.variables['hybm'][:]
 			hyam = f.variables['hyam'][:]
 
-		VV = f.variables[variable]
+		# load the requested dynamical variable  - these can have different names, so 
+		# first we have to look for the right one 
+		prefac=1.0
+		if (E['variable']=='T') or (E['variable']=='TS'):
+			possible_varnames = ['t','var130']
+		if (E['variable']=='U') or (E['variable']=='US'):
+			possible_varnames = ['u','var131']
+		if (E['variable']=='V') or (E['variable']=='VS'):
+			possible_varnames = ['v','var132']
+		if (E['variable']=='Z') or (E['variable']=='geopotential'):
+			possible_varnames = ['z','var129']
+		if (E['variable']=='GPH') or (E['variable']=='Z3'):
+			possible_varnames = ['Z','z','var129']
+			prefac = 1/9.8    # convert geopotential to geopotential height
+		if (E['variable']=='msl') or (E['variable']=='MSLP'):
+			possible_varnames = ['msl','var151']
+		if (E['variable']=='Nsq'):
+			possible_varnames = ['brunt']
+		if 'possible_varnames' not in locals():
+			possible_varnames=[E['variable']]
+
+		# loop over the list of possible variable names and load the first one we find 
+		for varname in possible_varnames:
+			if varname in f.variables:
+				varname_load = varname
+				variable_found = True
+		if (variable_found is False):
+			# if  the variable can't be found, simply try to load what was asked for  
+			varname_load=E['variable']
+
+		# next load the variable, and replace its bad 
+		# values with NaNs
+		V = f.variables[varname_load]
+		VV = prefac*V[:]
+		if hasattr(V,'_FillValue'):
+				VV[VV==V._FillValue]=np.nan
+
 		if (variable=='US'):
 			lat = f.variables['slat'][:]
 		else:
