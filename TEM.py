@@ -178,6 +178,9 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	lat 
 	"""
 
+	# necessary constants  
+	H=7.0		# scale height in km  
+	p0=1000.0	# reference pressure 
 
 	# load the dynamical heating due to residual vertical velocity
 	ERC = E.copy()
@@ -194,11 +197,14 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	X = factor*RC
 
 	# convert pressure levels to approximate altitude and take the vertical gradient  
-	H=7.0
-	p0=1000.0
 	zlev = H*np.log(p0/lev)
 	dZ = np.gradient(zlev)   # gradient of vertical levels in km
-	dXdZ_3D = np.gradient(np.squeeze(X),dZ)
-	N2_forcing = dXdZ_3D[0] # this is the vertical gradient with respect to height 
+
+	# copy dZ over lat so it's a 2D array
+	nlat = len(lat)
+	dZ2d = np.repeat(dZ[:,np.newaxis],nlat,axis=1)
+
+	dXdZ_2D = np.gradient(np.squeeze(X),dZ2d)
+	N2_forcing = dXdZ_2D[0] # this is the vertical gradient with respect to height 
 
 	return N2_forcing,lat,lev
