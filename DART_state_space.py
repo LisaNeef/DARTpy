@@ -2309,11 +2309,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
 				lon = None
 				file_type_found = True
-
-			# another special case is buoyancy frequency -- this is computed in a separate routine 
-			if E['variable'] == 'Nsq':
-				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
 				
 			# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
 			# from a separate routine
@@ -2328,7 +2323,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				file_type_found = True
 
 			# for all other variables, compute the diagnostic from model h files 
-			if not file_type_found:
+			while file_type_found is False:
+				# another special case is buoyancy frequency -- this is computed in a separate routine 
+				# but only if it wasn't previously found in DART output form 
+				if E['variable'] == 'Nsq':
+					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+					file_type_found = True
 
 				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
 				# because that's what's in the WACCM output 
