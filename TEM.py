@@ -186,8 +186,10 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	ERC = E.copy()
 	if E['variable'] == 'Nsq_vstar_forcing':
 		ERC['variable']='VTy'
-		# TODO: insert command that loads theta (once we have a tool that builds theta arrays for DART output) and then computes the zonal mean 
-		factor = g/theta_m
+		theta,lat,lon,lev,new_daterange = DSS.DART_diagn_to_array(E2)
+		theta_zm = np.average(np.squeeze(theta),axis=1)
+		# todo: make sure that this works
+		factor = g/theta_zm
 	else:
 		ERC['variable']='WS'
 		factor = Rd/H
