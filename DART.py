@@ -574,6 +574,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			possible_varnames=[E['variable']]
 
 		# loop over the list of possible variable names and load the first one we find 
+		variable_found=False
 		for varname in possible_varnames:
 			if varname in f.variables:
 				varname_load = varname
