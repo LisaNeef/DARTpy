@@ -2323,12 +2323,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				file_type_found = True
 
 			# for all other variables, compute the diagnostic from model h files 
-			while file_type_found is False:
+			if file_type_found is False:
 				# another special case is buoyancy frequency -- this is computed in a separate routine 
 				# but only if it wasn't previously found in DART output form 
 				if E['variable'] == 'Nsq':
 					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-					file_type_found = True
+					return
 
 				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
 				# because that's what's in the WACCM output 
@@ -2456,8 +2456,18 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	else:
 		M = M1
 
-        # plot the profile 
-        plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+        # plot the profile  - loop over copies if that dimension is there  
+	# from the way DART_diagn_to_array works, copy is always the 0th dimension  
+	if M.ndim == 2:
+		nC = M.shape[0]
+		for iC in range(nC):
+			if type(color) is 'list':
+				color2 = color[iC]
+			else:
+				color2=color 
+			plt.plot(M[iC,:],lev,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+	else:
+		plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# improve axes and labels
 	ax = plt.gca()
