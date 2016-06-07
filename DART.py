@@ -515,14 +515,8 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# TODO: add other 2d variables to this list 
 	variables_2d = ['PS','ptrop']
 
-	# if the diagnostic is the Truth, then the copy string can only be one thing
-	copystring = E['copystring']
-	if (E['diagn'] == 'Truth'):
-		copystring = 'true state'
 
-	# if we want the ensemble variance, copystring has to be the ensemble spread
-	if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled'):
-		copystring = 'ensemble spread'
+
 
 	# find the directory for this run   
 	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
@@ -551,6 +545,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			P0 = f.variables['P0'][:]
 			hybm = f.variables['hybm'][:]
 			hyam = f.variables['hyam'][:]
+			CopyMetaData = f.variables['CopyMetaData'][:]
 
 		# load the requested dynamical variable  - these can have different names, so 
 		# first we have to look for the right one 
@@ -599,11 +594,28 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		else:
 			lon = f.variables['lon'][:]
 
-	
-		# figure out which copy to load
-		if debug:
-			print(copystring)
-		copy = get_copy(f,copystring)
+		#------finding which copies to retrieve  
+		if type(E['copystring']) is not list:
+			# if the diagnostic is the Truth, then the copy string can only be one thing
+			if (E['diagn'] == 'Truth'):
+				copies = get_copy(f,'true state')
+			# if we want the ensemble variance, copystring has to be the ensemble spread
+			if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled'):
+				copies = get_copy(f,'ensemble spread')
+			# if requesting the entire ensemble, loop over ensemble members here 
+			if E['copystring'] is 'ensemble':
+				copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if 'ensemble member' in ''.join(cstring)]
+		else:
+			# if E['copystring'] is a list, loop through it and find the copies to load 
+			for CS in E['copystring']:
+				if CS is 'ensemble':
+					# in this case look for all the copies that have ensemble status = "ensemble member"	
+					copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if 'ensemble member' in ''.join(cstring)]
+				else:
+					# for all other copystrings, just look for the CopyMetaData entries that contrain that copystring
+					copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if ''.join(cstring)==CS]
+
+		#------finding which copies to retrieve  
 
 		# figure out which vertical level range we want
 		if variable in variables_2d:
@@ -628,9 +640,9 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 
 		if variable in variables_2d:
-			VV2 = VV[0,copy,j1:j2+1,i1:i2+1]
+			VV2 = VV[0,copies,j1:j2+1,i1:i2+1]
 		else:
-			VV2 = VV[0,copy,j1:j2+1,i1:i2+1,k1:k2+1]
+			VV2 = VV[0,copies,j1:j2+1,i1:i2+1,k1:k2+1]
 
 		# if the ensemble variance was requested, square it here
 		if (E['extras'] == 'ensemble variance'): 
