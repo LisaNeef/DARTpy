@@ -111,7 +111,7 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 		return None
 
 	# load the file and select the observation we want
-        else:
+	else:
 		f = Dataset(filename,'r')
 		CopyMetaData = f.variables['CopyMetaData'][:]
 		ObsTypesMetaData = f.variables['ObsTypesMetaData'][:]
@@ -157,7 +157,7 @@ def load_DART_obs_epoch_file_as_dataframe(E,date=datetime.datetime(2009,1,1,0,0,
 				ens_status.append(None)
 				diagn.append(None)
 			
-                f.close()
+		f.close()
 
 	# return the desired observations and copys, and the copy meta data
 	#for obs_type_no in obs_type_no_list:
@@ -315,12 +315,12 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		return None,None
 
 	# load the file and select the observation we want
-        else:
+	else:
 		f = Dataset(filename,'r')
 		if debug:
 			print('Loading file '+filename)
 			for key in f.variables.iterkeys():
-			    print key
+			    print(key)
 		observations = f.variables['observations'][:]
 		time = f.variables['time'][:]
 		copy = f.variables['copy'][:]
@@ -382,7 +382,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 					ens_status.append(None)
 					diagn.append(None)
 			
-                f.close()
+		f.close()
 
 	#------locations, quality control, and observation codes for requested obs types 
 
@@ -408,7 +408,7 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		if itemp is not None:
 			if debug:
 				print('these obs indices match obs of type '+ObsTypesMetaData[OTN-1,:].tostring())
-				print np.squeeze(itemp)
+				print(np.squeeze(itemp))
 			iobs.append(list(np.squeeze(itemp)))
 			obs_codes.append(np.squeeze(obs_type[itemp]))
 			lons.append(np.squeeze(location[itemp,0]))
@@ -467,23 +467,23 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 				indices = [i for i, x in enumerate(CMD) if CS in x]
 			if debug:
 				print('here are the copy indices that fit this copystring')
-				print indices
+				print(indices)
 			iensstatus.extend(indices)
 		iensstatus.sort()	# this is the list of copies with the right ensemble status
 		idiagn = [i for i,x in enumerate(diagn) if x == E['diagn']]	# this is the list of copies with the right diagnostic
 		if debug:
 			print('here are the copy indices that fit the requested diagnostic')
-			print idiagn
+			print(idiagn)
 
 		# we are interested in the indices that appear in both iensstatus and idiagn
 		sdiagn = set(idiagn)
 		jj = [val for val in iensstatus if val in sdiagn]
 		if debug:
 			print('here are the copy indices that fit both the requested copystrings and the requested diagnostic')
-			print jj
+			print(jj)
 			print('this corresponds to the following:')
 			for j in jj:
-				print CMD[j]
+				print(CMD[j])
 
 		# now select the observations corresponding to these copies 
 		obs1 = observations[iobs2,:]
@@ -700,7 +700,7 @@ def get_ensemble_size(f):
 	find the number of ensemble members in the output  
 	"""
 
-        CMD = f.variables['CopyMetaData'][:]
+	CMD = f.variables['CopyMetaData'][:]
 	CopyMetaData = []
 	for ii in range(0,len(CMD)):
 		temp = CMD[ii,].tostring()
@@ -717,13 +717,13 @@ def get_obs_type_number(f,obs_type_string):
 	"""
 
         # figure out which obs_type to load
-        OTMD = f.variables['ObsTypesMetaData'][:]
-        ObsTypesMetaData = []
-        for ii in range(0,len(OTMD)):
-                temp = OTMD[ii,].tostring()
-                ObsTypesMetaData.append(temp.rstrip())
+	OTMD = f.variables['ObsTypesMetaData'][:]
+	ObsTypesMetaData = []
+	for ii in range(0,len(OTMD)):
+		temp = OTMD[ii,].tostring()
+		ObsTypesMetaData.append(temp.rstrip())
 
-        obs_type = ObsTypesMetaData.index(obs_type_string)+1
+	obs_type = ObsTypesMetaData.index(obs_type_string)+1
 
 	return obs_type
 
@@ -743,14 +743,14 @@ def get_copy(f,copystring,debug=False):
 		copystring = "ensemble member"+spacing+ensindex
 
         # figure out which copy to load
-        CMD = f.variables['CopyMetaData'][:]
-        CopyMetaData = []
-        for ii in range(0,len(CMD)):
-                temp = CMD[ii,].tostring()
-                CopyMetaData.append(temp.rstrip())
+	CMD = f.variables['CopyMetaData'][:]
+	CopyMetaData = []
+	for ii in range(0,len(CMD)):
+		temp = CMD[ii,].tostring()
+		CopyMetaData.append(temp.rstrip())
 	if debug:
 		print(CopyMetaData.index)
-        copy = CopyMetaData.index(copystring)
+	copy = CopyMetaData.index(copystring)
 
 	return copy
 
@@ -784,7 +784,7 @@ def date_to_gday(date=datetime.datetime(2009,10,2,12,0,0)):
 	convert a datetime date to gregorian day count the way it's counted in DART  (i.e. number of days since 1601-01-01
 	"""
 
-        datestr = date.strftime("%Y-%m-%d")
+	datestr = date.strftime("%Y-%m-%d")
 	jd = dayconv.gd2jd(datestr)
 
 	# reference date: 
@@ -800,15 +800,15 @@ def daterange(date_start=datetime.datetime(2009,1,1), periods=5, DT='1D'):
         generate a range of dates (in python datetime format), given some start date, a time delta, and the numper of periods
 	"""
 
-        # the last character of DT indicates how we are counting time
-        time_char = DT[len(DT)-1]
-        time_int = int(DT[0:len(DT)-1])
+	# the last character of DT indicates how we are counting time
+	time_char = DT[len(DT)-1]
+	time_int = int(DT[0:len(DT)-1])
 
 	#base = datetime.datetime.today()
 	#date_list = [base - datetime.timedelta(days=x) for x in range(0, numdays)]
-        if (time_char == 'D') or (time_char == 'd'):
+	if (time_char == 'D') or (time_char == 'd'):
 		date_list = [date_start + time_int*datetime.timedelta(days=x) for x in range(0, periods)]
-        if (time_char == 'H') or (time_char == 'h'):
+	if (time_char == 'H') or (time_char == 'h'):
 		#date_list = [date_start + datetime.timedelta(hours=x) for x in range(0, periods)]
 		date_list = [date_start + time_int*datetime.timedelta(hours=x) for x in range(0, periods)]
 

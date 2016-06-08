@@ -1030,3 +1030,83 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 
 	return Xstd,lat,lon,lev
 
+def compute_RMM(E,climatology_option='NODA',hostname='taurus',verbose=False):
+
+	"""
+	given a certain experiment dictionary, compute the Wheeler and Hendon (2004)
+	RMM index by projecting the modeled fields onto Wheeler and Hendon's multivariate EOFs.
+	
+	The subroutine loops over the dates and times given in E['daterange'] and, for each day,
+	creates a Pandas dataframe that holds the RMM1 and RMM2 values for each DART copy. 
+	This datarame is then printed to a CSV file, which is stored under /csv/MJO in that 
+	experiment's directory. 
+
+	"""
+
+
+
+	# compute the PCs for the desired timespan and list of copies 
+	RMM1list = []
+	RMM2list = []
+	bad_copies = []		# start a list of the copies that are unavailable  
+
+	for copy in copy_list:
+		if copy == "operational":
+			date_limits = (E['daterange'][0],E['daterange'][len(E['daterange'])-1])
+			dates,RMM1,RMM2 = read_RMM_true(date_limits,hostname='taurus')
+			RMM1list.append(RMM1)
+			RMM2list.append(RMM2)
+		
+		else:
+			E['copystring'] = copy
+			pc = RMM(E,climatology_option=climatology_option,hostname='taurus',verbose=verbose)
+			if pc is None:
+				# if we don't have enough data to compute the RMM index for this experiment, 
+				# add it to the list of bad copies:
+				print('     Unable to compute RMM index for '+copy)
+				bad_copies.append(copy)
+			else:
+				RMM1list.append(pc[0,:])
+				RMM2list.append(pc[1,:])
+
+	# remove the "bad" copies from the list
+	[copy_list.remove(bc) for bc in bad_copies]
+
+	# pimp out the plot a little bit  
+	plt.plot([-4,4],[-4,4],linewidth=0.2,linestyle='--',color='k')
+	plt.plot([-4,4],[4,-4],linewidth=0.2,linestyle='--',color='k')
+	plt.plot([-4,4],[0,0],linewidth=0.2,linestyle='--',color='k')
+	plt.plot([0,0],[-4,4],linewidth=0.2,linestyle='--',color='k')
+	plt.xlim([-4.0,4.0])
+	plt.ylim([-4.0,4.0])
+
+	# circle in the center of the plot to denote weak index  
+	circle = plt.Circle((0, 0), radius=1.0, fc='k', ec='k', alpha=0.2)
+	plt.gca().add_patch(circle)
+
+	# cycle over copies and plot the two princial components against each other  
+	for copy,RMM1,RMM2 in zip(copy_list,RMM1list,RMM2list):
+		
+		# choose the color based on the copy string
+		if "ensemble member" in copy:
+			lcolor = "#848484"
+			#lcolor = "#70B8FF"
+			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=1)
+		if copy == "ensemble mean":
+			#lcolor = "#636363"
+			lcolor = "#70B8FF"
+			#c = np.linspace(0, 10, RMM1.shape[0])
+			#cmap = plt.cm.jet
+			#plt.scatter(RMM1,RMM2,c=c,cmap=cmap,s=10)
+			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=2)
+		if copy == "operational":
+			lcolor = "#000000"
+			print('plotting operational RMM index in black')
+			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=2)
+
+	# labels and stuff  
+	plt.xlabel('RMM1')
+	plt.ylabel('RMM2')
+
+def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus",debug=False):
+
