@@ -40,7 +40,7 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 	variable_found = False
 
 	# load the file  
-        if os.path.isfile(ff):
+	if os.path.isfile(ff):
 		if verbose:  
 			print('Loading ERA file '+ff)
 		f = Dataset(ff,'r')

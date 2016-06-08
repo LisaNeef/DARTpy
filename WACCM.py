@@ -219,7 +219,7 @@ def history_file_lookup(E):
 	}
 		
 	# if the desired key does not exist, set output hnumber to None
-	if H.has_key(E['variable']):
+	if E['variable'] in H:
 		hnumber = H[E['variable']]
 	else:
 		hnumber=None

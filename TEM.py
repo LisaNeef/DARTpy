@@ -69,7 +69,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 	ff = es.exp_paths_TEM(E,datetime_in)
 
 	# load the file  
-        if os.path.isfile(ff):
+	if os.path.isfile(ff):
 		VV = None
 		if verbose:  
 			print('Loading TEM diagnostics file file '+ff)
