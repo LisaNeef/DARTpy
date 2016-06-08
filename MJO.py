@@ -476,6 +476,8 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 			variable = 'U'
 		if E['variable'] == 'VS':
 			variable = 'V'
+		if E['variable'] == 'OLR':
+			variable = 'FLUT'
 		VV = f.variables[variable][:]
 		f.close()
 

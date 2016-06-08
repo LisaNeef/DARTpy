@@ -207,6 +207,7 @@ def history_file_lookup(E):
 	'PS':1,
 	'U':1,
 	'FLUT':1,
+	'OLR':1,
 	'Z3':1,
 	'hyam':1,
 	'hybm':1,
