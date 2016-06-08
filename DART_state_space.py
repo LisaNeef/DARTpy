@@ -203,16 +203,16 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	coastline_width = 0.25
 	if projection == 'miller':
 		coastline_width = 1.0
-        map.drawcoastlines(linewidth=coastline_width)
+	map.drawcoastlines(linewidth=coastline_width)
 		
 
         # draw lat/lon grid lines every 30 degrees.
-        map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
-        map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
+	map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
+	map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
 
         # compute native map projection coordinates of lat/lon grid.
-        X,Y = np.meshgrid(lon,lat)
-        x, y = map(X, Y)
+	X,Y = np.meshgrid(lon,lat)
+	x, y = map(X, Y)
 
         # choose color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
@@ -344,7 +344,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 
         # contour plot 
 	MT = np.transpose(M)
-        cs = plt.contourf(lon,time,MT,L,cmap=cmap,extend="both")
+	cs = plt.contourf(lon,time,MT,L,cmap=cmap,extend="both")
 
 	# date axis formatting 
 	if len(time)>30:
@@ -368,8 +368,8 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 
 
 	#plt.gca().invert_yaxis()
-        plt.ylabel('Time')
-        plt.xlabel('Longitude')
+	plt.ylabel('Time')
+	plt.xlabel('Longitude')
 	#plt.axis('tight')
 	return CB,cs,M
 
@@ -403,7 +403,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	shape_tuple = Vmatrix.shape
 	if debug:
 		print('shape of array after concatenating dates:')
-		print shape_tuple
+		print(shape_tuple)
 	if lon is not None:
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
 			if dimlength == len(lon):
@@ -413,7 +413,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		Vlon = np.squeeze(Vmatrix)  
 	if debug:
 		print('shape of array after averaging out longitude:')
-		print Vlon.shape
+		print(Vlon.shape)
 
 	# figure out which dimension is longitude and then average over that dimension 
 	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
@@ -427,7 +427,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		Vlonlat = Vlon
 	if debug:
 		print('shape of array after averaging out latitude:')
-		print Vlonlat.shape
+		print(Vlonlat.shape)
 
 	# if computing a difference to another field, load that here  
 	if (Ediff != None):
@@ -468,8 +468,8 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	t = new_daterange
 	if debug:
 		print('shape of the array to be plotted:')
-		print M.shape
-        cs = plt.contourf(t,lev,M*scaling_factor,L,cmap=cmap,extend="both")
+		print(M.shape)
+	cs = plt.contourf(t,lev,M*scaling_factor,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
@@ -494,8 +494,8 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		CB = None
 
 
-        plt.xlabel('time')
-        plt.ylabel('Pressure (hPa)')
+	plt.xlabel('time')
+	plt.ylabel('Pressure (hPa)')
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
 	plt.axis('tight')
@@ -572,14 +572,14 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 
 
         # contour data over the map.
-        cs = plt.contourf(t,lat,MM,len(colors)-1,cmap=cmap,extend="both")
+	cs = plt.contourf(t,lat,MM,len(colors)-1,cmap=cmap,extend="both")
 	plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
 	plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
 	plt.axis('tight')
-        if cmap_type == 'divergent':
+	if cmap_type == 'divergent':
 		if clim is None:
 			clim = np.nanmax(np.absolute(MM))
-                plt.clim([-clim,clim])
+		plt.clim([-clim,clim])
 	if debug:
 		print(cs.get_clim())
 	if cbar:
@@ -589,8 +589,8 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical')
 	else:
 		CB = None
-        plt.xlabel('time')
-        plt.ylabel('Latitude')
+	plt.xlabel('time')
+	plt.ylabel('Latitude')
 
 	# fix the date exis
 	if len(t)>30:
@@ -768,7 +768,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth
 	clim = E['clim']
 	if E['clim'] is not None:
 		plt.ylim(clim)
-        plt.xlabel('time')
+	plt.xlabel('time')
 
 	# format the y-axis labels to be exponential if the limits are quite high
 	if clim is not None:
@@ -921,7 +921,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		lg = plt.legend(names,loc='best')
 		lg.draw_frame(False)
 
-        plt.xlabel('Time (Days)')
+	plt.xlabel('Time (Days)')
 	if ylim is not None:
 		plt.ylim(ylim)
 	if xlim is not None:
@@ -994,7 +994,7 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 	"""
 
         # appropriate color maps for state space plots
-        colors_sequential = False
+	colors_sequential = False
 
 	# sequential plot if plotting positive definite variables and not taking a difference  
 	post_def_variables = ['Z3','PS','FLUT','T','Nsq']
@@ -1002,38 +1002,38 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
                 colors_sequential = True
 
         # for square error plots, we want a sequential color map, but only if not taking a difference
-        if (E['extras']=='MSE')and (Ediff == None):
-                colors_sequential = True
+	if (E['extras']=='MSE')and (Ediff == None):
+		colors_sequential = True
 
         # for ensemble spread plots, we want a sequential color map, but only if not taking a diff
-        if (E['copystring']=='ensemble spread') and (Ediff == None):
-                colors_sequential = True
+	if (E['copystring']=='ensemble spread') and (Ediff == None):
+		colors_sequential = True
 
         # for ensemble variance plots, we want a sequential color map, but only if not taking a diff
-        if (E['extras']=='ensemble variance scaled') and (Ediff == None):
-                colors_sequential = True
+	if (E['extras']=='ensemble variance scaled') and (Ediff == None):
+		colors_sequential = True
 
 	# if plotting the MJO variance, wnat a sequential colormap
 	if (E['extras'] == 'MJO variance'):
-                colors_sequential = True
+		colors_sequential = True
 
 	# if the diagnostic includes a climatological standard deviation, turn on sequential colormap
 	if 'climatological_std' in E['diagn']:
-                colors_sequential = True
+		colors_sequential = True
 
 	# if any of the above turned on the sequential colormap but we are looking at anomalies or correlations, turn it back off  
 	if E['extras'] is not None:
 		if 'Correlation' in E['extras']:
 			colors_sequential = False
 	if 'anomaly' in E['diagn']:
-                colors_sequential = False
+		colors_sequential = False
 
 	# also turn off the sequential colors if the diagnostic is increment  
 	if E['diagn'].lower()=='increment':
                 colors_sequential = False
 
         # choose sequential or diverging colormap
-        if colors_sequential:
+	if colors_sequential:
 		# yellow to blue
 		colors = ("#F4EB94","#CEE389","#A4DA87","#74CF8C","#37C293","#00B39B",
 			  "#00A1A0","#008CA1","#00749C","#005792","#202581")
@@ -1041,7 +1041,7 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 		if debug:
 			print('loading a sequential HCL colormap')
 		type='sequential'
-        else:
+	else:
 		#---red negative and blue positive with white center instead of gray--
 		colordict = {11:("#D33F6A","#DB6581","#E28699","#E5A5B1","#E6C4C9","#FFFFFF","#FFFFFF","#C7CBE3","#ABB4E2","#8F9DE1","#7086E1","#4A6FE3"),
 				 19:("#D33F6A","#DA5779","#E26C88","#E88197","#EE94A7","#F3A8B6",
@@ -1059,7 +1059,7 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 
 	cmap = mpl.colors.ListedColormap(colors, name='my_cmap')
 
-        return colors,cmap,type
+	return colors,cmap,type
 
 
 
@@ -1115,11 +1115,11 @@ def compute_state_to_obs_covariance_field(E=dart.basic_experiment_dict(),date=da
 
 	# first load the entire ensemble for the desired variable field
 	#lev,lat,lon,VV = dart.load_DART_diagnostic_file(E,date,hostname)
-        VV,VT,lev,lat,lon = retrieve_state_space_ensemble(E,date,False,hostname)
+	VV,VT,lev,lat,lon = retrieve_state_space_ensemble(E,date,False,hostname)
 
 	# now load the obs epoch file corresponding to this date
-	obs,copynames = dart.load_DART_obs_epoch_file(E,date,[obs_name],['ensemble member'], hostname)
- 
+	obs,copynames = dart.load_DART_obs_epoch_file(E,date,[obs_name],['ensemble member'],hostname)
+
 	# compute the ensemble mean value for each point in the variable field
 	VM = np.mean(VV,0)
 
@@ -1388,30 +1388,30 @@ def plot_compare_AEFintegrals_to_obs(E = dart.basic_experiment_dict(),daterange 
 
 
 	# plot it and export as pdf
-        plt.close('all')
-        plt.figure(1)
-        plt.clf()
+	plt.close('all')
+	plt.figure(1)
+	plt.clf()
 
 	ax1 = plt.subplot(121)
-        t = [d.date() for d in daterange]
-        bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
+	t = [d.date() for d in daterange]
+	bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
 	plt.plot(t,Y[0,:],color=bmap.mpl_colors[0])
-        plt.hold(True)
+	plt.hold(True)
 	plt.plot(t,X[3,:],color=bmap.mpl_colors[1])
 	plt.plot(t,Xbad[3,:],color=bmap.mpl_colors[2])
-        plt.legend(['EAM Code','My integral','Integral with flipped p levels'],loc='best')
+	plt.legend(['EAM Code','My integral','Integral with flipped p levels'],loc='best')
 
 
 	ax2 = plt.subplot(121)
 	plt.plot(t,Y[0,:]-np.mean(Y[0,:]),color=bmap.mpl_colors[0])
-        plt.hold(True)
+	plt.hold(True)
 	plt.plot(t,X[0,:]-np.mean(X[0,:]),color=bmap.mpl_colors[1])
 	plt.plot(t,Xbad[0,:]-np.mean(Xbad[0,:]),color=bmap.mpl_colors[2])
-        plt.legend(['EAM Code Anomaly','U integral anomaly','U integral anom with error'],loc='best')
+	plt.legend(['EAM Code Anomaly','U integral anomaly','U integral anom with error'],loc='best')
 
-        fig_name = 'EAM_obs_operator_error_check_'+ERP+'.pdf'
-        plt.savefig(fig_name, dpi=96)
-        plt.close()
+	fig_name = 'EAM_obs_operator_error_check_'+ERP+'.pdf'
+	plt.savefig(fig_name, dpi=96)
+	plt.close()
 
 
 	#return X,Y,t,vars
@@ -1486,7 +1486,7 @@ def plot_obs_space_ensemble(E = dart.basic_experiment_dict(),daterange = dart.da
 
 	if clim is not None:
 		plt.ylim([-clim,clim])
-        plt.xlabel('time')
+	plt.xlabel('time')
 
 	# format the y-axis labels to be exponential if the limits are quite high
 	if (clim > 100):
@@ -1581,12 +1581,12 @@ def plot_diagnostic_lon_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
         #cs = plt.contourf(t,lat,MM,15,cmap=cmap)
         #cs = plt.contourf(t,lat,MM,len(colors)-1,colors=colors)
 	MT = np.transpose(MM)
-        cs = plt.contourf(lon,t,MT,len(colors)-1,cmap=cmap,extend="both")
+	cs = plt.contourf(lon,t,MT,len(colors)-1,cmap=cmap,extend="both")
 	plt.axis('tight')
-        if cmap_type == 'divergent':
+	if cmap_type == 'divergent':
 		if clim is None:
 			clim = np.nanmax(np.absolute(MM))
-                plt.clim([-clim,clim])
+		plt.clim([-clim,clim])
 	print(cs.get_clim())
 	if cbar:
 		if (clim > 1000) or (clim < 0.001):
@@ -1595,8 +1595,8 @@ def plot_diagnostic_lon_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation='vertical')
 	else:
 		CB = None
-        plt.ylabel('time')
-        plt.xlabel('Longitude')
+	plt.ylabel('time')
+	plt.xlabel('Longitude')
 
 	# fix the date exis
 	if len(t)>30:
@@ -1633,7 +1633,7 @@ def read_aefs_from_csv_to_dataframe(E=dart.basic_experiment_dict(), hostname='ta
 	import os.path
 	for path in path_list:
 		if debug:
-			print path
+			print(path)
 		ff = E['exp_name']+'_'+'AEFs_'+E['diagn']+'_'+date.strftime('%Y-%m-%d-%H-%M-%S')+'.csv'
 		filename = path+'/'+ff
 		if os.path.exists(filename):
@@ -1824,21 +1824,21 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
         # plot
 	if len(MT.shape) < 2:
 		print('plot_diagnostic_lev_lat: the derived array is not 2-dimensional. This is its shape:')
-		print MT.shape
+		print(MT.shape)
 		print('Returning with nothing plotted...')
 		return None,None
 
 	if (MT.shape[0] != len(lev)) |  (MT.shape[1] != len(lat)):
 		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
-		print (MT.shape[0] != len(lat))
-		print (MT.shape[1] != len(lev))
-		print MT.shape
-		print len(lev)
-		print len(lat)
+		print((MT.shape[0] != len(lat)))
+		print((MT.shape[1] != len(lev)))
+		print(MT.shape)
+		print(len(lev))
+		print(len(lat))
 		print('Returning with nothing plotted...')
 		return None,None
 
-        cs = plt.contourf(lat,lev,scaling_factor*MT,L,cmap=cmap,extend="both")
+	cs = plt.contourf(lat,lev,scaling_factor*MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
@@ -1853,8 +1853,8 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 
 	# axis labels 
-        plt.xlabel('Latitude')
-        plt.ylabel('Pressure (hPa)')
+	plt.xlabel('Latitude')
+	plt.ylabel('Pressure (hPa)')
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
 
@@ -1984,8 +1984,8 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 
 
 	# axis labels 
-        plt.xlabel('Latitude')
-        plt.ylabel('Pressure (hPa)')
+	plt.xlabel('Latitude')
+	plt.ylabel('Pressure (hPa)')
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
 
@@ -2025,23 +2025,23 @@ def Nsq(E,date,hostname='taurus',debug=False):
 				print('Pressure not available for requested date - recreating from hybrid levels (this takes a while....)')
 			varlist = ['hyam','hybm','P0','PS','T','Z3']
 			for vname in varlist:
-			    Ehyb = E.copy()
-			    Ehyb['variable'] = vname
-			    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
-			    if vname == 'PS':
-				H['lev'] = lev
-				H['lat'] = lat
-				H['lon'] = lon        
-			    H[vname]=field
+				Ehyb = E.copy()
+				Ehyb['variable'] = vname
+				field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
+				if vname == 'PS':
+					H['lev'] = lev
+					H['lat'] = lat
+					H['lon'] = lon        
+				H[vname]=field
 
 			nlev = len(lev)
 			nlat = len(lat)
 			nlon = len(lon)
 			P = np.zeros(shape = (nlev,nlat,nlon))
 			for k in range(nlev):
-			    for i in range(nlon):
-				for j in range(nlat):
-					P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+				for i in range(nlon):
+					for j in range(nlat):
+						P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 		else:
 			# if 3d Pressure was available, package it, along with the other needed variables,
 			# into a single dictionary 
@@ -2129,23 +2129,23 @@ def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
 	varlist = ['hyam','hybm','P0','PS','T','Z3']
 	H = dict()
 	for vname in varlist:
-	    Ehyb = E.copy()
-	    Ehyb['variable'] = vname
-	    field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
-	    if vname == 'PS':
-		H['lev'] = lev
-		H['lat'] = lat
-		H['lon'] = lon        
-	    H[vname]=field
+		Ehyb = E.copy()
+		Ehyb['variable'] = vname
+		field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
+		if vname == 'PS':
+			H['lev'] = lev
+			H['lat'] = lat
+			H['lon'] = lon        
+		H[vname]=field
 
 	nlev = len(lev)
 	nlat = len(lat)
 	nlon = len(lon)
 	P = np.zeros(shape = (nlev,nlat,nlon))
 	for k in range(nlev):
-	    for i in range(nlon):
-		for j in range(nlat):
-			P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+		for i in range(nlon):
+			for j in range(nlat):
+				P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 
 	return P,lat,lon,lev
 
@@ -2398,9 +2398,9 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		shape_tuple = VV.shape
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
 			if dimlength == len(lat):
-			    latdim = ii
+				latdim = ii
 		Mlat = np.nanmean(VV,axis=latdim)
-	 	if E['extras'] is not None:
+		if E['extras'] is not None:
 			if 'latmax' in E['extras']:
 				Mlat = np.nanmax(VV,axis=latdim)
 	else:
@@ -2413,7 +2413,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 			if dimlength == len(lon):
 			    londim = ii
 		Mlon = np.nanmean(Mlat,axis=londim)
-	 	if E['extras'] is not None:
+		if E['extras'] is not None:
 			if 'lonmax' in E['extras']:
 				Mlon = np.nanmax(Mlat,axis=londim)
 	else:
@@ -2434,21 +2434,21 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 		# find the latidue and longitude dimensions and average 
 		if lat is not None:
-		    shape_tuple = VV.shape
-		    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lat):
-			    latdim = ii
-		    Mlat = np.nanmean(VV,axis=latdim)
+			shape_tuple = VV.shape
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lat):
+				    latdim = ii
+			Mlat = np.nanmean(VV,axis=latdim)
 		else:
-		    Mlat = VV
+			Mlat = VV
 		if lon is not None:
-		    shape_tuple = Mlat.shape
-		    for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lon):
-			    londim = ii
-		    Mlon = np.nanmean(Mlat,axis=londim)
+			shape_tuple = Mlat.shape
+			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+				if dimlength == len(lon):
+					londim = ii
+			Mlon = np.nanmean(Mlat,axis=londim)
 		else:
-		    Mlon = Mlat
+			Mlon = Mlat
 		M2 = scaling_factor*np.squeeze(Mlon)
 		
 		# take the difference
@@ -2473,7 +2473,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	ax = plt.gca()
 	xlim = ax.get_xlim()[1]
 	ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
-        plt.ylabel('Level (hPa)')
+	plt.ylabel('Level (hPa)')
 	if log_levels:
 		plt.yscale('log')
 	plt.gca().invert_yaxis()
@@ -2573,21 +2573,21 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
         # plot
 	if len(MT.shape) < 1:
 		print('plot_diagnostic_lev_lat: the derived array is not 1-dimensional. This is its shape:')
-		print MT.shape
+		print(MT.shape)
 		print('Returning with nothing plotted...')
 		return None,None
 
 	if (MT.shape[0] != len(lat)):
 		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the latitude arrays we are plotting against. Here are their shapes:")
-		print MT.shape
-		print len(lat)
+		print(MT.shape)
+		print(len(lat))
 		print('Returning with nothing plotted...')
 		return None,None
 
-        plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+	plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# axis labels 
-        plt.xlabel('Latitude')
+	plt.xlabel('Latitude')
 
 	# vertical axis adjustments if desired (e.g. if plotting tropopause height) 
 	if log_levels:

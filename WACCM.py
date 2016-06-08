@@ -68,10 +68,10 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		stub = '/atm/hist/'+'*.cam_'+instance_str+'.h'+str(hnum)+'*.nc'
 		print("+++cannot find files that look like "+stub+' in any of these directories:')
 		print(h_file_path_list)
-		print 'Experiment name: '+E['exp_name']
-		print 'variable: '+E['variable']
-		print 'instance: '+str(instance)
-		print 'date and time: '+str(datetime_in)
+		print('Experiment name: '+E['exp_name'])
+		print('variable: '+E['variable'])
+		print('instance: '+str(instance))
+		print('date and time: '+str(datetime_in))
 		return
 
 
@@ -107,7 +107,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 	ff = p2+'/'+fname
 
 	# load the file  
-        if os.path.isfile(ff):
+	if os.path.isfile(ff):
 		if verbose:  
 			print('Loading WACCM file '+ff)
 		f = Dataset(ff,'r')
@@ -173,7 +173,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 
 		# throw an error if variable has not been defined. 
 		if 'Vout' not in locals():
-			print "WACCM.py doesnt know what to do with variable "+E['variable']+" -- still need to code its shape in subroutine load_WACCM_multi_instance_h_file" 
+			print("WACCM.py doesnt know what to do with variable "+E['variable']+" -- still need to code its shape in subroutine load_WACCM_multi_instance_h_file")
 			return None,None,None,None
 
 		# if loading low-pass filtered data, several times are in one file -- choose the first.  

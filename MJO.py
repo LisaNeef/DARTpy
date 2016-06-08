@@ -161,7 +161,7 @@ def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_v
 		clevels  = np.linspace(start=0,stop=clim,num=11)
 
         # contour plot of the chosen variable
-        cs = plt.contourf(x,L,R,levels=clevels,cmap=cmap)
+	cs = plt.contourf(x,L,R,levels=clevels,cmap=cmap)
 	plt.clim([-1.0,1.0])
 
 	if (cbar is not None):
@@ -183,16 +183,16 @@ def plot_variance_maps(E,cbar=True,hostname="taurus"):
 		    llcrnrlon=0,urcrnrlon=360,resolution='c')
 
         # draw coastlines, country boundaries, fill continents.
-        map.drawcoastlines(linewidth=0.25)
-        map.drawcountries(linewidth=0.25)
+	map.drawcoastlines(linewidth=0.25)
+	map.drawcountries(linewidth=0.25)
 
         # draw lat/lon grid lines every 30 degrees.
-        map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
-        map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
+	map.drawmeridians(np.arange(0,360,30),linewidth=0.25)
+	map.drawparallels(np.arange(-90,90,30),linewidth=0.25)
 
         # compute native map projection coordinates of lat/lon grid.
-        X,Y = np.meshgrid(lon,lat)
-        x, y = map(X, Y)
+	X,Y = np.meshgrid(lon,lat)
+	x, y = map(X, Y)
 
         # choose color map based on the variable in question
 	E['extras'] = 'MJO variance'
@@ -206,8 +206,8 @@ def plot_variance_maps(E,cbar=True,hostname="taurus"):
 
 
         # contour data over the map.
-        cs = map.contourf(x,y,VV,15,cmap=cmap)
-        #cs = map.contourf(x,y,M,len(colors)-1,colors=colors)
+	cs = map.contourf(x,y,VV,15,cmap=cmap)
+	#cs = map.contourf(x,y,M,len(colors)-1,colors=colors)
 	#cs = map.contourf(X,Y,M,len(colors)-1,cmap=cmap,extend="both",vmin=-clim,vmax=clim)
 
 	# apply color limits, but not if it's a log contour plot
@@ -503,7 +503,7 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 				k1 = (np.abs(lev-E['levrange'][0])).argmin()
 				lev2 = lev[k1:k2+1]
 
-                j2 = (np.abs(lat-E['latrange'][1])).argmin()
+		j2 = (np.abs(lat-E['latrange'][1])).argmin()
 		j1 = (np.abs(lat-E['latrange'][0])).argmin()
 		lat2 = lat[j1:j2+1]
 		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
@@ -1011,7 +1011,7 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 				k1 = (np.abs(lev-E['levrange'][0])).argmin()
 				lev = lev[k1:k2+1]
 
-                j2 = (np.abs(lat-E['latrange'][1])).argmin()
+		j2 = (np.abs(lat-E['latrange'][1])).argmin()
 		j1 = (np.abs(lat-E['latrange'][0])).argmin()
 		lat = lat[j1:j2+1]
 		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
@@ -1107,6 +1107,4 @@ def compute_RMM(E,climatology_option='NODA',hostname='taurus',verbose=False):
 	# labels and stuff  
 	plt.xlabel('RMM1')
 	plt.ylabel('RMM2')
-
-def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_versus_what='lon',filter_order=50,cbar=True,hostname="taurus",debug=False):
 
