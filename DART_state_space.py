@@ -11,9 +11,7 @@ from mpl_toolkits.basemap import Basemap
 import datetime
 import pandas as pd
 import DART as dart
-import brewer2mpl
 from netCDF4 import Dataset
-import ERP as erp
 import WACCM as waccm
 import re
 import ERA as era
@@ -737,14 +735,18 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth
 	# if no color limits are specified, at least make them even on each side
 	# change the default color cycle to colorbrewer colors, which look a lot nicer
 	if color_choice == 1:
-		bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
+		# TODO: replace with call to moduel palettable to get colorbrewer colors back
+		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+		#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
 		color_ensemble = "#878482"
-		color_truth = bmap.mpl_colors[3]
+		color_truth = colors[0]
 		color_mean = "#000000"
 	if color_choice == 2:
-		bmap = brewer2mpl.get_map('YlGnBu', 'sequential', 9)
-		color_ensemble = bmap.mpl_colors[4]
-		color_mean = bmap.mpl_colors[7]
+		#bmap = brewer2mpl.get_map('YlGnBu', 'sequential', 9)
+		# TODO: replace with call to moduel palettable to get colorbrewer colors back
+		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+		color_ensemble = colors[4]
+		color_mean = colors[7]
 		color_truth = "#000000"
 
         # plot global diagnostic in in time
@@ -891,8 +893,9 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 	# change the default color cycle to colorbrewer Dark2, or use what is supplied
 	if colors is None:
-		bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
-		colors = bmap.mpl_colors
+		# TODO: replace with call to moduel palettable to get colorbrewer colors back
+		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+		#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
 
 	# set all line styles to a plain line if not previous specified  
 	if linestyles == None:
@@ -944,36 +947,6 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	return MT,x
 
 
-def state_space_colormap(E,Ediff=None):
-
-	# appropriate color maps for state space plots
-	cmap_sequential = False
-
-	# for square error plots, we want a sequential color map, but only if not taking a difference
-	if (E['extras']=='MSE')and (Ediff == None): 
-		cmap_sequential = True
-
-	# for ensemble spread plots, we want a sequential color map, but only if not taking a diff
-	if (E['copystring']=='ensemble spread') and (Ediff == None): 
-		cmap_sequential = True
-
-
-	# choose sequential or diverging colormap
-	if cmap_sequential:
-		bmap = brewer2mpl.get_map('GnBu', 'sequential', 9)
-		#---for newer matplotlib---cmap = bmap.get_mpl_colormap(N=15, gamma=4.0)
-		cmap = bmap.get_mpl_colormap(N=9)
-		if debug:
-			print('loading a sequential colormap')
-	else:
-		bmap = brewer2mpl.get_map('PiYG', 'diverging', 11)
-		#---for newer matplotlib---cmap = bmap.get_mpl_colormap(N=15, gamma=1.0)
-		cmap = bmap.get_mpl_colormap(N=9)
-		if debug:
-			print('loading a diverging colormap')
-
-
-	return cmap
 
 def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 
@@ -1394,11 +1367,14 @@ def plot_compare_AEFintegrals_to_obs(E = dart.basic_experiment_dict(),daterange 
 
 	ax1 = plt.subplot(121)
 	t = [d.date() for d in daterange]
-	bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
-	plt.plot(t,Y[0,:],color=bmap.mpl_colors[0])
+
+	# TODO: replace with call to moduel palettable to get colorbrewer colors back
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+	#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
+	plt.plot(t,Y[0,:],color=_colors[0])
 	plt.hold(True)
-	plt.plot(t,X[3,:],color=bmap.mpl_colors[1])
-	plt.plot(t,Xbad[3,:],color=bmap.mpl_colors[2])
+	plt.plot(t,X[3,:],color=colors[1])
+	plt.plot(t,Xbad[3,:],color=bmap.colors[2])
 	plt.legend(['EAM Code','My integral','Integral with flipped p levels'],loc='best')
 
 
@@ -1471,8 +1447,9 @@ def plot_obs_space_ensemble(E = dart.basic_experiment_dict(),daterange = dart.da
 
 	# if no color limits are specified, at least make them even on each side
 	# change the default color cycle to colorbrewer colors, which look a lot nicer
-	bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
-	colors = bmap.mpl_colors
+	# TODO: replace with call to moduel palettable to get colorbrewer colors back
+	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+	#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
 
         # plot global diagnostic in in time
 	N = VE.shape[0]

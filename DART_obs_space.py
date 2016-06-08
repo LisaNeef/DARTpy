@@ -6,7 +6,7 @@
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 import DART as dart
-import brewer2mpl
+import palettable 
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -107,8 +107,7 @@ def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_col
 		ncol = np.min([NN,12])
 		if ncol < 3:
 			ncol=3
-		bmap = brewer2mpl.get_map('Dark2', 'qualitative', ncol)
-		colors = bmap.mpl_colors
+		colors = palettable.colorbrewer.qualitative.Dark2.mpl_colors
 
 	# if comparing observation types, loop over them and scatter plot individually 
 	if compare is 'obs_type':
@@ -178,8 +177,11 @@ def plot_DARTobs_scatter_lev_lat(E,colors=None,compare='QC',QC_list=range(8),ysc
 		ncol = np.min([NN,12])
 		if ncol < 3:
 			ncol=3
-		bmap = brewer2mpl.get_map('Dark2', 'qualitative', ncol)
-		colors = bmap.mpl_colors
+
+		# TODO: replace brewer2mpl call with palettable call 
+		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+		#bmap = brewer2mpl.get_map('Dark2', 'qualitative', ncol)
+		#colors = bmap.mpl_colors
 
 	# if comparing different observation types, loop over the list of obs
 	# and select the lats and levs for the desired obs types 
