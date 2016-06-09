@@ -115,7 +115,10 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		lon = f.variables['lon'][:]
 		lev = f.variables['lev'][:]
 		time = f.variables['time'][:]
-		VV = f.variables[E['variable']][:]
+		variable=E['variable']
+		if E['variable']=='OLR':
+			variable='FLUT'
+		VV = f.variables[variable][:]
 		if VV is None:
 			print('Unable to find variable '+E['variable']+' in file '+ff)
 		f.close()
@@ -151,7 +154,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		# so this depends on variable 
 		scalar_variables = ['P0']
 		variables_1d = ['hyam','hybm','hyai','hybi']
-		variables_2d = ['PS','FLUT']
+		variables_2d = ['PS','FLUT','OLR']
 		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V','Q','O3']
 
 		if E['variable'] in scalar_variables:

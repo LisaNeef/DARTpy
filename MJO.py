@@ -369,13 +369,13 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	EOF = [EVEC.EV1, EVEC.EV2]
 
 	# read in the normalization factors  
-	NORM = pd.read_csv(ff,skiprows=442,sep='  ',engine='python')
-	NORM.columns = ['normalization_factors']  
-	normfac = NORM.normalization_factors
-	NF_FLUT = normfac[0:144]
-	NF_U850 = normfac[144:288]
-	NF_U200 = normfac[288:432]
-	NF_list = [NF_FLUT,NF_U850,NF_U200]
+	#NORM = pd.read_csv(ff,skiprows=442,sep='  ',engine='python')
+	#NORM.columns = ['normalization_factors']  
+	#normfac = NORM.normalization_factors
+	#NF_FLUT = normfac[0:144]
+	#NF_U850 = normfac[144:288]
+	#NF_U200 = normfac[288:432]
+	#NF_list = [NF_FLUT,NF_U850,NF_U200]
 
 	# read in the eigenvalues  
 	f = open(ff, "r")
@@ -390,7 +390,7 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	variable_list = ['FLUT','U','U']
 	levrange_list = [None,[850,850],[200,200]]
 	Anomaly_list = []
-	for variable,levrange,NF in zip(variable_list,levrange_list,NF_list):
+	for variable,levrange in zip(variable_list,levrange_list):
 		Etemp = E.copy()
 		Etemp['variable'] = variable
 		Etemp['levrange'] = levrange
@@ -412,18 +412,16 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		# average the normalized anomalies over the 15S-15N latitude band  
 		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
 
-		# compute the standard deviations of each variable field 
-		# probably best to compute these over all available data, not just the period requested 
-		Etemp2 = Etemp.copy()
-		Etemp2['daterange'] = es.get_available_daterange(Etemp['exp_name'])
-		anomalies_entire_period,dum,lat,lon,lev,DRnew = ano(Etemp2,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
-		lat1,lon1,ave_anom = astd('WH',anomalies_entire_period,lat,lon,None,variable_name,averaging_dimension='lat')
+		# normalize the anoamlies of each variable field by its standard deviation 
+		# computed from the climatology 
+		S,lat,lon,lev = stds(Etemp,std_option=climatology_option,hostname=hostname,verbose=verbose)
+		std = np.nanmean(S)
 
 		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
 		nT = np.squeeze(ave_anom).shape[1]
 		ave_anom_norm = 0*ave_anom
 		for aa,iT in zip(ave_anom,range(nT)):
-			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/NF.values
+			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/std
 
 		# put everything into a list
 		Anomaly_list.append(ave_anom_norm)
@@ -566,7 +564,8 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		d0 = E['daterange'][0]
 		df = E['daterange'][len(E['daterange'])-1]
 		days = df-d0
-		E['daterange'] = dart.daterange(date_start=d0, periods=days.days+1, DT='1D')
+		DRnew =  dart.daterange(date_start=d0, periods=days.days+1, DT='1D')
+		E['daterange'] = DRnew
 
 	# load the desired model fields for the experiment
 	Xlist = []	# empty list to hold the fields we retrieve for every day  
@@ -596,11 +595,12 @@ def ano(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		# NOTE: this is still a kludge and probably wont work with all datasets - check this carefully 
 		# with your own data 
 		XclimS = np.squeeze(Xclim)
-		nT = len(DR)
+		nT = len(DRnew)
 		lastdim = len(XclimS.shape)-1
 		for s,ii in zip(XclimS.shape,range(len(XclimS.shape))):
 			if s == nT:
 				time_dim = ii
+
 		# if only retrieveing a single date, don't need to do any reshaping
 		# but might need to squeeze out a length-one time dimension
 		if nT == 1:
@@ -830,9 +830,9 @@ def astd(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
 		FAstd2 = np.nanstd(FAstd1,axis=londim,keepdims=True)
 		FAstd = np.squeeze(FAstd2)
 	if averaging_dimension == "lat": # meridional std only
-		FAstd = nanstd(FAsel,axis=latdim)
+		FAstd = np.nanstd(FAsel,axis=latdim)
 	if averaging_dimension == "lon": # zonal std only
-		FAstd = nanstd(FAsel,axis=londim)
+		FAstd = np.nanstd(FAsel,axis=londim)
 
 	return lat_out,lon_out,FAstd
 
@@ -1051,7 +1051,7 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 		ESTD = E.copy()
 		ESTD['exp_name'] = 'W0910_NODA'
 		ESTD['diagn'] = 'Prior'
-		ESTD['copystring'] = 'ensemble std'
+		ESTD['extras'] = 'ensemble std'
 		Xstd,lat,lon,lev = DSS.DART_diagn_to_array(ESTD,hostname=hostname,debug=verbose)
 		if Xstd is None:
 			print('Cannot find data for standard deviation option '+std_option+' and experiment '+E['exp_name'])
@@ -1074,6 +1074,8 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 			variable = 'U'
 		if E['variable'] == 'VS':
 			variable = 'V'
+		if E['variable'] == 'OLR':
+			variable = 'FLUT'
 		VV = f.variables[variable][:]
 		f.close()
 
@@ -1084,9 +1086,9 @@ def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
 
 		# if df<d0, we have to cycle back to the beginning of the year
 		if df < d0:
-			day_indices = range(d0,365)+range(0,df+1)
+			day_indices = list(range(d0,365))+list(range(0,df))
 		else:
-			day_indices = range(d0,df+1)
+			day_indices = list(range(d0,df))
 
 		# also choose the lat, lon, and level ranges corresponding to those in E
 		if E['levrange'] is not None:
