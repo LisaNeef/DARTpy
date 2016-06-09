@@ -596,11 +596,14 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 		#------finding which copies to retrieve  
 		if type(E['copystring']) is not list:
+			# default - list of copies is just whatever is given in copystring
+			copies = get_copy(E['copystring'])
+
 			# if the diagnostic is the Truth, then the copy string can only be one thing
 			if (E['diagn'] == 'Truth'):
 				copies = get_copy(f,'true state')
-			# if we want the ensemble variance, copystring has to be the ensemble spread
-			if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled'):
+			# if we want the ensemble variance or std, copystring has to be the ensemble spread
+			if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled') or (E['extras'] == 'ensemble std'):
 				copies = get_copy(f,'ensemble spread')
 			# if requesting the entire ensemble, loop over ensemble members here 
 			if E['copystring'] is 'ensemble':
