@@ -351,6 +351,11 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	this is done by reading in the multivariate EOF of OLR, U850, and U200 (computed from 
 	satellite data and NCEP reanalysis), and then projecting our model's anomaly 
 	fields onto these EOFs.  
+
+	This code is pretty clunky, because it computes the RMM index over the daterange in E['daterange'], but 
+	it uses all available data in the experiment given by E to compute the standard deviations of anomalies in 
+	each variable. -- so it's best to run this all at once over long spans of time.  
+
 	"""
 
 	# read in the multivariate EOFs (eigenvectors)  
@@ -406,6 +411,13 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 		# average the normalized anomalies over the 15S-15N latitude band  
 		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
+
+		# compute the standard deviations of each variable field 
+		# probably best to compute these over all available data, not just the period requested 
+		Etemp2 = Etemp.copy()
+		Etemp2['daterange'] = es.get_available_daterange(Etemp['exp_name'])
+		anomalies_entire_period,dum,lat,lon,lev,DRnew = ano(Etemp2,climatology_option=climatology_option,hostname=hostname,verbose=verbose)
+		lat1,lon1,ave_anom = astd('WH',anomalies_entire_period,lat,lon,None,variable_name,averaging_dimension='lat')
 
 		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
 		nT = np.squeeze(ave_anom).shape[1]
@@ -488,9 +500,9 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 
 		# if df<d0, we have to cycle back to the beginning of the year
 		if df < d0:
-			day_indices = range(d0-1,365)+range(0,df)
+			day_indices = list(range(d0-1,365))+list(range(0,df))
 		else:
-			day_indices = range(d0-1,df)
+			day_indices = list(range(d0-1,df))
 
 		# also choose the lat, lon, and level ranges corresponding to those in E
 		if E['levrange'] is not None:
@@ -747,6 +759,82 @@ def aave(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
 		FAave = nanmean(FAsel,axis=londim)
 
 	return lat_out,lon_out,FAave
+
+def astd(region,FA,lat,lon,season,variable_name,averaging_dimension='all'):
+
+	"""
+	compute the standard deviations of diagnostic model variables over a region  
+	
+	INPUTS:  
+	+ region: either a pre-defined region (retrieved from function averaging_regions) or 
+		an experiment dictionary, in which case we use the lat and lonrage there  
+	+ FA: anomaly field over which to average. For standard MJO diagnostics this field should be 
+		filtered for the MJO time window  
+	+ lat,lon: the lat and lon arrays that go with FA  
+	+ variable_name: the name of the variable over which we average  
+		this is only relevant if we have a pre-named averaging region  
+	+ averaging_dimension: the dimension we compute the STD over. There are 3 options:  
+		 all : over lat and lon
+		 lat: over lat only
+		 lon: over lon only
+	"""
+
+
+	# retrieve the averaging region limits
+	if isinstance(region,dict):
+		# if 'region' is given by an experiment dictionary, read the lat and lonranges from the dictionary itself  
+		latrange = region['latrange']
+		lonrange = region['lonrange']
+	else:
+		# otherwise, retrieve the right averaging region  
+		latrange,lonrange = averaging_regions(region,season,variable_name)
+
+	# figure out how the anomaly field FA is shaped
+	# the way FA is calculated, it's last dim is always time  
+
+	shape_tuple = FA.shape
+	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
+		if dimlength == len(lon):
+			londim = ii
+		if dimlength == len(lat):
+			latdim = ii
+
+
+	# find the lat and lon indices that those ranges correspond to the region limits
+	i1 = (np.abs(lon-lonrange[0])).argmin()	
+	i2 = (np.abs(lon-lonrange[1])).argmin()	
+	j1 = (np.abs(lat-latrange[0])).argmin()	
+	j2 = (np.abs(lat-latrange[1])).argmin()	
+
+	lat_out = lat[j1:j2+1]
+	lon_out = lon[i1:i2+1]
+
+	# select the focus region  
+	# here I just brute-forced it, manually checking various array shapes that I've had  
+	if (latdim == 0) and (londim == 1):
+		if len(FA.shape)==2:
+			FAsel = FA[j1:j2+1,i1:i2+1]
+		if len(FA.shape)==3:
+			FAsel = FA[j1:j2+1,i1:i2+1,:]
+	if (latdim == 1) and (londim == 0):
+		if len(FA.shape)==2:
+			FAsel = FA[i1:i2+1,j1:j2+1,:]
+		if len(FA.shape)==3:
+			FAsel = FA[i1:i2+1,j1:j2+1,:]
+	if (latdim == 1) and (londim == 2) and (len(shape_tuple) == 4):
+		FAsel = FA[:,j1:j2+1,i1:i2+1,:]
+	
+	# average  
+	if averaging_dimension == "all":
+		FAstd1 = np.nanstd(FAsel,axis=latdim,keepdims=True)
+		FAstd2 = np.nanstd(FAstd1,axis=londim,keepdims=True)
+		FAstd = np.squeeze(FAstd2)
+	if averaging_dimension == "lat": # meridional std only
+		FAstd = nanstd(FAsel,axis=latdim)
+	if averaging_dimension == "lon": # zonal std only
+		FAstd = nanstd(FAsel,axis=londim)
+
+	return lat_out,lon_out,FAstd
 
 def averaging_regions(region,season,variable):  
 
