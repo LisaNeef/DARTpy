@@ -637,7 +637,7 @@ def get_truth_names(exp_name):
 	return(truth_name_out)
 
 
-def climatology_runs(clim_name,hostname=taurus,debug=False):
+def climatology_runs(clim_name,hostname='taurus',debug=False):
 
 	"""
 	This subroutine holds a dictionary of multi-year experiments that can be used as climatologies 
@@ -648,7 +648,7 @@ def climatology_runs(clim_name,hostname=taurus,debug=False):
 
 	return long_names[clim_name]
 
-def std_runs(clim_name,hostname=taurus,debug=False):
+def std_runs(clim_name,hostname='taurus',debug=False):
 
 	"""
 	This subroutine holds a dictionary of multi-year experiments that can be used as standard deviation data 
