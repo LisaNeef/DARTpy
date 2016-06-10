@@ -539,8 +539,15 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 				k1 = idx
 				k2 = idx
 			else:
-				k2 = (np.abs(lev-E['levrange'][1])).argmin()
-				k1 = (np.abs(lev-E['levrange'][0])).argmin()
+				highest_level_index = (np.abs(lev-E['levrange'][1])).argmin()
+				lowest_level_index = (np.abs(lev-E['levrange'][0])).argmin()
+				# which index is k1 or k2 depends on the direction of lev 
+				if highest_level_index > lowest_level_index:
+					k2 = highest_level_index
+					k1 = lowest_level_index
+				if highest_level_index < lowest_level_index:
+					k1 = highest_level_index
+					k2 = lowest_level_index
 				lev2 = lev[k1:k2+1]
 
 		j2 = (np.abs(lat-E['latrange'][1])).argmin()
@@ -637,8 +644,15 @@ def load_std(E,std_mode = 'NODA',hostname='taurus',verbose=False):
 				k1 = idx
 				k2 = idx
 			else:
-				k2 = (np.abs(lev-E['levrange'][1])).argmin()
-				k1 = (np.abs(lev-E['levrange'][0])).argmin()
+				highest_level_index = (np.abs(lev-E['levrange'][1])).argmin()
+				lowest_level_index = (np.abs(lev-E['levrange'][0])).argmin()
+				# which index is k1 or k2 depends on the direction of lev 
+				if highest_level_index > lowest_level_index:
+					k2 = highest_level_index
+					k1 = lowest_level_index
+				if highest_level_index < lowest_level_index:
+					k1 = highest_level_index
+					k2 = lowest_level_index
 				lev2 = lev[k1:k2+1]
 
 		j2 = (np.abs(lat-E['latrange'][1])).argmin()
@@ -650,6 +664,8 @@ def load_std(E,std_mode = 'NODA',hostname='taurus',verbose=False):
 
 		if len(VV.shape) == 4:
 			Xclim = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
+			print(k1)
+			print(k2)
 		else:
 			Xclim = VV[day_indices,j1:j2+1,i1:i2+1]
 
