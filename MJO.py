@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import nanmean
 
 
-def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbose=False):
+def plot_RMM(E,copies_to_plot,climatology_option='NODA',plot_type='polar',hostname='taurus',verbose=False):
 
 	"""
 	given a certain experiment dictionary, compute the Wheeler and Hendon (2004)
@@ -32,11 +32,15 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 
 	INPUTS:
 	copies_to_plot: list containing keywords for what copies to plot. Here are the options:  
-	+ any valid copystring in DART output data  (e.g. "ensemble member 1")
-	+ 'ensemble' = plot the entire ensemble  
-	+ 'ensemble mean' = plot the ensemble mean  
-	+ 'operational' = plot the operational value of this index 
-
+		+ any valid copystring in DART output data  (e.g. "ensemble member 1")
+		+ 'ensemble' = plot the entire ensemble  
+		+ 'ensemble mean' = plot the ensemble mean  
+		+ 'operational' = plot the operational value of this index 
+	climatology_option: options for how to compute the climatology needed for anomaly computation: 
+		+ 'NODA'  - use the analogue for the desired experiment that has no assimilation  
+		+ 'F_W4_L66' - WACCM run with F_W4_L66 compset  
+	plot_type: choose 'polar' to draw the standard RMM circle diagram, or 'linear' to plot 
+		the two components linearly 
 	"""
 
 	# given the chosen plot variation, define a list of copies to load
@@ -64,6 +68,8 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 	RMM2list = []
 	bad_copies = []		# start a list of the copies that are unavailable  
 	for copy in copy_list:
+
+		print(copy)
 		if copy == "operational":
 			date_limits = (E['daterange'][0],E['daterange'][len(E['daterange'])-1])
 			dates,RMM1,RMM2 = read_RMM_true(date_limits,hostname='taurus')
@@ -85,17 +91,18 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 	# remove the "bad" copies from the list
 	[copy_list.remove(bc) for bc in bad_copies]
 
-	# pimp out the plot a little bit  
-	plt.plot([-4,4],[-4,4],linewidth=0.2,linestyle='--',color='k')
-	plt.plot([-4,4],[4,-4],linewidth=0.2,linestyle='--',color='k')
-	plt.plot([-4,4],[0,0],linewidth=0.2,linestyle='--',color='k')
-	plt.plot([0,0],[-4,4],linewidth=0.2,linestyle='--',color='k')
-	plt.xlim([-4.0,4.0])
-	plt.ylim([-4.0,4.0])
+	if plot_type == 'polar':
+		# pimp out the plot a little bit  
+		plt.plot([-4,4],[-4,4],linewidth=0.2,linestyle='--',color='k')
+		plt.plot([-4,4],[4,-4],linewidth=0.2,linestyle='--',color='k')
+		plt.plot([-4,4],[0,0],linewidth=0.2,linestyle='--',color='k')
+		plt.plot([0,0],[-4,4],linewidth=0.2,linestyle='--',color='k')
+		plt.xlim([-4.0,4.0])
+		plt.ylim([-4.0,4.0])
 
-	# circle in the center of the plot to denote weak index  
-	circle = plt.Circle((0, 0), radius=1.0, fc='k', ec='k', alpha=0.2)
-	plt.gca().add_patch(circle)
+		# circle in the center of the plot to denote weak index  
+		circle = plt.Circle((0, 0), radius=1.0, fc='k', ec='k', alpha=0.2)
+		plt.gca().add_patch(circle)
 
 	# cycle over copies and plot the two princial components against each other  
 	for copy,RMM1,RMM2 in zip(copy_list,RMM1list,RMM2list):
@@ -103,23 +110,35 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',hostname='taurus',verbos
 		# choose the color based on the copy string
 		if "ensemble member" in copy:
 			lcolor = "#848484"
-			#lcolor = "#70B8FF"
-			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=1)
+			alph=0.8
+			time = E['daterange']
 		if copy == "ensemble mean":
-			#lcolor = "#636363"
 			lcolor = "#70B8FF"
-			#c = np.linspace(0, 10, RMM1.shape[0])
-			#cmap = plt.cm.jet
-			#plt.scatter(RMM1,RMM2,c=c,cmap=cmap,s=10)
-			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=2)
+			alph=1.0
+			time = E['daterange']
 		if copy == "operational":
 			lcolor = "#000000"
-			print('plotting operational RMM index in black')
-			plt.plot(RMM1,RMM2,'-',color=lcolor,linewidth=2)
+			alph=1.0
+			time=dates
+
+		# plot desired copy
+		if plot_type=='polar':
+			plt.plot(RMM1,RMM2,'-',color=lcolor,alpha=alph)
+		if plot_type=='RMM1':
+			plt.plot(time,RMM1,'-',color=lcolor,alpha=alph)
+		if plot_type=='RMM2':
+			plt.plot(time,RMM2,'-',color=lcolor,alpha=alph)
+		if plot_type=='linear':
+			plt.subplot(2,1,1)
+			plt.plot(time,RMM1,'-',color=lcolor,alpha=alph)
+			plt.subplot(2,1,2)
+			plt.plot(time,RMM2,'-',color=lcolor,alpha=alph)
 
 	# labels and stuff  
 	plt.xlabel('RMM1')
 	plt.ylabel('RMM2')
+
+	return copy,RMM1,RMM2
 
 def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_versus_what='lon',nilter_order=50,cbar=True,hostname="taurus",debug=False):
 
@@ -413,8 +432,17 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
 
 		# normalize the anoamlies of each variable field by its standard deviation 
-		# computed from the climatology 
-		S,lat,lon,lev = stds(Etemp,std_option=climatology_option,hostname=hostname,verbose=verbose)
+		if climatology_option=='NODA':
+			# if we want standard deviations given by the No-DA experiment, do that here 
+			# TODO: subroutine that loads correposnind No-DA experiment for a given experiment 
+			Etemp = E.copy()
+			Etemp['exp_name'] = 'W0910_NODA'
+			S,lat,lon,lev,DR = load_std(Etemp,'ensemble',hostname)
+		else:
+			S,lat,lon,lev,DR = load_std(E,climatology_option,hostname)
+
+		# the compute the "global" std for that variable (it's actually over the vertical and 
+		# horizontal domain given in E)
 		std = np.nanmean(S)
 
 		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
@@ -533,6 +561,100 @@ def load_climatology(E,climatology_option = 'NODA',hostname='taurus',verbose=Fal
 	if climatology_option_not_found:
 		print('Climatology option '+climatology_option+' has not been coded yet. Returning None for climatology.')
 		return None, None, None, None
+
+	return Xclim,lat,lon,lev,DRnew
+
+def load_std(E,std_mode = 'NODA',hostname='taurus',verbose=False):
+
+	"""
+	This subroutine returns the standard deviation of whatever variable is given in E['variable'], 
+	for each time given in E['daterange'].
+	There are several ways to compute the standard deviation, and that's determined by the input 
+	'std_mode':
+		std_mode='ensemble' simply computes the standard deviation of the DART ensemble  
+			at each time 
+		if you set std_mode to any other string, it looks up the multi-year experiment corresponding 
+			to that string using the subroutine 'std_runs' in the user 
+			module experiment_settings. 
+			In this case, the standard deviation  
+			is computed for each time over several years, rather than an ensemble 
+
+	"""
+	if std_mode == 'ensemble' :
+		# cycle over the dates in the experiment dictionary 
+		# and load the ensemble mean of the corresponding No-assimilation case 
+		# TODO: a subroutine that returns the corresponding NODA experiment for each case  
+		Xlist = []	
+		ECLIM = E.copy()
+		ECLIM['copystring'] = 'ensemble std'
+		Xclim,lat,lon,lev,DRnew = DSS.DART_diagn_to_array(ECLIM,hostname=hostname,debug=verbose)
+		if len(DRnew) != len(ECLIM['daterange']):
+			print('NOTE: not all requested data were found; returning a revised datarange')
+		if Xclim is None:
+			print('Cannot find data for experiment '+E['exp_name'])
+			return None, None, None, None
+
+	if std_mode == 'F_W4_L66' :
+
+		# find the corresponding dataset  
+		ff = es.std_runs(std_mode,hostname=hostname,debug=verbose)
+
+		# load the desired variables 
+		from netCDF4 import Dataset
+		f = Dataset(ff,'r')
+		lat = f.variables['lat'][:]
+		lon = f.variables['lon'][:]
+		lev = f.variables['lev'][:]
+		time = f.variables['time'][:]
+
+		variable = E['variable']
+		if E['variable'] == 'US':
+			variable = 'U'
+		if E['variable'] == 'VS':
+			variable = 'V'
+		if E['variable'] == 'OLR':
+			variable = 'FLUT'
+		VV = f.variables[variable][:]
+		f.close()
+
+		# choose the times corresponding to the daterange in E
+		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
+		nT = len(E['daterange'])
+		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
+
+		# if df<d0, we have to cycle back to the beginning of the year
+		if df < d0:
+			day_indices = list(range(d0-1,365))+list(range(0,df))
+		else:
+			day_indices = list(range(d0-1,df))
+
+		# also choose the lat, lon, and level ranges corresponding to those in E
+		if E['levrange'] is not None:
+			if E['levrange'][0] == E['levrange'][1]:
+				ll = E['levrange'][0]
+				idx = (np.abs(lev-ll)).argmin()
+				lev2 = lev[idx]
+				k1 = idx
+				k2 = idx
+			else:
+				k2 = (np.abs(lev-E['levrange'][1])).argmin()
+				k1 = (np.abs(lev-E['levrange'][0])).argmin()
+				lev2 = lev[k1:k2+1]
+
+		j2 = (np.abs(lat-E['latrange'][1])).argmin()
+		j1 = (np.abs(lat-E['latrange'][0])).argmin()
+		lat2 = lat[j1:j2+1]
+		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
+		i1 = (np.abs(lon-E['lonrange'][0])).argmin()
+		lon2 = lon[i1:i2+1]
+
+		if len(VV.shape) == 4:
+			Xclim = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
+		else:
+			Xclim = VV[day_indices,j1:j2+1,i1:i2+1]
+
+		# in this case, we don't need to change the daterange  
+		DRnew = E['daterange']
 
 	return Xclim,lat,lon,lev,DRnew
 
@@ -1026,101 +1148,6 @@ def read_RMM_true(date_limits,hostname='taurus'):
 	# return the RMM1 and RMM2 indices  
 	return dates, RMM1, RMM2
 
-
-def stds(E,std_option = 'NODA',hostname='taurus',verbose='False'):
-
-	"""
-	this subroutine loads a time series of standard deviation fields for a certain 
-	DART experiment.  
-	This can be used in the RMM index computation.  
-
-	Inputs allowed for std_option:  
-	'NODA': take the ensemble mean of the corresponding no-DA experiment as a 40-year climatology  
-	'F_W4_L66': daily climatology of a CESM+WACCM simulation with realistic forcings, 1951-2010
-	None: don't subtract out anything -- just return the regular fields in the same shape as other "anomalies"  
-	"""
-
-	std_option_not_found = True
-
-	if std_option == 'NODA' :
-		std_option_not_found = False
-		# cycle over the dates in the experiment dictionary 
-		# and load the ensemble mean of the corresponding No-assimilation case 
-		# TODO: a subroutine that returns the corresponding NODA experiment for each case  
-		Xlist = []	
-		ESTD = E.copy()
-		ESTD['exp_name'] = 'W0910_NODA'
-		ESTD['diagn'] = 'Prior'
-		ESTD['extras'] = 'ensemble std'
-		Xstd,lat,lon,lev = DSS.DART_diagn_to_array(ESTD,hostname=hostname,debug=verbose)
-		if Xstd is None:
-			print('Cannot find data for standard deviation option '+std_option+' and experiment '+E['exp_name'])
-			return None, None, None, None
-
-	if std_option == 'F_W4_L66' :
-		from netCDF4 import Dataset
-		std_option_not_found = False
-		# in this case, load a single daily climatology calculated from this CESM-WACCM simulation  
-		ff = '/data/c1/lneef/CESM/F_W4_L66/atm/climatology/F_W4_L66.cam.h1.1951-2010.daily_std.nc'
-		f = Dataset(ff,'r')
-		lat = f.variables['lat'][:]
-		lon = f.variables['lon'][:]
-		lev = f.variables['lev'][:]
-		time = f.variables['time'][:]
-
-		# load climatology of the desired model variable  
-		variable = E['variable']
-		if E['variable'] == 'US':
-			variable = 'U'
-		if E['variable'] == 'VS':
-			variable = 'V'
-		if E['variable'] == 'OLR':
-			variable = 'FLUT'
-		VV = f.variables[variable][:]
-		f.close()
-
-		# choose the daterange corresponding to the daterange in E
-		d0 = E['daterange'][0].timetuple().tm_yday	# day in the year where we start  
-		nT = len(E['daterange'])
-		df = E['daterange'][nT-1].timetuple().tm_yday	# day in the year where we start  
-
-		# if df<d0, we have to cycle back to the beginning of the year
-		if df < d0:
-			day_indices = list(range(d0,365))+list(range(0,df))
-		else:
-			day_indices = list(range(d0,df))
-
-		# also choose the lat, lon, and level ranges corresponding to those in E
-		if E['levrange'] is not None:
-			if E['levrange'][0] == E['levrange'][1]:
-				ll = E['levrange'][0]
-				idx = (np.abs(lev-ll)).argmin()
-				lev = lev[idx]
-				k1 = idx
-				k2 = idx
-			else:
-				k2 = (np.abs(lev-E['levrange'][1])).argmin()
-				k1 = (np.abs(lev-E['levrange'][0])).argmin()
-				lev = lev[k1:k2+1]
-
-		j2 = (np.abs(lat-E['latrange'][1])).argmin()
-		j1 = (np.abs(lat-E['latrange'][0])).argmin()
-		lat = lat[j1:j2+1]
-		i2 = (np.abs(lon-E['lonrange'][1])).argmin()
-		i1 = (np.abs(lon-E['lonrange'][0])).argmin()
-		lon = lon[i1:i2+1]
-
-		if len(VV.shape) == 4:
-			Xstd = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
-		else:
-			Xstd = VV[day_indices,j1:j2+1,i1:i2+1]
-		
-
-	if std_option_not_found:
-		print('Climatology option '+std_option+' has not been coded yet. Returning None for climatology.')
-		return None, None, None, None
-
-	return Xstd,lat,lon,lev
 
 def compute_RMM(E,climatology_option='NODA',hostname='taurus',verbose=False):
 
