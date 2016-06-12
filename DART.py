@@ -524,7 +524,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date,'diag',hostname=hostname,debug=debug)
-	print(filename)
 	if not os.path.exists(filename):
 		if debug:
 			print("+++cannot find files that look like  "+filename+' -- returning None')
@@ -546,7 +545,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			P0 = f.variables['P0'][:]
 			hybm = f.variables['hybm'][:]
 			hyam = f.variables['hyam'][:]
-			CopyMetaData = f.variables['CopyMetaData'][:]
+		CopyMetaData = f.variables['CopyMetaData'][:]
 
 		# load the requested dynamical variable  - these can have different names, so 
 		# first we have to look for the right one 
