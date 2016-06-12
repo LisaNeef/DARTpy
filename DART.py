@@ -596,8 +596,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 		#------finding which copies to retrieve  
 		if type(E['copystring']) is not list:
-			# default - list of copies is just whatever is given in copystring
-			copies = get_copy(E['copystring'])
+			copies = None
 
 			# if the diagnostic is the Truth, then the copy string can only be one thing
 			if (E['diagn'] == 'Truth'):
@@ -608,6 +607,9 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			# if requesting the entire ensemble, loop over ensemble members here 
 			if E['copystring'] is 'ensemble':
 				copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if 'ensemble member' in ''.join(cstring)]
+			# if none of the above apply, just choose whatever is in copystring 
+			if copies is None:
+				copies = [get_copy(f,E['copystring'],debug=debug)]
 		else:
 			# if E['copystring'] is a list, loop through it and find the copies to load 
 			for CS in E['copystring']:
