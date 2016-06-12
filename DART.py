@@ -524,6 +524,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# as input, and return as output 
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date,'diag',hostname=hostname,debug=debug)
+	print(filename)
 	if not os.path.exists(filename):
 		if debug:
 			print("+++cannot find files that look like  "+filename+' -- returning None')
@@ -606,7 +607,8 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 				copies = get_copy(f,'ensemble spread')
 			# if requesting the entire ensemble, loop over ensemble members here 
 			if E['copystring'] is 'ensemble':
-				copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if 'ensemble member' in ''.join(cstring)]
+				copies = [get_copy(f,cs.tostring().decode("utf-8") ) for cs in CopyMetaData if 'ensemble member' in cs.tostring().decode("utf-8")]
+
 			# if none of the above apply, just choose whatever is in copystring 
 			if copies is None:
 				copies = [get_copy(f,E['copystring'],debug=debug)]
@@ -751,7 +753,7 @@ def get_copy(f,copystring,debug=False):
 	CMD = f.variables['CopyMetaData'][:]
 	CopyMetaData = []
 	for ii in range(0,len(CMD)):
-		temp = CMD[ii,].tostring()
+		temp = CMD[ii,].tostring().decode("utf-8")
 		CopyMetaData.append(temp.rstrip())
 	if debug:
 		print(CopyMetaData.index)
