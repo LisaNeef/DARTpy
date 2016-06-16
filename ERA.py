@@ -326,24 +326,31 @@ def P_from_hybrid_levels_era(E,date,hostname='taurus',debug=False):
 	"""
 
 	# read in the hybrid level parameters and ln of surface pressure  
-	E['levtype']='model_levels'
 	# kludge: obviously all ERA-Interim data are "posterior", but it's possible to calculate priors by subtracting 
 	# out the ERA-Interim DA increments. Those come in pretty shitty netcdf files on model levels without the hybrid 
 	# paremeters given, so any prior files you might produce will be wonky -- so just to be sure, load "posterior" 
 	# files here instead
-	E['diagn']='posterior'
-	varlist = ['hyam','hybm','LNSP','T']
+	varlist= ['LNSP','T']
+	varlist_posterior = ['hyam','hybm']
 	H = dict()
 	import re
 	resol = float(re.sub('\ERA', '',E['exp_name']))
+	# variables loaded from whatever file is requested 
 	for vname in varlist:
 		Ehyb = E.copy()
 		Ehyb['variable'] = vname
+		Ehyb['levtype']='model_levels'
 		field,lat,lon,lev,time2 = load_ERA_file(Ehyb,date,resol=resol,hostname=hostname,verbose=debug)
 		if vname == 'LNSP':
 			H['lev'] = lev
 			H['lat'] = lat
 			H['lon'] = lon        
+		H[vname]=field
+	for vname in varlist_posterior:
+		Epo = Ehyb.copy()
+		Epo['diagn']='posterior'
+		Epo['variable']=vname
+		field,lat,lon,lev,time2 = load_ERA_file(Epo,date,resol=resol,hostname=hostname,verbose=debug)
 		H[vname]=field
 
 	# loop over all grid points and compute the pressure there: 
