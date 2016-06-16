@@ -397,7 +397,7 @@ def get_expt_CopyMetaData_state_space(E):
 		return None
 
 
-def exp_paths_era(datetime_in,hostname='taurus',resolution=1.5,diagnostic=None,variable='U',level_type='pressure_levels'):
+def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,variable='U',level_type='pressure_levels'):
 
 	"""
 	Paths to ERA-Interm and ERA-40 data  
