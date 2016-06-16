@@ -1990,35 +1990,33 @@ def Nsq(E,date,hostname='taurus',debug=False):
 
 	# if the data are on hybrid levels, check if pressure data are available somewhere 
 	# otherwise, reconstruct the pressure field at each point from hybrid model variables 
-	if E['levtype']=='hybrid':
+	if (E['levtype']=='hybrid') or (E['levtype']=='model_levels'):
 		H = dict()
 		EP = E.copy()
 		EP['variable']='P'
-		lev,lat,lon,P,P0,hybm,hyam = dart.load_DART_diagnostic_file(EP,date,debug=debug)
-		# TODO: if P is not in a DART diagnostic file, it could also be in a model history file, 
-		# so need to add a line of code to try looking for that as well 
+		# for ERA data, use one of the subroutines in the ERA module to load P:
+		if 'ERA' in E['exp_name']:
+			import ERA as era
+			import re
+			resol = float(re.sub('\ERA', '',E['exp_name']))
+			P,lat,lon,lev,time2 = era.load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=debug)
+		else:
+			# for DART runs, look for P in DART diagnostic files: 
+			lev,lat,lon,P,P0,hybm,hyam = dart.load_DART_diagnostic_file(EP,date,debug=debug)
+			# TODO: if P is not in a DART diagnostic file, it could also be in a model history file, 
+			# so need to add a line of code to try looking for that as well 
 		if P is None:
 			if debug:
 				print('Pressure not available for requested date - recreating from hybrid levels (this takes a while....)')
-			varlist = ['hyam','hybm','P0','PS','T','Z3']
-			for vname in varlist:
-				Ehyb = E.copy()
-				Ehyb['variable'] = vname
-				field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Ehyb,date,verbose=debug)
-				if vname == 'PS':
-					H['lev'] = lev
-					H['lat'] = lat
-					H['lon'] = lon        
-				H[vname]=field
+			# special subroutine if we are dealing with ERA data, where usually log(Ps) is available insted of PS  
+			if 'ERA' in E['exp_name']:
+				P,lat,lon,lev = era.P_from_hybrid_levels_era(E,date,hostname=hostname,debug=debug)
+			else:
+			# otherwise, construct pressure the way it's done in CAM/WACCM
+			# TODO: make this depend on the model input, so that we can more easily 
+			# add settings for other models later  
+			P,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 
-			nlev = len(lev)
-			nlat = len(lat)
-			nlon = len(lon)
-			P = np.zeros(shape = (nlev,nlat,nlon))
-			for k in range(nlev):
-				for i in range(nlon):
-					for j in range(nlat):
-						P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 		else:
 			# if 3d Pressure was available, package it, along with the other needed variables,
 			# into a single dictionary 
@@ -2207,17 +2205,22 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			Vmatrix = S.reshape(AA.shape)
 		return Vmatrix,lat,lon,lev,new_daterange
 
-	#----------------ERA data------------------------------
+	#----------------ERA data -- deprecated------------------------------
+	# can use an old routine for loading ERA data, but for consistency 
+	# can also just loop over the dates as below 
 	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
 	# in this case, we also don't have to loop over dates.
-	era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3']
-	if (E['exp_name']=='ERA') and (E['variable'] in era_variables_list):
-		import ERA as era
-		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
+	#if (E['exp_name']=='ERA') and (E['variable'] in era_variables_list):
+#		import ERA as era
+#		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
 		# this SR returns an array with time in the first dimension. We want it in the last
 		# dimension, so transpose
-		Vmatrix = VV.transpose()
-		return Vmatrix,lat,lon,lev,new_daterange
+#		Vmatrix = VV.transpose()
+#		return Vmatrix,lat,lon,lev,new_daterange
+	# ERA buoyancy frequency can be calculated with the Nsq function 
+#	if (E['exp_name']=='ERA') and (E['variable'] == 'Nsq'):
+#		Vmatrix,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+#		return Vmatrix,lat,lon,lev,E['daterange']
 
 	#----------------OTHER DATA------------------------------
 
@@ -2246,9 +2249,14 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	for date in DR:
 
 		# 1.5-degree ERA data are loaded by their own routine  
-		if E['exp_name'] == 'ERA1.5' and (E['variable'] in era_variables_list):
+		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3']
+		if 'ERA' in E['exp_name']:
 			import ERA as era
-			V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
+			if (E['variable'] in era_variables_list):
+				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
+			if ('ERA' in E['exp_name']) and (E['variable'] == 'Nsq'):
+			# ERA buoyancy frequency can be calculated with the Nsq function 
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
 
 		# for regular diagnostic, the file we retrieve depends on the variable in question  
 		else:
