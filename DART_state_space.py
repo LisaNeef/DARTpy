@@ -2029,6 +2029,7 @@ def Nsq(E,date,hostname='taurus',debug=False):
 		varlist = ['T','Z3']
 		H = dict()
 		if ('ERA' in E['exp_name']):
+			import ERA as era
 			for vname in varlist:
 				Etemp = E.copy()
 				Etemp['variable']=vname
@@ -2039,11 +2040,6 @@ def Nsq(E,date,hostname='taurus',debug=False):
 			nlon = len(lon)
 			P1 = np.repeat(lev[:,np.newaxis],nlat,axis=1)
 			P = np.repeat(P1[:,:,np.newaxis],nlon,axis=2)
-
-			# create a 2d array for the reference pressure
-			#pref = 1030.0  
-			#preflat = np.repeat(pref,nlat)
-			#H['P0'] = np.repeat(preflat[:,np.newaxis],nlon,axis=1)
 
 	# choose reference pressure as 1000 hPa, with units based on the max of the P array 
 	if np.max(P) > 2000.0:
