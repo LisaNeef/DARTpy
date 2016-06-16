@@ -397,7 +397,7 @@ def get_expt_CopyMetaData_state_space(E):
 		return None
 
 
-def exp_paths_era(datetime_in,hostname='taurus',resolution=1.5,diagnostic=None,variable='U'):
+def exp_paths_era(datetime_in,hostname='taurus',resolution=1.5,diagnostic=None,variable='U',level_type='pressure_levels'):
 
 	"""
 	Paths to ERA-Interm and ERA-40 data  
@@ -424,15 +424,9 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=1.5,diagnostic=None,v
 		mid = str(resolution)+'deg/'
 		# the way the filenames start depends on the resolution
 		if resolution == 2.5:
-			# this loads ERA data degraded to the ERA-40 grid  
-			if diagnostic is not None:
-				if diagnostic.lower() == 'increment':
-					fstub = 'ERA_TUV_increments_'+y+'-'+m+'-'+d+'.nc'
-				else:
-					fstub = 'ERA_u_v_z_t_msl_daily'+y+'_'+m+'_'+d+'.nc'
-			else:
-				fstub = 'ERA_u_v_z_t_msl_daily'+y+'_'+m+'_'+d+'.nc'
-		if resolution == 1.5:
+			variable_str='TUVlnsp'
+			fstub='ERA_'+variable_str+'_'+diagnostic+'_'+y+'-'+m+'-'+d+'.nc'
+		if resolution == 0.75:
 			# the "pure" ERA-Interim files are separated by variable
 			varname=variable
 			if (variable=='GPH') or (variable=='geopotential') or (variable=='Z') or  (variable=='Z3'):
@@ -445,7 +439,9 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=1.5,diagnostic=None,v
 			# different files loaded for increments - these are actually 2.5 degree:
 			if diagnostic.lower() == 'increment':
 				fstub = '../2.5deg/ERA_TUV_increments_'+y+'-'+m+'-'+d+'.nc'
-		ff = stub+mid+fstub
+	
+		# finally here is the full path
+		ff = stub+mid+level_type+fstub
 	
 	return ff,truth_dir_list
 
