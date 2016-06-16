@@ -1993,16 +1993,20 @@ def Nsq(E,date,hostname='taurus',debug=False):
 	if (E['levtype']=='hybrid') or (E['levtype']=='model_levels'):
 		H = dict()
 		EP = E.copy()
+		ET = E.copy()
 		EP['variable']='P'
-		# for ERA data, use one of the subroutines in the ERA module to load P:
+		ET['variable']='T'
+		# for ERA data, use one of the subroutines in the ERA module to load pressure and temp:
 		if 'ERA' in E['exp_name']:
 			import ERA as era
 			import re
 			resol = float(re.sub('\ERA', '',E['exp_name']))
-			P,lat,lon,lev,time2 = era.load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=debug)
+			P,lat,lon,lev,time2 = era.load_ERA_file(EP,date,resol=resol,hostname=hostname,verbose=debug)
+			T,lat,lon,lev,time2 = era.load_ERA_file(ET,date,resol=resol,hostname=hostname,verbose=debug)
 		else:
-			# for DART runs, look for P in DART diagnostic files: 
+			# for DART runs, look for P and T in DART diagnostic files: 
 			lev,lat,lon,P,P0,hybm,hyam = dart.load_DART_diagnostic_file(EP,date,debug=debug)
+			lev,lat,lon,T,P0,hybm,hyam = dart.load_DART_diagnostic_file(ET,date,debug=debug)
 			# TODO: if P is not in a DART diagnostic file, it could also be in a model history file, 
 			# so need to add a line of code to try looking for that as well 
 		if P is None:
@@ -2012,41 +2016,14 @@ def Nsq(E,date,hostname='taurus',debug=False):
 			if 'ERA' in E['exp_name']:
 				P,lat,lon,lev = era.P_from_hybrid_levels_era(E,date,hostname=hostname,debug=debug)
 			else:
-			# otherwise, construct pressure the way it's done in CAM/WACCM
-			# TODO: make this depend on the model input, so that we can more easily 
-			# add settings for other models later  
-			P,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
+				# otherwise, construct pressure the way it's done in CAM/WACCM
+				# TODO: make this depend on the model input, so that we can more easily 
+				# add settings for other models later  
+				P,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 
-		else:
-			# if 3d Pressure was available, package it, along with the other needed variables,
-			# into a single dictionary 
-			varlist = ['P0','T','Z3']
-			for vname in varlist:
-				Etemp = E.copy()
-				Etemp['variable'] = vname
-				field,lat,lon,lev = compute_DART_diagn_from_model_h_files(Etemp,date,verbose=debug)
-				if vname == 'T':
-					H['lev'] = lev
-					H['lat'] = lat
-					H['lon'] = lon        
-				H[vname]=field
-			# Kludge: 
-			# currently P is retrieved from DART diagnostic files and the others from model history
-			# files, which means that they have a different shape  
-			# --> reshape P so that it fits with its friends  
-			# TODO later: make these codes return arrays for the same shape 
-			P2 = H['T']*0	
-			nlev = H['T'].shape[1]
-			nlat = H['T'].shape[2]
-			nlon = H['T'].shape[3]
-			for ilev in range(nlev):
-				for ilat in range(nlat):
-					for ilon in range(nlon):
-						P2[0,ilev,ilat,ilon] = P[ilat,ilon,ilev]
-			P = P2
 
-	# if the data are on pressure levels, simply retrieve the pressure grid and turn it into a 3d field  
-	# TODO: add code for loading DART/WACCM output on constant pressure levels. Right now this 
+# if the data are on pressure levels, simply retrieve the pressure grid and turn it into a 3d field  
+# TODO: add code for loading DART/WACCM output on constant pressure levels. Right now this 
 	# only works for ERA data. 
 	if E['levtype']=='pressure':
 		varlist = ['T','Z3']
@@ -2064,18 +2041,27 @@ def Nsq(E,date,hostname='taurus',debug=False):
 			P = np.repeat(P1[:,:,np.newaxis],nlon,axis=2)
 
 			# create a 2d array for the reference pressure
-			pref = 1030.0  
-			preflat = np.repeat(pref,nlat)
-			H['P0'] = np.repeat(preflat[:,np.newaxis],nlon,axis=1)
+			#pref = 1030.0  
+			#preflat = np.repeat(pref,nlat)
+			#H['P0'] = np.repeat(preflat[:,np.newaxis],nlon,axis=1)
+
+	# choose reference pressure as 1000 hPa, with units based on the max of the P array 
+	if np.max(P) > 2000.0:
+		P0 = 100000.0			# reference pressure 
+	else:
+		P0 = 1000.0			# reference pressure 
 
 	# compute potential temperature  
 	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
 	g = 9.80616                     # Acceleration due to gravity       m/s^2
 	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
-	theta = H['T']*(H['P0']/P)**(Rd/cp)
+	theta = T*(P0/P)**(Rd/cp)
+
+	# turn the 3d pressure array into a geometric height array 
+	z = 7000.0*np.log(P0/P)
 
 	# compute the vertical gradient in potential temperature 
-	dZ = np.gradient(np.squeeze(H['Z3']))	# 3D gradient of geopotential height (with respect to model level) 
+	dZ = np.gradient(np.squeeze(z))	# 3D gradient of height (with respect to model level) 
 	dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
 	dthetadZ = dthetadZ_3D[0] # this is the vertical temperature gradient with respect to pressure 
 
