@@ -35,7 +35,7 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 	"""
 
 	# find the file path corresponding to this experiment  
-	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol,diagnostic=E['diagn'],variable=E['variable'])
+	ff,dum = es.exp_paths_era(datetime_in,hostname=hostname,resolution=resol,diagnostic=E['diagn'],variable=E['variable'],level_type=E['levtype'])
 
 	variable_found = False
 
@@ -190,6 +190,13 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		if len(VV.shape)==4:
 			# 3D variables have shape time x lev x lat x lon
 			Vout = VV[t1:t2+1,k1:k2+1,j1:j2+1,i1:i2+1]
+		if len(VV.shape)==1:
+			# some variables are just vertical
+			Vout = VV[k1:k2+1]
+		if 'Vout' not in locals():
+			print('unable to deal with the variable shape for variable '+E['variable']+':')
+			print(VV.shape)
+			return
 
 
 	# for file not found 
@@ -309,3 +316,45 @@ def construct_era_pressures_from_hybrid(E,datetime_in,resol=2.5,hostname='taurus
 
 
 	
+def P_from_hybrid_levels_era(E,date,hostname='taurus',debug=False):
+
+	"""
+	for a given ERA data subset (given in a DART experiment dictionary, E)
+	on a certain date and time,
+	recreate the pressure field given the hybrid model level parameters 
+	"""
+
+	# read in the hybrid level parameters and ln of surface pressure  
+	E['levtype']='model_levels'
+	# kludge: obviously all ERA-Interim data are "posterior", but it's possible to calculate priors by subtracting 
+	# out the ERA-Interim DA increments. Those come in pretty shitty netcdf files on model levels without the hybrid 
+	# paremeters given, so any prior files you might produce will be wonky -- so just to be sure, load "posterior" 
+	# files here instead
+	E['diagn']='posterior'
+	varlist = ['hyam','hybm','LNSP','T']
+	H = dict()
+	import re
+	resol = float(re.sub('\ERA', '',E['exp_name']))
+	for vname in varlist:
+		Ehyb = E.copy()
+		Ehyb['variable'] = vname
+		field,lat,lon,lev,time2 = load_ERA_file(Ehyb,date,resol=resol,hostname=hostname,verbose=debug)
+		if vname == 'LNSP':
+			H['lev'] = lev
+			H['lat'] = lat
+			H['lon'] = lon        
+		H[vname]=field
+
+	# loop over all grid points and compute the pressure there: 
+	# note that here we squeeze out the time dimension in T, which should be 1. 
+	# further we assume that levels are the first dimension, and lat/lon the other two. 
+	vshape = np.squeeze(H['T']).shape
+	P = np.zeros(shape = vshape)
+
+	for i in range(vshape[1]):
+		for j in range(vshape[2]):
+			ps = np.exp(np.squeeze(H['LNSP'])[i,j])
+			# hyam+hybm*PS
+			P[:,i,j] = H['hyam'] + H['hybm']*ps
+
+	return P,lat,lon,lev
