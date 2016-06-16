@@ -87,37 +87,38 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		# first set a general factor that we can scale the variable array by if needed
 		prefac = 1.0
 
-		# load the requested dynamical variable  - these can have different names, so 
-		# first we have to look for the right one 
-		if (E['variable']=='T') or (E['variable']=='TS'):
-			possible_varnames = ['T','t','var130']
-		if (E['variable']=='U') or (E['variable']=='US'):
-			possible_varnames = ['U','u','var131']
-		if (E['variable']=='V') or (E['variable']=='VS'):
-			possible_varnames = ['V','v','var132']
-		if (E['variable']=='Z') or (E['variable']=='geopotential'):
-			possible_varnames = ['Z','z','var129']
-		if (E['variable']=='GPH') or (E['variable']=='Z3'):
-			possible_varnames = ['Z','z','var129']
-			prefac = 1/9.8    # convert geopotential to geopotential height
-		if (E['variable']=='msl') or (E['variable']=='MSLP'):
-			possible_varnames = ['msl','var151']
+		# if the requested variable is available, load it 
+		if E['variable'] in f.variables:
+			V = f.variables[E['variable']]
+		else:
+			# if not available, try other names 
+			if (E['variable']=='T') or (E['variable']=='TS'):
+				possible_varnames = ['T','t','var130']
+			if (E['variable']=='U') or (E['variable']=='US'):
+				possible_varnames = ['U','u','var131']
+			if (E['variable']=='V') or (E['variable']=='VS'):
+				possible_varnames = ['V','v','var132']
+			if (E['variable']=='Z') or (E['variable']=='geopotential'):
+				possible_varnames = ['Z','z','var129']
+			if (E['variable']=='GPH') or (E['variable']=='Z3'):
+				possible_varnames = ['Z','z','var129']
+				prefac = 1/9.8    # convert geopotential to geopotential height
+			if (E['variable']=='msl') or (E['variable']=='MSLP'):
+				possible_varnames = ['msl','var151']
 
-		if 'possible_varnames' not in locals():
-			possible_varnames=[E['variable']]
+			if 'possible_varnames' in locals():
+				# loop over the list of possible variable names and load the first one we find 
+				for varname in possible_varnames:
+					if varname in f.variables:
+						varname_load = varname
+				if 'varname_load' in locals():
+					V = f.variables[varname_load]
+				else:
+					return None,None,None,None,None
+			else:
+				return None,None,None,None,None
 
-		# loop over the list of possible variable names and load the first one we find 
-		for varname in possible_varnames:
-			if varname in f.variables:
-				varname_load = varname
-				variable_found = True
-		if (variable_found is False):
-			# if  the variable can't be found, simply try to load what was asked for  
-			varname_load=E['variable']
-
-		# next load the variable, and replace its bad 
-		# values with NaNs
-		V = f.variables[varname_load]
+		# replace values with NaNs
 		VV = prefac*V[:]
 		if hasattr(V,'_FillValue'):
 				VV[VV==V._FillValue]=np.nan
