@@ -261,7 +261,7 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 		if E['exp_name']=='ERA':
 			resol=2.5
 		else:
-			resol=1.5
+			resol=0.75
 		Vtemp,lat,lon,lev,time_out = load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=verbose)
 		VV.append(Vtemp)
 		tt.append(time_out)
@@ -280,41 +280,6 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 	Vout = np.squeeze(V)
 
 	return Vout,time,lat,lon,lev
-
-def construct_era_pressures_from_hybrid(E,datetime_in,resol=2.5,hostname='taurus',verbose=False):
-
-	"""
-	Given a certain date, construct the 3d grid of pressure from the hybrid model variables and the 
-	ERA surface pressure field 
-
-	This is based on code by Robin Pilch writtin in R. 
-	It requires presence of a file called 
-
-	a_b_file="/data/c1/rpilch/ERAint/ERAint_L60/ERAint_L60_hybrid_constants"
-	a_b_file=scan(a_b_file,sep="\n",what='raw',quiet=TRUE)a_b=array(NA,dim=c(61,3)) ## Nlev,a,b
-	for (i in 1:61){
-	a_b[i,1]=as.numeric(substr(a_b_file[i],4,5))
-	a_b[i,2]=as.numeric(substr(a_b_file[i],11,22))
-	a_b[i,3]=as.numeric(substr(a_b_file[i],27,36))
-	}
-	##############################################################
-	12:33
-	## ...
-	library(ncdf)
-	## ...
-	###### ---> for a given lon-lat-time:
-	surface_pres=get.var.ncdf(nc_surface,varid="lnsp",start=c(lon_slot,lat_slot,time_slot_surface),count=c(1,1,1))
-	surface_pres=(exp(1)^surface_pres)/100 ## to hPa### pressure at 61 interfaces
-	p_interfaces=array(NA,dim=c(61))for (i in 1:61){
-	p_interfaces[i]=(a_b[i,2]+a_b[i,3]*surface_pres*100)/100 ## output in hPa
-	}p_full_lev=array(NA,dim=c(60))
-	### pressure at full levels
-	for (i in 1:60){
-	N=61-i
-	p_full_lev[N]=(p_interfaces[N+1]+p_interfaces[N])/2
-	}
-	"""
-
 
 	
 def P_from_hybrid_levels_era(E,date,hostname='taurus',debug=False):

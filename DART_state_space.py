@@ -2235,7 +2235,9 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		if 'ERA' in E['exp_name']:
 			import ERA as era
 			if (E['variable'] in era_variables_list):
-				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=1.5,hostname=hostname,verbose=debug)
+				import re
+				resol = float(re.sub('\ERA', '',E['exp_name']))
+				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=debug)
 			if ('ERA' in E['exp_name']) and (E['variable'] == 'Nsq'):
 			# ERA buoyancy frequency can be calculated with the Nsq function 
 				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
