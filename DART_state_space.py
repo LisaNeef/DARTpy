@@ -2090,6 +2090,8 @@ def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
 	"""
 	given a DART experiment dictionary on a certain date and time,
 	recreate the pressure field given the hybrid model level parameters 
+	**note:** this code was crafted for WACCM/CAM data, and returns a pressure array 
+	that fits te latxlonxlev structure of WACCM/CAM history files. 
 	"""
 
 	# check whether the requested experiment uses a model with hybrid levels. 
@@ -2119,11 +2121,11 @@ def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
 	nlev = len(lev)
 	nlat = len(lat)
 	nlon = len(lon)
-	P = np.zeros(shape = (nlev,nlat,nlon))
+	P = np.zeros(shape = (nlat,nlon,nlev))
 	for k in range(nlev):
 		for i in range(nlon):
 			for j in range(nlat):
-				P[k,j,i] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
+				P[j,i,k] = H['hyam'][k]*H['P0'] + H['hybm'][k]* np.squeeze(H['PS'])[j,i]
 
 	return P,lat,lon,lev
 
