@@ -47,7 +47,7 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		
 		# a list of 2d variables, in which case we don't need to load level  
 		# TODO: add other 2d vars to this list 
-		variables_2d = ['PS','ptrop']
+		variables_2d = ['PS','ptrop','LNSP']
 
 		# load the grid variables 
 		# check whether lat/lon/lev are named as such, or whether the full 
@@ -76,7 +76,7 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		# really follow topography, so there could be use differences in the approximate
 		# pressure and the actual pressure at that point  
 		if lev0 is not None:
-			if lev0.long_name == 'model_level_number':
+			if (lev0.long_name == 'model_level_number') or (lev0.standard_name == "hybrid_sigma_pressure"):
 				levlist = [0.1, 0.292, 0.51, 0.796, 1.151, 1.575, 2.077, 2.666, 3.362, 4.193, 5.201, 6.444, 7.984, 9.892, 12.257, 15.186, 18.815, 23.311, 28.882, 35.784, 44.335, 54.624, 66.623, 80.397, 95.978, 113.421, 132.758, 153.995, 177.118, 202.086, 228.839, 257.356, 287.638, 319.631, 353.226, 388.27, 424.571,461.9,500, 538.591, 577.375, 616.042, 654.273, 691.752, 728.163, 763.205, 796.588, 828.047, 857.342, 884.266, 908.651, 930.37, 949.349, 965.567, 979.063, 989.944, 998.385, 1004.644, 1009.056, 1012.049]
 				lev = np.asarray(levlist)
 			else:
@@ -148,7 +148,6 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 					k1 = idx
 					k2 = idx
 				else:
-					# level order is reversed in 2.5 and 1.5 degree data 
 					# if levels are sorted from surface to TOA
 					if lev[0] < lev[len(lev)-1]:
 						k1 = (np.abs(lev-levrange[1])).argmin()
@@ -161,6 +160,13 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 						k1 = (np.abs(lev-levrange[0]*levrange_to_Pa)).argmin()
 						# put the output level in hPa
 						lev2 = lev[k1:k2+1]*(1/levrange_to_Pa)
+	
+		# some variables are 2d but still have a length-1 vertical dimension - 
+		# test for that here 
+		if (E['variable'] in variables_2d) and (len(VV.shape)==4):
+			k1=0
+			k2=0
+			lev2 = None
 
 		latrange=E['latrange']
 		j1 = (np.abs(lat-latrange[1])).argmin()
@@ -184,13 +190,13 @@ def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
 		t2 = abs(DF).argmin()
 		time2 = time_dates[t1:t2+1]
 
+		if len(VV.shape)==4:
+			# 3D variables have shape time x lev x lat x lon
+			Vout = VV[t1:t2+1,k1:k2+1,j1:j2+1,i1:i2+1]
 		if len(VV.shape)==3:
 			# 2D variables have shape time x lat x lon
 			Vout = VV[t1:t2+1,j1:j2+1,i1:i2+1]
 			lev2 = None
-		if len(VV.shape)==4:
-			# 3D variables have shape time x lev x lat x lon
-			Vout = VV[t1:t2+1,k1:k2+1,j1:j2+1,i1:i2+1]
 		if len(VV.shape)==1:
 			# some variables are just vertical
 			Vout = VV[k1:k2+1]
@@ -306,7 +312,7 @@ def P_from_hybrid_levels_era(E,date,hostname='taurus',debug=False):
 		Ehyb['variable'] = vname
 		Ehyb['levtype']='model_levels'
 		field,lat,lon,lev,time2 = load_ERA_file(Ehyb,date,resol=resol,hostname=hostname,verbose=debug)
-		if vname == 'LNSP':
+		if vname == 'T':
 			H['lev'] = lev
 			H['lat'] = lat
 			H['lon'] = lon        
@@ -324,9 +330,14 @@ def P_from_hybrid_levels_era(E,date,hostname='taurus',debug=False):
 	vshape = np.squeeze(H['T']).shape
 	P = np.zeros(shape = vshape)
 
+	# kludge: ERA sirface pressure arrays have a length-1 dimension for vertical level 
+	# --> squeeze it out 
+	LNSP = np.squeeze(H['LNSP'])
+
+
 	for i in range(vshape[1]):
 		for j in range(vshape[2]):
-			ps = np.exp(np.squeeze(H['LNSP'])[i,j])
+			ps = np.exp(LNSP[i,j])
 			# hyam+hybm*PS
 			P[:,i,j] = H['hyam'] + H['hybm']*ps
 

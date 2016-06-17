@@ -424,7 +424,11 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 		mid = str(resolution)+'deg/'
 		# the way the filenames start depends on the resolution
 		if resolution == 2.5:
-			variable_str=variable
+			model_level_parameters_list = ['hyam','hybm']
+			if variable in model_level_parameters_list:
+				variable_str='T'
+			else:
+				variable_str=variable
 			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
 		if resolution == 0.75:
 			# the "pure" ERA-Interim files are separated by variable
