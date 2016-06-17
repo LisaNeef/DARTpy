@@ -1681,6 +1681,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	Xout = None
 	lat = None
 	lon = None
+	lev = None
 
 	# it's easy if the copy we want is a single ensemble member  
 	if 'ensemble member' in CS:
@@ -1710,7 +1711,24 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 			if verbose:
 				print("filling in None for experiment "+E['exp_name']+', instance '+str(instance)+', and date '+datestr)
 
-	return Xout,lat,lon,lev
+	# to return the entire ensemble, retrieve number of ensemble members and loop  
+	if (CS == 'ensemble'):
+		N = es.get_ensemble_size_per_run(E['exp_name'])
+		Xlist=[]
+		for iens in range(N-1):
+			instance = iens+1
+			Xs,lat,lon,lev = waccm.load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname=hostname,verbose=verbose)
+			Xlist.append(Xs)
+		# turn the list of arrays into a new array 
+		Xout = np.concatenate([X[..., np.newaxis] for X in Xlist], axis=len(Xs.shape))
+
+	# print an error message if none of these worked 
+	if Xout is None:
+		print('compute_DART_diagn_from_model_h_files does not know what to do with copystring '+copystring)
+		print('Returning None')
+		return None,None,None,None
+	else:
+		return Xout,lat,lon,lev
 
 def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,scaling_factor=1.0,debug=False):
 
@@ -2094,6 +2112,9 @@ def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
 			H['lat'] = lat
 			H['lon'] = lon        
 		H[vname]=field
+
+	if lev==None:
+		print(Ehyb)
 
 	nlev = len(lev)
 	nlat = len(lat)
