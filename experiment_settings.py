@@ -424,7 +424,7 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 		mid = str(resolution)+'deg/'
 		# the way the filenames start depends on the resolution
 		if resolution == 2.5:
-			variable_str='TUVlnsp'
+			variable_str=variable
 			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
 		if resolution == 0.75:
 			# the "pure" ERA-Interim files are separated by variable
@@ -439,7 +439,14 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 			# different files loaded for increments - these are actually 2.5 degree:
 			if diagnostic.lower() == 'increment':
 				fstub = '../2.5deg/ERA_TUV_increments_'+y+'-'+m+'-'+d+'.nc'
-	
+
+		if 'fstub' not in locals():
+			print('Cannot find path to requested ERA data:')
+			print('resolution: '+str(resolution))
+			print('variable: '+variable)
+			print('diagnostic: '+diagnostic)
+			print('level type: '+level_type)
+
 		# finally here is the full path
 		ff = stub+mid+level_type+'/'+fstub
 	
