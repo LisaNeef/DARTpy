@@ -2115,7 +2115,7 @@ def P_from_hybrid_levels(E,date,hostname='taurus',debug=False):
 			H['lon'] = lon        
 		H[vname]=field
 
-	if lev==None:
+	if lev is None:
 		print(Ehyb)
 
 	nlev = len(lev)
@@ -2320,15 +2320,15 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# but only if it wasn't previously found in DART output form 
 				if E['variable'] == 'Nsq':
 					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-					return
 
 				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
 				# because that's what's in the WACCM output 
 				if E['variable'] is 'US':
 					E['variable'] = 'U'
+					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
-				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
@@ -2374,12 +2374,6 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	# load the timeseries of data from either reanalysis (ERA-Interim) or DART  
-	# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
-	#if E['exp_name'] == 'ERA':
-	#	M0,t,lat,lon,lev = era.retrieve_era_averaged(E,average_levels=False,hostname=hostname,verbose=debug)
-	#	Vmatrix = np.transpose(M0)	
-	#else:
 	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# average over the last dimension, which is always time (by how we formed this array) 
