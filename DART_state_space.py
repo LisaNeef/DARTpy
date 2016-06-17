@@ -2043,7 +2043,7 @@ def Nsq(E,date,hostname='taurus',debug=False):
 # if the data are on pressure levels, simply retrieve the pressure grid and turn it into a 3d field  
 # TODO: add code for loading DART/WACCM output on constant pressure levels. Right now this 
 	# only works for ERA data. 
-	if E['levtype']=='pressure':
+	if E['levtype']=='pressure_levels':
 		varlist = ['T','Z3']
 		H = dict()
 		if ('ERA' in E['exp_name']):
@@ -2051,13 +2051,16 @@ def Nsq(E,date,hostname='taurus',debug=False):
 			for vname in varlist:
 				Etemp = E.copy()
 				Etemp['variable']=vname
-				field,lat,lon,lev,time_out = era.load_ERA_file(Etemp,date,hostname=hostname,verbose=debug)
+				import re
+				resol = float(re.sub('\ERA', '',E['exp_name']))
+				field,lat,lon,lev,time_out = era.load_ERA_file(Etemp,date,hostname=hostname,verbose=debug,resol=resol)
 				H[vname]=np.squeeze(field)
 			# 3D pressure array from 1D array
 			nlat = len(lat)
 			nlon = len(lon)
 			P1 = np.repeat(lev[:,np.newaxis],nlat,axis=1)
 			P = np.repeat(P1[:,:,np.newaxis],nlon,axis=2)
+			T=H['T']
 
 	# choose reference pressure as 1000 hPa, with units based on the max of the P array 
 	if np.max(P) > 2000.0:

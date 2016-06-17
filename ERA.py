@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 import experiment_settings as es
 
 #-------reading in merged ERA40/Interim files given a DART experiment dictionary----------------------
-def load_ERA_file(E,datetime_in,resol=1.5,hostname='taurus',verbose=False):
+def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 
 	"""
 	This subroutine loads a file from our merged ERA-40/Interim data 
