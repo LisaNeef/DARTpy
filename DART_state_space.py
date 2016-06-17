@@ -2230,7 +2230,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	Vshape = None
 	for date in DR:
 
-		# 1.5-degree ERA data are loaded by their own routine  
+		# most ERA data are loaded by their own routine  
 		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3']
 		if 'ERA' in E['exp_name']:
 			import ERA as era

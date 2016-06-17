@@ -388,13 +388,13 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	EOF = [EVEC.EV1, EVEC.EV2]
 
 	# read in the normalization factors  
-	#NORM = pd.read_csv(ff,skiprows=442,sep='  ',engine='python')
-	#NORM.columns = ['normalization_factors']  
-	#normfac = NORM.normalization_factors
-	#NF_FLUT = normfac[0:144]
-	#NF_U850 = normfac[144:288]
-	#NF_U200 = normfac[288:432]
-	#NF_list = [NF_FLUT,NF_U850,NF_U200]
+	NORM = pd.read_csv(ff,skiprows=442,sep='  ',engine='python')
+	NORM.columns = ['normalization_factors']  
+	normfac = NORM.normalization_factors
+	NF_FLUT = normfac[0:144]
+	NF_U850 = normfac[144:288]
+	NF_U200 = normfac[288:432]
+	NF_list = [NF_FLUT,NF_U850,NF_U200]
 
 	# read in the eigenvalues  
 	f = open(ff, "r")
@@ -409,7 +409,7 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 	variable_list = ['FLUT','U','U']
 	levrange_list = [None,[850,850],[200,200]]
 	Anomaly_list = []
-	for variable,levrange in zip(variable_list,levrange_list):
+	for variable,levrange,NF in zip(variable_list,levrange_list,NF_list):
 		Etemp = E.copy()
 		Etemp['variable'] = variable
 		Etemp['levrange'] = levrange
@@ -449,7 +449,8 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		nT = np.squeeze(ave_anom).shape[1]
 		ave_anom_norm = 0*ave_anom
 		for aa,iT in zip(ave_anom,range(nT)):
-			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/std
+			#ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/std
+			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/NF
 
 		# put everything into a list
 		Anomaly_list.append(ave_anom_norm)
@@ -664,8 +665,6 @@ def load_std(E,std_mode = 'NODA',hostname='taurus',verbose=False):
 
 		if len(VV.shape) == 4:
 			Xclim = VV[day_indices,k1:k2+1,j1:j2+1,i1:i2+1]
-			print(k1)
-			print(k2)
 		else:
 			Xclim = VV[day_indices,j1:j2+1,i1:i2+1]
 

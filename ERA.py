@@ -262,12 +262,9 @@ def retrieve_era_averaged(E,average_latitude=True,average_longitude=True,average
 	VV=[]
 	tt=[]
 	for date in E['daterange']:
-		# decide which resolution of ERA data to load. this is a kludge and highly specific to Lisa's 
-		# way of doing things -- need to make this more flexible  
-		if E['exp_name']=='ERA':
-			resol=2.5
-		else:
-			resol=0.75
+		# decide which resolution of ERA data to load. 
+		import re
+		resol = float(re.sub('\ERA', '',E['exp_name']))
 		Vtemp,lat,lon,lev,time_out = load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=verbose)
 		VV.append(Vtemp)
 		tt.append(time_out)
