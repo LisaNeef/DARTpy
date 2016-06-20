@@ -1825,8 +1825,6 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	if (MT.shape[0] != len(lev)) |  (MT.shape[1] != len(lat)):
 		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
-		print((MT.shape[0] != len(lat)))
-		print((MT.shape[1] != len(lev)))
 		print(MT.shape)
 		print(len(lev))
 		print(len(lat))
@@ -2559,21 +2557,14 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	else:
 		MT = M
 
-        # plot
-	if len(MT.shape) < 1:
-		print('plot_diagnostic_lev_lat: the derived array is not 1-dimensional. This is its shape:')
-		print(MT.shape)
-		print('Returning with nothing plotted...')
-		return None,None
-
-	if (MT.shape[0] != len(lat)):
-		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the latitude arrays we are plotting against. Here are their shapes:")
-		print(MT.shape)
-		print(len(lat))
-		print('Returning with nothing plotted...')
-		return None,None
-
-	plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+	# if we are plotting multiple copies (e.g. the entire ensemble), need to loop over them  
+	# otherwise, the plot is simple
+	if len(MT.shape) == 2:
+		ncopies = MT.shape[0]
+		for icopy in range(ncopies):
+			plt.plot(lat,scaling_factor*MT[icopy,:],color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+	else:
+		plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# axis labels 
 	plt.xlabel('Latitude')
