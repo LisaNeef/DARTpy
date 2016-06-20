@@ -53,6 +53,11 @@ This module has the following subroutines:
 + `point_check_dictionaries` pre-defined experiment dictionaries that give various averaging regions 
 + `climate_index_dictionaries` returns experiment dictionaries with the lat, long, and levranges needed to compute certain climate indices.  
 	
+### `MJO.py`  
+
+This module contains various subroutines to diagnose the Madden-Julian Oscillation in DART-constrained model simulations. 
+Basically these are routines that I wrote in order to look at the MJO in DART-WACCM simulations, so they're tuned to deal with WACCM- and CAM-stye output files. 
+Warning: this module contains a _lot_ of kludges -- proceed at your own risk. 
 
 ## Dependencies  
 
