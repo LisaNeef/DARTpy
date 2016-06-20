@@ -432,18 +432,18 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		lat1,lon1,ave_anom = aave('WH',anomalies,lat,lon,None,variable_name,averaging_dimension='lat')
 
 		# normalize the anoamlies of each variable field by its standard deviation 
-		if climatology_option=='NODA':
+		#if climatology_option=='NODA':
 			# if we want standard deviations given by the No-DA experiment, do that here 
 			# TODO: subroutine that loads correposnind No-DA experiment for a given experiment 
-			Etemp = E.copy()
-			Etemp['exp_name'] = 'W0910_NODA'
-			S,lat,lon,lev,DR = load_std(Etemp,'ensemble',hostname)
-		else:
-			S,lat,lon,lev,DR = load_std(E,climatology_option,hostname)
+		#	Etemp = E.copy()
+		#	Etemp['exp_name'] = 'W0910_NODA'
+		#	S,lat,lon,lev,DR = load_std(Etemp,'ensemble',hostname)
+		#else:
+		#	S,lat,lon,lev,DR = load_std(E,climatology_option,hostname)
 
 		# the compute the "global" std for that variable (it's actually over the vertical and 
 		# horizontal domain given in E)
-		std = np.nanmean(S)
+		#std = np.nanmean(S)
 
 		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
 		nT = np.squeeze(ave_anom).shape[1]
