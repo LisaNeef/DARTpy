@@ -483,15 +483,13 @@ def exp_paths_TEM(E,datetime_in,hostname='taurus'):
 		if E['variable'] in dynamical_heating_rates_list :
 			prefix = 'WS_VTy_'
 
-		if (E['exp_name'] == 'ERA1.5') or (E['exp_name'] == 'ERA'):
+		if 'ERA' in E['exp_name']:
 			branch = '/data/c1/lneef/'
-			#path_out = branch+long_name+'/TEM/'+prefix+'ERA-Interim_Daily_DailyMean_'+datestr+'.nc'
 			path_out = branch+'ERA/1.5deg/'+'/TEM/'+prefix+'ERA-Interim_dm_'+datestr+'.nc'
 		else:
 			branch = '/data/c1/lneef/DART-WACCM/'
 			# this experiment dictionary relates the short names that I gave my runs 
 			# to those that Wuke gave them  
-
 
 			short_names = {'W0910_NODA':'DW-NODA-02',
 			'W0910_GLOBAL':'DW-Global-02',
