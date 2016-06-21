@@ -2344,20 +2344,25 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			Vshape = V.shape
 
 		# if Vlist still has length 0, we didn't find any data -- abort 
-		if len(Vlist)==0:
+		if len(Vlist)>0:
+			# if Vlist has length, 
+			# remove any Nones that might be in there and check again 
+			Vlist2 = [V for V in Vlist if V is not None]
+			if len(Vlist2)>0:
+				bad = [i for i, j in enumerate(Vlist) if j is None]
+				new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
+				# turn the list of variable fields into a matrix 
+				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
+			else:
+				d1 = E['daterange'][0].strftime("%Y-%m-%d")
+				d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+				print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+				return None,None,None,None,None
+		else:
 			d1 = E['daterange'][0].strftime("%Y-%m-%d")
 			d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
 			print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-			Vmatrix = None
-		else:
-			# first remove and Nones that might be in there  
-			Vlist2 = [V for V in Vlist if V is not None]
-			bad = [i for i, j in enumerate(Vlist) if j is None]
-			new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
-
-	# turn the list of variable fields into a matrix 
-	Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
-
+			return None,None,None,None,None
 	return Vmatrix,lat,lon,lev,new_daterange
 
 def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',log_levels=True,debug=False):
