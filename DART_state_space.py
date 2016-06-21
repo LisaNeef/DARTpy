@@ -1656,7 +1656,7 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 	CS = E['copystring']
 
 	# if looking at ERA data, we don't have ensemble members. Here just return the array
-	if (E['exp_name'] == 'ERA') or (E['exp_name'] == 'ERA1.5'):
+	if 'ERA' in E['exp_name']:
 		Dout = np.squeeze(X)	
 	else:
 		# if the diagnostic is a single ensemble member, simply choose it out of the array and return 

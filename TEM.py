@@ -125,7 +125,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 
 		# now select the relevant lat and lev regions 
-		if (E['exp_name'] == 'ERA') or (E['exp_name'] == 'ERA1.5'):
+		if 'ERA' in E['exp_name']:
 			# wuke's TEM diagnostics for ERA have shape time x lev x lat
 			Vout = VV[:,k1:k2+1,j1:j2+1]
 		else:
