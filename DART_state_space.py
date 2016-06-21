@@ -2254,17 +2254,18 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	Vshape = None
 	for date in DR:
 
-		# most ERA data are loaded by their own routine  
-		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3']
-		if 'ERA' in E['exp_name']:
-			import ERA as era
-			if (E['variable'] in era_variables_list):
+		# most --but not all-- ERA data are loaded by their own routine  
+		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq']
+		if 'ERA' in E['exp_name'] and E['variable'] in era_variables_list:
+			if (E['variable'] == 'Nsq'):
+				# ERA buoyancy frequency can be calculated with the Nsq function 
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+			if 'V' not in locals():
+				# all other variables are loaded via a function in the ERA module:
+				import ERA as era
 				import re
 				resol = float(re.sub('\ERA', '',E['exp_name']))
 				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=debug)
-			if ('ERA' in E['exp_name']) and (E['variable'] == 'Nsq'):
-			# ERA buoyancy frequency can be calculated with the Nsq function 
-				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
 
 		# for regular diagnostic, the file we retrieve depends on the variable in question  
 		else:
@@ -2329,6 +2330,10 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
+					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+
+				# another other variables, retrieve as-is from history files 
+				if 'V' not in locals():
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
@@ -2578,5 +2583,5 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	# make sure the axes only go as far as the ranges in E
 	plt.xlim(E['latrange'])
 
-	return MT
+	return MT,lat
 
