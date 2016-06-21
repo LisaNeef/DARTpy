@@ -493,13 +493,13 @@ def exp_paths_TEM(E,datetime_in,hostname='taurus'):
 			# to those that Wuke gave them  
 
 
-			short_names = {'W0910_NODA':'DW-NODA',
-			'W0910_GLOBAL':'DW-Global',
+			short_names = {'W0910_NODA':'DW-NODA-02',
+			'W0910_GLOBAL':'DW-Global-02',
 			'W0910_GLOBAL_OLDensemble':'DW-Global',
 			'W0910_NODA_OLDensemble':'DW-NODA',
 			'W0910_TROPICS':'DW-Trop'}
 
-			path_out = branch + long_name+'/TEM/'+prefix+short_names[E['exp_name']]+'.cam.h1.'+datestr+'.nc'
+			path_out = branch + long_name+'/atm/TEM/'+prefix+short_names[E['exp_name']]+'.cam.h1.'+datestr+'.nc'
 
 	# throw error if hostname is wrong  
 	if hostname_not_found:
