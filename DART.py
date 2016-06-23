@@ -548,37 +548,38 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		CopyMetaData = f.variables['CopyMetaData'][:]
 
 		# load the requested dynamical variable  - these can have different names, so 
-		# first we have to look for the right one 
-		prefac=1.0
-		if (E['variable']=='T') or (E['variable']=='TS'):
-			possible_varnames = ['t','var130']
-		if (E['variable']=='U') or (E['variable']=='US'):
-			possible_varnames = ['u','var131']
-		if (E['variable']=='V') or (E['variable']=='VS'):
-			possible_varnames = ['v','var132']
-		if (E['variable']=='Z') or (E['variable']=='geopotential'):
-			possible_varnames = ['z','var129']
-		if (E['variable']=='GPH') or (E['variable']=='Z3'):
-			possible_varnames = ['Z','z','var129']
-			prefac = 1/9.8    # convert geopotential to geopotential height
-		if (E['variable']=='msl') or (E['variable']=='MSLP'):
-			possible_varnames = ['msl','var151']
-		if (E['variable']=='Nsq'):
-			possible_varnames = ['brunt']
-		if 'possible_varnames' not in locals():
-			possible_varnames=[E['variable']]
-
-		# loop over the list of possible variable names and load the first one we find 
-		variable_found=False
-		for varname in possible_varnames:
-			if varname in f.variables:
-				varname_load = varname
-				variable_found = True
-		if (variable_found is False):
-			# if  the variable can't be found, simply try to load what was asked for  
+		# first check if the requested variable, and if it's not found, try alternatives 
+		if E['variable'] in f.variables:
 			varname_load=E['variable']
+		else:
+			# here is a dictionary that holds alternative variable names to try
+			possible_varnames_dict={'T':['t','var130'],
+						'TS':['t','var130'],
+						'U':['u','var131'],
+						'US':['u','var131'],
+						'V':['v','var132'],
+						'VS':['v','var132'],
+						'Z':['z','var129'],
+						'geopotential':['z','var129'],
+						'GPH':['Z','z','var129'],
+						'var129':['Z','z','var129'],
+						'msl':['var151'],
+						'mslp':['var151'],
+						'Nsq':['brunt']}
 
-		# next load the variable, and replace its bad 
+			possible_varnames_list=possible_varnames_dict[E['variable']]
+			for varname in possible_varnames_list:
+				if varname in f.variables:
+					varname_load = varname
+			
+			# if the desired variable is still not found, throw an error and abort 
+			if 'varname_load' not in locals():
+				print('Unable to find variable '+E['variable']+' in file '+filename)
+
+		# change the prefactor for certain variables 
+		prefac=1.0	# a prefactor that can be changed for loading some variables 
+
+		# now actually load the variable, and replace its bad 
 		# values with NaNs
 		V = f.variables[varname_load]
 		VV = prefac*V[:]
