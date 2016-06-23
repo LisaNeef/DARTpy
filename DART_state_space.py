@@ -2255,7 +2255,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	for date in DR:
 
 		# most --but not all-- ERA data are loaded by their own routine  
-		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq']
+		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq','brunt']
 		if 'ERA' in E['exp_name'] and E['variable'] in era_variables_list:
 			if (E['variable'] == 'Nsq'):
 				# ERA buoyancy frequency can be calculated with the Nsq function 
@@ -2272,7 +2272,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			file_type_found = False
 			# here are the different categories of variables:
 			# TODO: subroutine that reads the control variables specific to each model/experiment
-			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq']
+			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq','brunt']
 			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
 			dynamical_heating_rates_list = ['VTY','WS']
 

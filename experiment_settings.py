@@ -110,7 +110,7 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 		if E['run_category'] is None:
 			diagstring = 'Diag'
 			# additional diagnostics files have the 'Diag' string replaced with something else. 
-			TIL_variables = ['theta','ptrop','Nsq','P']
+			TIL_variables = ['theta','ptrop','Nsq','P','brunt']
 			if E['variable'] in TIL_variables:
 				diagstring='TIL'
 			fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+datestr+'-'+timestr+'.nc'
@@ -146,9 +146,6 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 
 	#-----search for the right files 
 	correct_filepath_found = False
-	if debug:
-		print('checking for DART diagnostic files in these directories:')
-		print(data_dir_list)
 	for data_dir in data_dir_list:
 		filename = data_dir+fname
 		if debug:
@@ -485,7 +482,7 @@ def exp_paths_TEM(E,datetime_in,hostname='taurus'):
 
 		if 'ERA' in E['exp_name']:
 			branch = '/data/c1/lneef/'
-			path_out = branch+'ERA/1.5deg/'+'/TEM/'+prefix+'ERA-Interim_dm_'+datestr+'.nc'
+			path_out = branch+'ERA/0.75deg/'+'/TEM/'+prefix+'ERA-Interim_dm_'+datestr+'.nc'
 		else:
 			branch = '/data/c1/lneef/DART-WACCM/'
 			# this experiment dictionary relates the short names that I gave my runs 
@@ -519,7 +516,7 @@ def exp_paths(hostname='taurus',experiment='PMO32'):
 		branch1='/data/b4/swahl/cesm1_2_0/archive/'
 		branch2='/data/c1/lneef/DART-WACCM/'
 		#branch3='/data/c1/lneef/ERP_DA/'
-		branch_list = [branch2,branch1]
+		branch_list = [branch1,branch2]
 
 	# retrieve the full name of the desired experiment
 	name = get_long_names(experiment)
