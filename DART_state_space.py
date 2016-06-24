@@ -2385,7 +2385,13 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# load the requested array, and the difference array if needed 
+	Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	if Ediff is not None:
+		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix=Vmain-Vdiff
+	else:
+		Vmatrix=Vmain
 
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -2415,43 +2421,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				Mlon = np.nanmax(Mlat,axis=londim)
 	else:
 		Mlon = Mlat
-	M1 = scaling_factor*np.squeeze(Mlon)
-
-	# repeat everything for the difference experiment
-	if (Ediff != None):
-		# TODO: check to make sure this returns the same kind of array as DART_diagn_to_array
-		if Ediff['exp_name'] == 'ERA':
-			M0,t,lat,lon,lev = era.retrieve_era_averaged(Ediff,average_levels=False,hostname=hostname,verbose=debug)
-			Vmatrix = np.transpose(M0)	
-		else:
-			Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
-		# average over the last dimension, which is always time (by how we formed this array) 
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-		# find the latidue and longitude dimensions and average 
-		if lat is not None:
-			shape_tuple = VV.shape
-			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-				if dimlength == len(lat):
-				    latdim = ii
-			Mlat = np.nanmean(VV,axis=latdim)
-		else:
-			Mlat = VV
-		if lon is not None:
-			shape_tuple = Mlat.shape
-			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-				if dimlength == len(lon):
-					londim = ii
-			Mlon = np.nanmean(Mlat,axis=londim)
-		else:
-			Mlon = Mlat
-		M2 = scaling_factor*np.squeeze(Mlon)
-		
-		# take the difference
-		M = M1-M2
-	else:
-		M = M1
+	M = scaling_factor*np.squeeze(Mlon)
 
         # plot the profile  - loop over copies if that dimension is there  
 	# from the way DART_diagn_to_array works, copy is always the 0th dimension  
