@@ -179,8 +179,8 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	"""
 
 	# necessary constants  
-	H=7.0		# scale height in km  
-	p0=1000.0	# reference pressure 
+	H=7000.0	# scale height in m  
+	p0=1000.0	# reference pressure in hPa  
 
 	# load the dynamical heating due to residual vertical velocity
 	ERC = E.copy()
@@ -190,17 +190,34 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 		theta_zm = np.average(np.squeeze(theta),axis=1)
 		# todo: make sure that this works
 		factor = g/theta_zm
+		RC,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		X = factor*RC
 	else:
-		ERC['variable']='WS'
-		factor = Rd/H
-	RC,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		ERC['daterange']=[datetime_in]
+		ERC['variable']='WSTAR'
+		wstar,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in)
+		ERC['variable']='Nsq'
+		Nsq,lat,lon,lev,new_daterange = DSS.DART_diagn_to_array(ERC)
 
-	# divide out the constants
-	X = factor*RC
+		Nsq2 = np.squeeze(Nsq)
+		# now find the longitude dimension and average over it  
+		nlon=len(lon)
+		for idim,s in enumerate(Nsq2.shape):
+			if s == nlon:
+				londim=idim
+		Nsq_mean = np.average(Nsq2,axis=londim)
+
+		# now both N^2 and wstar are level x latitude arrays, but they might be transposed  
+		if Nsq_mean.shape!=wstar.shape:
+			Nsq3 = np.transpose(Nsq_mean)
+		else:
+			Nsq3=Nsq_mean
+
+		X = Nsq3*wstar
 
 	# convert pressure levels to approximate altitude and take the vertical gradient  
 	zlev = H*np.log(p0/lev)
-	dZ = np.gradient(zlev)   # gradient of vertical levels in km
+	dZ = np.gradient(zlev)   # gradient of vertical levels in m
 
 	# copy dZ over lat so it's a 2D array
 	nlat = len(lat)
