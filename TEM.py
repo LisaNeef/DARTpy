@@ -173,7 +173,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 
 
 	OUTPUTS:
-	N2_forcing: Nsquared forcing term 
+	N2_forcing: Nsquared forcing term  in s^2/day
 	lev
 	lat 
 	"""
@@ -224,6 +224,13 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	dZ2d = np.repeat(dZ[:,np.newaxis],nlat,axis=1)
 
 	dXdZ_2D = np.gradient(np.squeeze(X),dZ2d)
-	N2_forcing = dXdZ_2D[0] # this is the vertical gradient with respect to height 
+	dxdz = dXdZ_2D[0] # this is the vertical gradient with respect to height 
+
+	# the above calculation yields a quantity in units s^-2/s, but it makes more sense 
+	# in the grand scheme of things to look at buoyancy forcing per day, so here 
+	# is a conversion factor.
+	seconds_per_day = 60.*60.*24.0
+
+	N2_forcing = -dxdz*seconds_per_day
 
 	return N2_forcing,lat,lev
