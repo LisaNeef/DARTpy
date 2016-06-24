@@ -1755,8 +1755,13 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	# load the desired DART diagnostic for the desired variable and daterange:
-	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# load the requested array, and the difference array if needed 
+	Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	if Ediff is not None:
+		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix=Vmain-Vdiff
+	else:
+		Vmatrix=Vmain
 
 	# and average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -1768,35 +1773,9 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
 			if dimlength == len(lon):
 				londim = ii
-		M1 = np.squeeze(np.mean(VV,axis=londim))
+		M = np.squeeze(np.mean(VV,axis=londim))
 	else:
-		M1 = np.squeeze(VV)
-
-	# if computing a difference to another field, load that here  
-	if (Ediff != None):
-
-		# load the desired DART diagnostic for the difference experiment dictionary
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
-		# average over time 
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-		# average over longitudes 
-		# as before, look for the londim (it might be different this time) 
-		shape_tuple = VV.shape
-		if lon is not None:
-			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-				if dimlength == len(lon):
-					londim = ii
-			M2 = np.squeeze(np.mean(VV,axis=londim))
-		else:
-			M2 = np.squeeze(VV)
-
-		# subtract the difference field out from the primary field  
-		M = M1-M2
-	else:
-		M = M1
-
+		M = np.squeeze(VV)
 
         # choose a color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors,ncol=ncolors)
