@@ -140,6 +140,10 @@ def plot_RMM(E,copies_to_plot,climatology_option='NODA',plot_type='polar',hostna
 
 	return copy,RMM1,RMM2
 
+def compute_RMM_to_pandas_dataframe(E,copies_to_plot,climatology_option='NODA',plot_type='polar',hostname='taurus',verbose=False):
+
+	return
+
 def plot_correlations_lag_lat_or_lon(E,climatology_option='NODA',maxlag=25,lag_versus_what='lon',nilter_order=50,cbar=True,hostname="taurus",debug=False):
 
 	"""
@@ -446,11 +450,17 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 		#std = np.nanmean(S)
 
 		# for each time in the array of anomalies, divide out the normalization factor for each MJO variable  
-		nT = np.squeeze(ave_anom).shape[1]
-		ave_anom_norm = 0*ave_anom
-		for aa,iT in zip(ave_anom,range(nT)):
-			#ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/std
-			ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/NF
+		# if anomalies were only computed for a single day, it's even simpler
+		anomshape = np.squeeze(ave_anom).shape
+		if len(anomshape) > 2:
+			nT = np.squeeze(ave_anom).shape[1]
+			ave_anom_norm = 0*ave_anom
+			for aa,iT in zip(ave_anom,range(nT)):
+				#ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/std
+				ave_anom_norm[:,iT] = np.squeeze(ave_anom[:,iT])/NF
+		else:
+			ave_anom_norm = np.squeeze(ave_anom)/NF
+			nT = None
 
 		# put everything into a list
 		Anomaly_list.append(ave_anom_norm)
@@ -461,13 +471,18 @@ def RMM(E,climatology_option = 'NODA',hostname='taurus',verbose=False):
 
 	# compute the principal components  
 	N = EVEC.EV1.shape[0]
-	nT = AA.shape[1]
-	pc = np.zeros(shape=(2,nT))
-
-	for k in range(nT):	# loop over time  
+	if nT is None:
+		pc = np.zeros(shape=(2))
+		# loop over eigenvalues and then over 3x longitudes
 		for eof,iev,eigval in zip(EOF,range(2),evalues):	# loop over eigenvectors and eigenvalues
 			for ii in range(N):				# loop over 3xlongitudes  
-				pc[iev,k] += (AA[ii,k]*eof[ii])/np.sqrt(eigval)
+				pc[iev] += (AA[ii]*eof[ii])/np.sqrt(eigval)
+	else:
+		pc = np.zeros(shape=(2,nT))
+		for k in range(nT):	# loop over time  
+			for eof,iev,eigval in zip(EOF,range(2),evalues):	# loop over eigenvectors and eigenvalues
+				for ii in range(N):				# loop over 3xlongitudes  
+					pc[iev,k] += (AA[ii,k]*eof[ii])/np.sqrt(eigval)
 
 	return pc
 
