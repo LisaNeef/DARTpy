@@ -10,19 +10,6 @@ import palettable
 import pandas as pd
 import matplotlib.pyplot as plt
 
-#import matplotlib as mpl
-#import matplotlib.dates as mdates
-#import datetime
-#from netCDF4 import Dataset
-#import ERP as erp
-#import WACCM as waccm
-#import re
-#import ERA as era
-#import TEM as tem
-#import experiment_settings as es
-
-
-
 
 def plot_DARTobs_scatter_globe(E,projection='miller',coastline_width=0,water_color="#CCF3FF",land_color="#996600",colors=None,compare='QC',QC_list=range(8),alpha=0.5,hostname='taurus',debug=False):
 
