@@ -319,8 +319,6 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		f = Dataset(filename,'r')
 		if debug:
 			print('Loading file '+filename)
-			for key in f.variables.iterkeys():
-			    print(key)
 		observations = f.variables['observations'][:]
 		time = f.variables['time'][:]
 		copy = f.variables['copy'][:]
@@ -407,7 +405,8 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 		itemp = np.where(obs_type == OTN)	# observation numbers of all obs that fit this obs type 
 		if itemp is not None:
 			if debug:
-				print('these obs indices match obs of type '+ObsTypesMetaData[OTN-1,:].tostring())
+				temp = ObsTypesMetaData[OTN-1,:].tostring()
+				print('these obs indices match obs of type '+temp.decode('UTF-8'))
 				print(np.squeeze(itemp))
 			iobs.append(list(np.squeeze(itemp)))
 			obs_codes.append(np.squeeze(obs_type[itemp]))
@@ -514,9 +513,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# a list of 2d variables -- if the var is 2d, don't need to load vertical levels 
 	# TODO: add other 2d variables to this list 
 	variables_2d = ['PS','ptrop']
-
-
-
 
 	# find the directory for this run   
 	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
@@ -728,7 +724,8 @@ def get_obs_type_number(f,obs_type_string):
 	ObsTypesMetaData = []
 	for ii in range(0,len(OTMD)):
 		temp = OTMD[ii,].tostring()
-		ObsTypesMetaData.append(temp.rstrip())
+		temp2 = temp.decode('UTF-8')
+		ObsTypesMetaData.append(temp2.rstrip())
 
 	obs_type = ObsTypesMetaData.index(obs_type_string)+1
 
