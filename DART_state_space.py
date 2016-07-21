@@ -970,7 +970,7 @@ def state_space_HCL_colormap(E,Ediff=None,reverse=False,ncol=19,debug=False):
 	colors_sequential = False
 
 	# sequential plot if plotting positive definite variables and not taking a difference  
-	post_def_variables = ['Z3','PS','FLUT','T','Nsq']
+	post_def_variables = ['Z3','PS','FLUT','T','Nsq','Q','O3']
 	if (Ediff == None) and (E['variable'] in post_def_variables):
                 colors_sequential = True
 
@@ -1730,7 +1730,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	else:
 		return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1741,6 +1741,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	E: basic experiment dictionary
 	Ediff: experiment dictionary for the difference experiment
 	clim: color limits (single number, applied to both ends if the colormap is divergent)
+	L: list of contour levels - default is none, which choses the levels evenly based on clim 
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
@@ -1780,14 +1781,16 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
         # choose a color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors,ncol=ncolors)
 
-	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
 		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 
-	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
-	else:
-		L  = np.linspace(start=0,stop=clim,num=ncolors)
+	# if not already specified, 
+	# set the contour levels - it depends on the color limits and the number of colors we have  
+	if L is None:
+		if cmap_type == 'divergent':
+			L  = np.linspace(start=-clim,stop=clim,num=ncolors)
+		else:
+			L  = np.linspace(start=0,stop=clim,num=ncolors)
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(lat):
