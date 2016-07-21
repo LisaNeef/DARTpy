@@ -2256,7 +2256,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			# TODO: subroutine that reads the control variables specific to each model/experiment
 			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq','brunt']
 			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
-			dynamical_heating_rates_list = ['VTY','WS']
+			dynamical_heating_rates_list = ['VTy','WS']
 
 			# for covariances and correlations
 			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
@@ -2367,13 +2367,28 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	# load the requested array, and the difference array if needed 
-	Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
-	if Ediff is not None:
-		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-		Vmatrix=Vmain-Vdiff
+	# check if the desired variable is a sum
+	if ('+' in E['variable']):
+		variable_list = E['variable'].split('+')
 	else:
-		Vmatrix=Vmain
+		variable_list=[E['variable']]
+	Vmatrix_list=[]
+	for variable in variable_list:
+		Etemp=E.copy()
+		Etemp['variable']=variable
+		# load the requested array, and the difference array if needed 
+		Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+		if Ediff is not None:
+			Etempdiff=Ediff.copy()
+			Etempdiff['variable']=variable
+			Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
+			Vmatrix=Vmain-Vdiff
+		else:
+			Vmatrix=Vmain
+		Vmatrix_list.append(Vmatrix)
+
+	if ('+' in E['variable']):
+		Vmatrix = sum(V for V in Vmatrix_list)
 
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
