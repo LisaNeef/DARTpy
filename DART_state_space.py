@@ -1669,6 +1669,9 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 		if CS == 'ensemble std':
 			Dout = np.squeeze(np.nanstd(X,axis=3))
 		
+		# or return entire ensemble 
+		if CS=='ensemble':
+			Dout = X
 
 	return Dout,lat,lev
 
