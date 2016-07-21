@@ -1838,7 +1838,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	plt.xlim(E['latrange'])
 
 	# return the colorbar handle if available, so we can adjust it later
-	return CB,M
+	return CB,M,L
 
 def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),scale_by_pressure=False,hostname='taurus',debug=False):
 
