@@ -1671,7 +1671,13 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 		
 		# or return entire ensemble 
 		if CS=='ensemble':
-			Dout = X
+			# need to make the ensemble the zeroth dimension insteadd 
+			# of the 3rd 
+			N = X.shape[3]
+			Xlist = []
+			for ii in range(N):
+				Xlist.append(X[:,:,:,ii])
+			Dout = np.concatenate([X[np.newaxis,...] for X in Xlist], axis=0)
 
 	return Dout,lat,lev
 
@@ -1718,12 +1724,12 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	if (CS == 'ensemble'):
 		N = es.get_ensemble_size_per_run(E['exp_name'])
 		Xlist=[]
-		for iens in range(N-1):
+		for iens in range(N):
 			instance = iens+1
 			Xs,lat,lon,lev = waccm.load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname=hostname,verbose=verbose)
 			Xlist.append(Xs)
 		# turn the list of arrays into a new array 
-		Xout = np.concatenate([X[..., np.newaxis] for X in Xlist], axis=len(Xs.shape))
+		Xout = np.concatenate([X[np.newaxis,...] for X in Xlist], axis=0)
 
 	# print an error message if none of these worked 
 	if Xout is None:
@@ -2432,7 +2438,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				color2 = color[iC]
 			else:
 				color2=color 
-			plt.plot(M[:,iC],lev,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+			plt.plot(M[iC,:],lev,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 	else:
 		plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
