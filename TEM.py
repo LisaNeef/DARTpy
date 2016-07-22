@@ -72,7 +72,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 	if os.path.isfile(ff):
 		VV = None
 		if verbose:  
-			print('Loading TEM diagnostics file file '+ff)
+			print('Loading TEM diagnostics file file '+ff+' and variable '+variable_name)
 		f = Dataset(ff,'r')
 		lat = f.variables['lat'][:]
 		lev = f.variables['lev'][:]
@@ -134,7 +134,7 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 		# finally, for dynamical heating due to vertical residual circulation, we are actually interested in -wstar*S, 
 		# whereas Wuke's data just has wstar*S -- so reverse the sign here. 
-		if variable_name is 'WS':
+		if variable_name == 'WS':
 			Vout = -Vout
 		
 	# for file not found 
