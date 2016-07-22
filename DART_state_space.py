@@ -2367,8 +2367,6 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	To do this, add the words 'lonmax' or 'latmax' to the E['extras'] entry of the experiment 
 	dictionary.  
 	"""
-
-
 	daterange = E['daterange']
 
 	# throw an error if the desired variable is 2 dimensional 
