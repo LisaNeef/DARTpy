@@ -1678,6 +1678,8 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 			for ii in range(N):
 				Xlist.append(X[:,:,:,ii])
 			Dout = np.concatenate([X[np.newaxis,...] for X in Xlist], axis=0)
+			# squeeze out a potential extra time dimension
+			Dout = np.squeeze(Dout)
 
 	return Dout,lat,lev
 
