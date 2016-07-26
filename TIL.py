@@ -108,7 +108,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 			for icopy in range(dthetady.shape[0]):
 				for ilat in range(dthetady.shape[1]):
 					for ilev in range(dthetady.shape[2]):
-						vstar2[icopy,ilat,ilev]=vstar[ilev,ilat,icopy]
+						vstar2[icopy,ilat,ilev]=vstar[icopy,ilev,ilat]
 		else:
 			for ilat in range(dthetady.shape[0]):
 				for ilev in range(dthetady.shape[1]):
@@ -221,8 +221,8 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 	EQ = E.copy()
 	EQ['variable']=Qstring
 	Q2,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EQ,datetime_in,verbose=debug)
-	# remove the first dimension, which should have length 1 
-	Q = np.squeeze(Q2,axis=0)
+	# remove the time dimension, which should have length 1 
+	Q = np.squeeze(Q2)
 
 	# also load potential temperature 
 	ET = E.copy()
