@@ -241,34 +241,45 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 				londim=idim
 		Mean_arrays.append(np.average(A,axis=londim))
 	Q_mean=Mean_arrays[0]
+	theta_mean=Mean_arrays[1]
+
 	# if the shapes don't match up, might have to transpose one of them
-	if Mean_arrays[1].shape[0] != Q_mean.shape[0]:
-		theta_mean=np.transpose(Mean_arrays[1])
+#	if Mean_arrays[1].shape[0] != Q_mean.shape[0]:
+#		theta_mean=np.transpose(Mean_arrays[1])
+#	else:
+#		theta_mean=Mean_arrays[1]
+	
+	# Q_mean should come out as copy x lev x lat, whereas theta_mean is copy x lat x lev  
+	# to manually transpose Q_mean
+	Q_mean2 = np.zeros(shape=theta_mean.shape)
+	if Q_mean2.ndim==3:
+		for icopy in range(theta_mean.shape[0]):
+			for ilat in range(theta_mean.shape[1]):
+				for ilev in range(theta_mean.shape[2]):
+					Q_mean2[icopy,ilat,ilev]=Q_mean[icopy,ilev,ilat]
 	else:
-		theta_mean=Mean_arrays[1]
+		for ilat in range(theta_mean.shape[0]):
+			for ilev in range(theta_mean.shape[1]):
+				Q_mean2[ilat,ilev]=Q_mean[ilev,ilat]
 		
 	# divide Q by theta
-	X = Q_mean/theta_mean
+	X = Q_mean2/theta_mean
 
 	# convert pressure levels to approximate altitude and take the vertical gradient  
 	zlev = H*np.log(p0/lev)
 	dZ = np.gradient(zlev)   # gradient of vertical levels in m
 
-	# copy dZ over lat so it's a 2D array (lev x lat) 
-	nlat = len(lat)
-	dZ2d = np.repeat(dZ[:,np.newaxis],nlat,axis=1)
-
-	# if looking at more than one copy (e.g. the entire ensemble) 
-	# copy dxdz N times, so that it's a lev x lat x N array 
-	if len(X.shape)==3:
-		N = X.shape[2]
-		dZ3d = np.repeat(dZ2d[:,:,np.newaxis],N,axis=2)
-	else:
-		dZ3d=dZ2d
-
-	# now compute gradient wrt height 
-	dXdZ_3D = np.gradient(np.squeeze(X),dZ3d)
-	dxdz = dXdZ_3D[0] # this is the vertical gradient with respect to height 
+	# now X *should* have shape (copy x lat x lev) OR (lat x lev)
+	# so need to copy dZ to look like this 
+	if X.ndim==3:
+		dZm = dZ[None,None,:]
+		levdim=2
+	if X.ndim==2:
+		dZm = dZ[None,:]
+		levdim=1
+	dZ3 = np.broadcast_to(dZm,X.shape)
+	dXdZ_3D = np.gradient(X,dZ3)
+	dxdz = dXdZ_3D[levdim] # this is the vertical gradient with respect to height 
 
 	# the above calculation yields a quantity in units s^-2/s, but it makes more sense 
 	# in the grand scheme of things to look at buoyancy forcing per day, so here 
