@@ -2299,7 +2299,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				
 			# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
 			# from a separate routine
-			if E['variable'] == 'Nsq_wstar_forcing':
+			if (E['variable'] == 'Nsq_wstar_forcing') or (E['variable'] == 'Nsq_vstar_forcing'):
 				import TIL as til
 				V,lat,lev = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
 				lon = None
