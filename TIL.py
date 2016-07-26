@@ -147,7 +147,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 			for icopy in range(Nsqm2.shape[0]):
 				for ilat in range(Nsqm2.shape[1]):
 					for ilev in range(Nsqm2.shape[2]):
-						wstar2[icopy,ilat,ilev]=wstar[ilev,ilat,icopy]
+						wstar2[icopy,ilat,ilev]=wstar[icopy,ilev,ilat]
 		else:
 			for ilat in range(Nsqm2.shape[0]):
 				for ilev in range(Nsqm2.shape[1]):
