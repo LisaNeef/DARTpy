@@ -2304,6 +2304,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				V,lat,lev = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
 				lon = None
 				file_type_found = True
+			# similar buoyancy frequency forcing from diabaitcc heating 
+			if 'Nsq_forcing_' in E['variable']: 
+				import TIL as til
+				V,lat,lev = til.Nsq_forcing_from_Q(E,date,hostname=hostname,debug=debug)
+				lon = None
+				file_type_found = True
 
 			# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
 			if E['variable'] == 'P':
