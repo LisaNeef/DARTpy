@@ -105,6 +105,10 @@ def read_HRRS_data(ff):
 	# kick out the first two rows - they hold units and symbols 
 	D.drop(D.index[[0,1]], inplace=True)
 
+	# also make sure that lat, lon, pressure, altitude, and temp are numerics 
+	vars_to_float = ['Press','Temp','Lat','Lon','Alt']
+	D[vars_to_float] = D[vars_to_float].astype(float)
+
 	return(D)
 
 def HRRS_stations_available_per_year(YYYY):
