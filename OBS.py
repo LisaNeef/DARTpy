@@ -99,8 +99,8 @@ def read_HRRS_data(ff):
 	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=999.0)
 	colnames=list(D.columns.values)
 	obscode=list(D.columns.values)[0]
-	D.rename(columns={obscode:'Obs.Code'}, inplace=True)
-	D['Station.Number'] = pd.Series(obscode[0:5], index=D.index)
+	D.rename(columns={obscode:'ObsCode'}, inplace=True)
+	D['StationNumber'] = pd.Series(obscode[0:5], index=D.index)
 
 	# kick out the first two rows - they hold units and symbols 
 	D.drop(D.index[[0,1]], inplace=True)
