@@ -11,7 +11,7 @@ import DART as dart
 #import os.path
 #from netCDF4 import Dataset
 
-def HRRS_as_DF(OBS,hostname='taurus'):
+def HRRS_as_DF(OBS,hostname='taurus',debug=False):
 
 	"""
 	Loop over a set of dates and a specified latitude- and longitude range, and return 
@@ -65,20 +65,24 @@ def HRRS_as_DF(OBS,hostname='taurus'):
 			# loop over dates, and retrieve data if available 
 			for dd in DR2:
 				datestr = dd.strftime("%Y%m%d%H")
-				ff = datadir+'/'+str(YYYY)+'/'+str(s)+'/'+str(s)+'-'+datestr+'.dat'
+				ff = datadir+'/'+str(YYYY)+'/'+str(s)+'/'+str(s)+'-'+datestr+'_mod.dat'
 				if os.path.exists(ff):
-					print(ff)
+
+					if debug:
+						print(ff)
+
 					# read in the station data 
 					D = read_HRRS_data(ff)
 		
 					# also add a column holding the date 
 					D['Date'] = pd.Series(dd, index=D.index)
+
+					# also add a column holding the station number 
+					D['StationNumber'] = pd.Series(s, index=D.index)
 				
 					# get rid of some unneeded columns 
-					weird_number=list(D.columns.values)[1]
-					useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ',weird_number]
+					useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
 					D.drop(useless_cols,inplace=True,axis=1)
-
 
 					# append to list of data frames 
 					DFlist.append(D)
@@ -99,13 +103,11 @@ def read_HRRS_data(ff):
 
 	# here is a dict that gives bad values for different columns 
 	# alert: this is still incomplete 
-	badvals = {'Temp':['999.0'],'Alt':['99.0'],'Lat':['999.000'],'Lon':['9999.000']}
+	badvals = {'Temp':['999.0'],'Alt':['99.0','99999.0'],'Lat':['999.000'],'Lon':['9999.000']}
 	
 	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=badvals)
 	colnames=list(D.columns.values)
-	obscode=list(D.columns.values)[0]
-	D.rename(columns={obscode:'ObsCode'}, inplace=True)
-	D['StationNumber'] = pd.Series(obscode[0:5], index=D.index)
+
 
 	# kick out the first two rows - they hold units and symbols 
 	D.drop(D.index[[0,1]], inplace=True)
