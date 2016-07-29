@@ -96,7 +96,7 @@ def read_HRRS_data(ff):
 	Input ff is a string pointing to the full path of the desired file. 
 	"""
 
-	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True)
+	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=999.0)
 	colnames=list(D.columns.values)
 	obscode=list(D.columns.values)[0]
 	D.rename(columns={obscode:'Obs.Code'}, inplace=True)
@@ -108,6 +108,9 @@ def read_HRRS_data(ff):
 	# also make sure that lat, lon, pressure, altitude, and temp are numerics 
 	vars_to_float = ['Press','Temp','Lat','Lon','Alt']
 	D[vars_to_float] = D[vars_to_float].astype(float)
+
+	# find bad flags and turn them into nan
+	D.replace(999.0,np.nan)
 
 	return(D)
 
