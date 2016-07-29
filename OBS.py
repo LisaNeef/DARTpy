@@ -96,7 +96,7 @@ def read_HRRS_data(ff):
 	Input ff is a string pointing to the full path of the desired file. 
 	"""
 
-	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=999.0)
+	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=[999.0,99.0])
 	colnames=list(D.columns.values)
 	obscode=list(D.columns.values)[0]
 	D.rename(columns={obscode:'ObsCode'}, inplace=True)
