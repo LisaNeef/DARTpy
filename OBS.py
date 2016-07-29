@@ -67,6 +67,7 @@ def HRRS_as_DF(OBS,hostname='taurus'):
 				datestr = dd.strftime("%Y%m%d%H")
 				ff = datadir+'/'+str(YYYY)+'/'+str(s)+'/'+str(s)+'-'+datestr+'.dat'
 				if os.path.exists(ff):
+					print(ff)
 					# read in the station data 
 					D = read_HRRS_data(ff)
 		
@@ -96,7 +97,11 @@ def read_HRRS_data(ff):
 	Input ff is a string pointing to the full path of the desired file. 
 	"""
 
-	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=[999.0,99.0])
+	# here is a dict that gives bad values for different columns 
+	# alert: this is still incomplete 
+	badvals = {'Temp':['999.0'],'Alt':['99.0'],'Lat':['999.000'],'Lon':['9999.000']}
+	
+	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=badvals)
 	colnames=list(D.columns.values)
 	obscode=list(D.columns.values)[0]
 	D.rename(columns={obscode:'ObsCode'}, inplace=True)
@@ -108,9 +113,6 @@ def read_HRRS_data(ff):
 	# also make sure that lat, lon, pressure, altitude, and temp are numerics 
 	vars_to_float = ['Press','Temp','Lat','Lon','Alt']
 	D[vars_to_float] = D[vars_to_float].astype(float)
-
-	# find bad flags and turn them into nan
-	D.replace(999.0,np.nan)
 
 	return(D)
 
