@@ -2365,7 +2365,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			return None,None,None,None,None
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',log_levels=True,debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -2375,6 +2375,18 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	Instead of the zonal or meridional mean, we can also take the max of one of those dimensions. 
 	To do this, add the words 'lonmax' or 'latmax' to the E['extras'] entry of the experiment 
 	dictionary.  
+
+	INPUTS:
+	E: DART experiment dictionary of the primary experiment/quantity that we want to plot 
+	Ediff: DART experiment dictionary of the experiment/quantity that we want to subtract out  (default is None)  
+	color, linestyle, linewidth, alpha: parameters for the plotting (optional) 
+	scaling_factor: factor by which we multiply the profile to be plotted (default is 1.0)    
+	hostname: the computer this is being run on (default is taurus)  
+	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
+		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
+		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
+		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
+	debug: set to True to print out extra output 
 	"""
 	daterange = E['daterange']
 
@@ -2436,6 +2448,16 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		Mlon = Mlat
 	M = scaling_factor*np.squeeze(Mlon)
 
+	# compute vertical coordinate depending on choice of pressure or altitude 
+	if 'levels' in vertical_coord:
+		y=lev
+		ylabel = 'Level (hPa)'
+	if vertical_coord=='z':
+		H=7.0
+		p0=1000.0 
+		y = H*np.log(p0/lev)
+		ylabel = 'log-p height (km)'
+
         # plot the profile  - loop over copies if that dimension is there  
 	# from the way DART_diagn_to_array works, copy is always the 0th dimension  
 	if M.ndim == 2:
@@ -2445,21 +2467,27 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				color2 = color[iC]
 			else:
 				color2=color 
-			plt.plot(M[iC,:],lev,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+			plt.plot(M[iC,:],y,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 	else:
-		plt.plot(M,lev,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+		plt.plot(M,y,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# improve axes and labels
 	ax = plt.gca()
 	xlim = ax.get_xlim()[1]
 	ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
-	plt.ylabel('Level (hPa)')
-	if log_levels:
+	plt.ylabel(ylabel)
+	if vertical_coord=='log_levels':
 		plt.yscale('log')
-	plt.gca().invert_yaxis()
+	if (vertical_coord=='log_levels') or (vertical_coord=='levels'):
+		plt.gca().invert_yaxis()
 
 	# make sure the axes only go as far as the ranges in E
-	plt.ylim(E['levrange'])
+	if 'levels' in vertical_coord:
+		plt.ylim(E['levrange'])
+	else:
+		ylim=[H*np.log(p0/p) for p in E['levrange']]
+		plt.ylim(ylim)
+	
 	return M,lev
 
 def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,log_levels=False,invert_yaxis=False,debug=False):
