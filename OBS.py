@@ -11,18 +11,23 @@ import DART as dart
 #import os.path
 #from netCDF4 import Dataset
 
-def HRRS_as_DF(OBS,hostname='taurus',debug=False):
+def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 	"""
 	Loop over a set of dates and a specified latitude- and longitude range, and return 
 	the available high-resolution radiosonde data as a pandas data frame  
 	
-	Input OBS has to be a dictionary with the following entries:  
+	INPUTS:
+	OBS: a dictionary with the following entries:  
 		daterange: a list of datetime objects that give the desired date range  
 		latrange: a list giving the bounding latitudes of the desired range 
 		lonrange: a list giving the bounding longitudes of the desired range 
-	Note that OBS can be a DART experiment dictionary (see DART.py), but the DART/model 
-		specific entries are ignored. 
+		Note that OBS can be a DART experiment dictionary (see DART.py), but the DART/model 
+			specific entries are ignored. 
+	TPbased: set to True to return the profiles ordered into regularly-spaced altitudes 
+		relative to the tropopause  - default is False. 
+	hostname: default is taurus 
+	debug: set to True to print some stuff out. Default is False. 
 	"""
 
 	# first read in station information as a dataframe 
@@ -72,7 +77,10 @@ def HRRS_as_DF(OBS,hostname='taurus',debug=False):
 						print(ff)
 
 					# read in the station data 
-					D = read_HRRS_data(ff)
+					if TPbased:
+						D = TP_based_HRRS_data(ff)
+					else:
+						D = read_HRRS_data(ff)
 		
 					# also add a column holding the date 
 					D['Date'] = pd.Series(dd, index=D.index)
@@ -93,6 +101,31 @@ def HRRS_as_DF(OBS,hostname='taurus',debug=False):
 	#DF = pd.merge(DF,DF2,how='outer')
 
 	return(DFout)
+
+def TP_based_HRRS_data(ff):
+
+	"""
+	Given a single high-res radiosonde data sounding (identified by its 
+	full file path, ff) 
+	load the data from the sounding and compute the temperature data 
+	as a function of distance from the thermal tropopause. 
+	This is done by:  
+	1. reading in the data as a pandas data frame  
+	2. computing the height of the tropopause 
+	3. computin the altitude of each data point relative to the tropopause 
+	4. using a cubic spline to create evenly-spaced temperatures on a vertical 
+	 grid with 50m spacing. 
+
+	This procedure is based on Birner et al. 2002 (http://doi.wiley.com/10.1029/2002GL015142)  
+	"""
+
+	# read in the data as a data frame 
+	DF = read_HRRS_data(ff)
+
+
+	# compute the height of the tropopause from the altitude array 
+ 
+	return(DF)
 
 def read_HRRS_data(ff):
 
@@ -115,6 +148,16 @@ def read_HRRS_data(ff):
 	# also make sure that lat, lon, pressure, altitude, and temp are numerics 
 	vars_to_float = ['Press','Temp','Lat','Lon','Alt']
 	D[vars_to_float] = D[vars_to_float].astype(float)
+
+	# compute the vertical gradient of potential temp and, from that, buoyancy frequency 
+	P0=1000.0
+	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
+	g = 9.80616                     # Acceleration due to gravity       m/s^2
+	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
+	theta=(D['Temp']+273.15)*(P0/D['Press'])**(Rd/cp)		# note that this includes convertion of Celsius to Kelvin  
+	dZ = np.gradient(D['Alt']) 
+	dthetadZ = np.gradient(theta,dZ)
+	D["N2"]=(g/theta)*dthetadZ
 
 	return(D)
 
