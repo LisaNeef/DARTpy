@@ -89,8 +89,10 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 					D['StationNumber'] = pd.Series(s, index=D.index)
 				
 					# get rid of some unneeded columns 
-					useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
-					D.drop(useless_cols,inplace=True,axis=1)
+					if not TPbased:
+						useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 
+								'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
+						D.drop(useless_cols,inplace=True,axis=1)
 
 					# append to list of data frames 
 					DFlist.append(D)
@@ -98,7 +100,6 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 	# merge the list of data frames into a single DF using list comprehension 
 	DFout = pd.concat(DFlist, axis=0)
-	#DF = pd.merge(DF,DF2,how='outer')
 
 	return(DFout)
 
@@ -117,15 +118,60 @@ def TP_based_HRRS_data(ff):
 	 grid with 50m spacing. 
 
 	This procedure is based on Birner et al. 2002 (http://doi.wiley.com/10.1029/2002GL015142)  
+
+	Here the LR tropopause follows the WMO criterion. Quoting Birner et al. (2002):
+	The thermal TP is defined as the lowest level where the temperature lapse rate falls 
+	below 2 K/km and its average between this level and all higher levels within 2 km remains below this value [WMO, 1957]. 
 	"""
 
 	# read in the data as a data frame 
 	DF = read_HRRS_data(ff)
 
 
-	# compute the height of the tropopause from the altitude array 
- 
-	return(DF)
+	# compute the height of the lapse-tropopause from the altitude array 
+	z=DF['Alt']/1E3       # Altitude in km 
+	T=DF['Temp']+273.15      # Temp in Kelvin
+	dZ = np.gradient(z)
+	LR = np.gradient(T,dZ)
+
+	# first define tropopause height as nothing 
+	ztrop=None
+
+	# now loop through lapse-rates, and if it falls below the 2K/km boundary, see if the WMO criterion is met  
+	for ll,zz in zip(LR,z):
+		if abs(ll)<2.0:
+			zz_upper = zz+2.0
+			upper_neighbors = np.where(np.logical_and(z>=zz, z<=zz_upper))
+			LRtest = np.mean(LR[upper_neighbors])
+			# if this average number is within 2K/km, we're done 
+			if abs(LRtest)<2.0:
+				ztrop = zz
+				break
+
+	if ztrop is not None:
+		# now compute the altitude relative to the tropopause 
+		zTP = DF['Alt']*1E-3-ztrop
+
+		# interpolate temp, pressure to this new grid 
+		# testing independently showed that linear interpolation is enough, and cubic
+		# produces bonkers results...but maybe not for all applications 
+		fT = interp1d(zTP, T, kind='linear')
+		fP = interp1d(zTP, P, kind='linear')
+		fN2 = interp1d(zTP, DF['N2'], kind='linear')
+
+		# create a regularly spaced grid (in km)
+		zTPnew = np.arange(round(min(fT.x)), round(max(fT.x)), 50E-3)
+
+		# regularly-spaced pressures and temps 
+		Tnew = fT(zTPnew)
+		Pnew = fP(zTPnew)
+		N2new = fN2(zTPnew)
+
+		# now create a new dataframe with the TP-based heights 
+		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new}
+		Dout = pd.DataFrame(data=new_data) 
+
+	return(Dout)
 
 def read_HRRS_data(ff):
 
