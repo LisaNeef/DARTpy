@@ -188,6 +188,61 @@ def TP_based_HRRS_data(ff,debug=False):
 
 	return(Dout)
 
+def HRRS_mean_ztrop_to_csv(DR,hostname='taurus',debug=False):
+
+	"""
+	Given a certain daterange, retrieve available high res radiosonde data,
+	compute the average tropopause height per station, and store in a 
+	csv file. 
+	BINK
+	"""
+
+	# first read in station information as a dataframe 
+	stationdata = HRRS_station_data(hostname)
+
+	# because the HRRS data are sorted by years, loop over the years in the daterange
+	y0 = DR[0].year
+	yf = DR[len(DR)-1].year
+	years = range(y0,yf+1,1)
+	for YYYY in years:  
+
+		# load a list of the available stations for that year  
+		Slist  = HRRS_stations_available_per_year(YYYY)
+
+		# also compute the subset of the requested daterange that fits into this year. 
+		year_daterange =  dart.daterange(date_start=datetime.datetime(YYYY,1,1,0,0,0), periods=365*4, DT='6H')
+		DR2 = set(year_daterange).intersection(DR)
+		
+		# also find the dir where the station data live 
+		datadir = es.obs_data_paths('HRRS',hostname)
+
+		# now loop over available stations, and for each one, retrieve the data 
+		# that fit into the requested daterange 
+		for s in stations_latlon:	
+
+			# loop over dates, and retrieve data if available 
+			for dd in DR2:
+				datestr = dd.strftime("%Y%m%d%H")
+				ff = datadir+'/'+str(YYYY)+'/'+str(s)+'/'+str(s)+'-'+datestr+'_mod.dat'
+				if os.path.exists(ff):
+
+					if debug:
+						print(ff)
+
+					# read in the station data 
+					D = read_HRRS_data(ff)
+	
+					# compute tropopause height 
+
+					# add to list if not none  
+
+			# average the tropopause heights and add to dictionary 
+
+		# turn dict into data frame  
+
+
+		# turn dataframe into csv file
+
 def read_HRRS_data(ff):
 
 	"""
