@@ -104,7 +104,7 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 	return(DFout)
 
-def TP_based_HRRS_data(ff,debug=False):
+def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 
 	"""
 	Given a single high-res radiosonde data sounding (identified by its 
@@ -181,8 +181,8 @@ def HRRS_mean_ztrop_to_csv(DR,hostname='taurus',debug=False):
 	Given a certain daterange, retrieve available high res radiosonde data,
 	compute the average tropopause height per station, and store in a 
 	csv file. 
-	BINK
 	"""
+	from TIL import ztrop
 
 	# first read in station information as a dataframe 
 	stationdata = HRRS_station_data(hostname)
@@ -203,9 +203,14 @@ def HRRS_mean_ztrop_to_csv(DR,hostname='taurus',debug=False):
 		# also find the dir where the station data live 
 		datadir = es.obs_data_paths('HRRS',hostname)
 
+		# initialize empty dictionary to hold average tropoopause heights per station 
+		ztrop_dict=dict()
+
 		# now loop over available stations, and for each one, retrieve the data 
 		# that fit into the requested daterange 
-		for s in stations_latlon:	
+
+		for s in Slist:	
+			ztrop_list=[]	# empty list to hold tropopause heights for all available obs per station 
 
 			# loop over dates, and retrieve data if available 
 			for dd in DR2:
@@ -220,15 +225,31 @@ def HRRS_mean_ztrop_to_csv(DR,hostname='taurus',debug=False):
 					D = read_HRRS_data(ff)
 	
 					# compute tropopause height 
+					z=D['Alt']/1E3       # Altitude in km 
+					T=D['Temp']+273.15      # Temp in Kelvin
+					ztropp=ztrop(z=z,T=T,debug=debug,hostname=hostname)
 
 					# add to list if not none  
+					if ztropp is not None:
+						ztrop_list.append(ztropp)
 
 			# average the tropopause heights and add to dictionary 
+			ztrop_dict[s]=np.mean(ztrop_list)
 
 		# turn dict into data frame  
+		ZT=pd.Series(data=ztrop_dict, name='ztrop_mean')
 
+		if debug:
+			print(ZT)
 
 		# turn dataframe into csv file
+		hrrs_path = es.obs_data_paths('HRRS',hostname)
+		datestr = DR[0].strftime("%Y%m%d")+'-'+DR[len(DR)-1].strftime("%Y%m%d")+'.csv'
+		fname=hrrs_path+'/'+'mean_tropopause_height_per_station_'+datestr
+		print('storing file '+fname)
+		ZT.to_csv(fname, index=True, sep=',',header=True) 
+
+		return(ZT)
 
 def read_HRRS_data(ff):
 
