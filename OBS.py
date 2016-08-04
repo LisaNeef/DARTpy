@@ -104,7 +104,7 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 	return(DFout)
 
-def TP_based_HRRS_data(ff):
+def TP_based_HRRS_data(ff,debug=False):
 
 	"""
 	Given a single high-res radiosonde data sounding (identified by its 
@@ -128,6 +128,11 @@ def TP_based_HRRS_data(ff):
 	# read in the data as a data frame 
 	DF = read_HRRS_data(ff)
 
+	if debug:
+		print('Loading file '+ff)
+
+	# load interpolate function from scipy
+	from scipy.interpolate import interp1d
 
 	# compute the height of the lapse-tropopause from the altitude array 
 	z=DF['Alt']/1E3       # Altitude in km 
@@ -145,7 +150,7 @@ def TP_based_HRRS_data(ff):
 			upper_neighbors = np.where(np.logical_and(z>=zz, z<=zz_upper))
 			LRtest = np.mean(LR[upper_neighbors])
 			# if this average number is within 2K/km, we're done 
-			if abs(LRtest)<2.0:
+			if abs(LRtest)<2.0 and (zz>8.0):
 				ztrop = zz
 				break
 
@@ -157,11 +162,15 @@ def TP_based_HRRS_data(ff):
 		# testing independently showed that linear interpolation is enough, and cubic
 		# produces bonkers results...but maybe not for all applications 
 		fT = interp1d(zTP, T, kind='linear')
-		fP = interp1d(zTP, P, kind='linear')
+		fP = interp1d(zTP, DF['Press'], kind='linear')
 		fN2 = interp1d(zTP, DF['N2'], kind='linear')
 
 		# create a regularly spaced grid (in km)
-		zTPnew = np.arange(round(min(fT.x)), round(max(fT.x)), 50E-3)
+		#zTPnew = np.arange(round(min(fT.x)), round(max(fT.x)), 50E-3)
+		zTPnew = np.arange(-3.0,3.0, 50E-3)
+		if debug:
+			print(zTPnew)
+			print(zTP)
 
 		# regularly-spaced pressures and temps 
 		Tnew = fT(zTPnew)
