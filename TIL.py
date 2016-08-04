@@ -290,3 +290,33 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 	N2_forcing = g*dxdz*seconds_per_day
 
 	return N2_forcing,lat,lev
+
+def ztrop(z,T,hostname='taurus',debug=False):
+
+	"""
+	Given 1-D arrays of altitude and temperature, compute the lapse-rate tropopause follwing the WMO citerion. 
+	Additionally, can choose to ignore values below a certain altitude, to avoid erroneously choosing a too-low
+		tropopause when a meteorological disturbance causes the lapse rate to fall closer to zero. 
+
+	Note that z and T have to be in km and Kelvin, respectively. 
+	"""
+
+	# first define tropopause height as nothing 
+	ztrop=None
+
+	# compute the lapse rate
+	dZ = np.gradient(z)
+	LR = np.gradient(T,dZ)
+
+	# now loop through lapse-rates, and if it falls below the 2K/km boundary, see if the WMO criterion is met  
+	for ll,zz in zip(LR,z):
+		if abs(ll)<2.0:
+			zz_upper = zz+2.0
+			upper_neighbors = np.where(np.logical_and(z>=zz, z<=zz_upper))
+			LRtest = np.mean(LR[upper_neighbors])
+			# if this average number is within 2K/km, we're done 
+			if abs(LRtest)<2.0 and (zz>8.0):
+				ztrop = zz
+				break
+
+	return(ztrop)

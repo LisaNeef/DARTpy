@@ -137,26 +137,13 @@ def TP_based_HRRS_data(ff,debug=False):
 	# compute the height of the lapse-tropopause from the altitude array 
 	z=DF['Alt']/1E3       # Altitude in km 
 	T=DF['Temp']+273.15      # Temp in Kelvin
-	dZ = np.gradient(z)
-	LR = np.gradient(T,dZ)
 
-	# first define tropopause height as nothing 
-	ztrop=None
+	from TIL import ztrop
+	ztropp=ztrop(z=z,T=T,debug=debug,hostname=hostname)
 
-	# now loop through lapse-rates, and if it falls below the 2K/km boundary, see if the WMO criterion is met  
-	for ll,zz in zip(LR,z):
-		if abs(ll)<2.0:
-			zz_upper = zz+2.0
-			upper_neighbors = np.where(np.logical_and(z>=zz, z<=zz_upper))
-			LRtest = np.mean(LR[upper_neighbors])
-			# if this average number is within 2K/km, we're done 
-			if abs(LRtest)<2.0 and (zz>8.0):
-				ztrop = zz
-				break
-
-	if ztrop is not None:
+	if ztropp is not None:
 		# now compute the altitude relative to the tropopause 
-		zTP = DF['Alt']*1E-3-ztrop
+		zTP = DF['Alt']*1E-3-ztropp
 
 		# interpolate temp, pressure to this new grid 
 		# testing independently showed that linear interpolation is enough, and cubic
@@ -178,7 +165,7 @@ def TP_based_HRRS_data(ff,debug=False):
 		N2new = fN2(zTPnew)
 
 		# now create a new dataframe with the TP-based heights 
-		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new,'ztrop':ztrop}
+		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new,'ztropp':ztropp}
 		Dout = pd.DataFrame(data=new_data) 
 	else:
 		print('No clear lapse-rate tropopause found for the following sounding:')
