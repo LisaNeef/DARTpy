@@ -82,20 +82,21 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 					else:
 						D = read_HRRS_data(ff)
 		
-					# also add a column holding the date 
-					D['Date'] = pd.Series(dd, index=D.index)
+					if D is not None:
+						# also add a column holding the date 
+						D['Date'] = pd.Series(dd, index=D.index)
 
-					# also add a column holding the station number 
-					D['StationNumber'] = pd.Series(s, index=D.index)
-				
-					# get rid of some unneeded columns 
-					if not TPbased:
-						useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 
-								'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
-						D.drop(useless_cols,inplace=True,axis=1)
+						# also add a column holding the station number 
+						D['StationNumber'] = pd.Series(s, index=D.index)
+					
+						# get rid of some unneeded columns 
+						if not TPbased:
+							useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir', 
+									'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
+							D.drop(useless_cols,inplace=True,axis=1)
 
-					# append to list of data frames 
-					DFlist.append(D)
+						# append to list of data frames 
+						DFlist.append(D)
 
 
 	# merge the list of data frames into a single DF using list comprehension 
@@ -168,8 +169,13 @@ def TP_based_HRRS_data(ff):
 		N2new = fN2(zTPnew)
 
 		# now create a new dataframe with the TP-based heights 
-		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new}
+		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new,'ztrop':ztrop}
 		Dout = pd.DataFrame(data=new_data) 
+	else:
+		print('No clear lapse-rate tropopause found for the following sounding:')
+		print(ff)
+		print('Returning None')
+		Dout=None
 
 	return(Dout)
 
