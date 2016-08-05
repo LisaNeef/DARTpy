@@ -79,8 +79,10 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 					# read in the station data 
 					if TPbased:
 						D = TP_based_HRRS_data(ff)
+						alt_to_km = 1.0    # here the altitude is already in km
 					else:
 						D = read_HRRS_data(ff)
+						alt_to_km = 1.0E-3     # raw data are in m -- convert to km 
 		
 					if D is not None:
 						# also add a column holding the date 
@@ -88,6 +90,9 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 						# also add a column holding the station number 
 						D['StationNumber'] = pd.Series(s, index=D.index)
+
+						# make sure altitude is in km 
+						D['Alt']=D['Alt']*alt_to_km
 					
 						# get rid of some unneeded columns 
 						if not TPbased:
@@ -142,8 +147,19 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 	ztropp=ztrop(z=z,T=T,debug=debug,hostname=hostname)
 
 	if ztropp is not None:
-		# now compute the altitude relative to the tropopause 
-		zTP = DF['Alt']*1E-3-ztropp
+
+		# extract the station number from the file path 
+		file_components=ff.split('/')
+		station=file_components[len(file_components)-2]
+
+		# retrieve the mean tropopause height for this station 
+		# TODO: right noew this reads in a csv file of mean heights for Jan 2010. 
+		#	...need to make this more dynamic and obviously not user and host specific 
+		ZT=pd.read_csv('/data/c1/lneef/HRRS//mean_tropopause_height_per_station_20100101-20100131.csv',index_col=0)
+		ztrop_mean = ZT.loc[int(station)].ztrop_mean
+
+		# now compute the altitude relative to the tropopause, plus mean tropopause height 
+		zTP = DF['Alt']*1E-3-ztropp+ztrop_mean
 
 		# interpolate temp, pressure to this new grid 
 		# testing independently showed that linear interpolation is enough, and cubic
@@ -152,20 +168,20 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		fP = interp1d(zTP, DF['Press'], kind='linear')
 		fN2 = interp1d(zTP, DF['N2'], kind='linear')
 
-		# create a regularly spaced grid (in km)
-		#zTPnew = np.arange(round(min(fT.x)), round(max(fT.x)), 50E-3)
-		zTPnew = np.arange(-3.0,3.0, 50E-3)
-		if debug:
-			print(zTPnew)
-			print(zTP)
+		# create a regularly spaced grid (in km) 
+		zTPgrid=np.arange(0.0,20.0, 50E-3)
 
-		# regularly-spaced pressures and temps 
+		# select whatever part of the regular grid fits into the range sampled by this sounding 
+		select = np.where(np.logical_and(zTPgrid>min(zTP), zTPgrid<max(zTP)))
+		zTPnew=zTPgrid[select]
+
+		# now compute the variables on this grid using the interpolate function 
 		Tnew = fT(zTPnew)
 		Pnew = fP(zTPnew)
 		N2new = fN2(zTPnew)
 
 		# now create a new dataframe with the TP-based heights 
-		new_data={'Press':Pnew,'Temp':Tnew,'zTP':zTPnew,'N2':N2new,'ztropp':ztropp}
+		new_data={'Press':Pnew,'Temp':Tnew,'Alt':zTPnew,'N2':N2new,'ztropp':ztropp}
 		Dout = pd.DataFrame(data=new_data) 
 	else:
 		print('No clear lapse-rate tropopause found for the following sounding:')
@@ -265,7 +281,6 @@ def read_HRRS_data(ff):
 	D= pd.read_csv(ff,skiprows=13,error_bad_lines=False,delim_whitespace=True,na_values=badvals)
 	colnames=list(D.columns.values)
 
-
 	# kick out the first two rows - they hold units and symbols 
 	D.drop(D.index[[0,1]], inplace=True)
 
@@ -282,7 +297,7 @@ def read_HRRS_data(ff):
 	dZ = np.gradient(D['Alt']) 
 	dthetadZ = np.gradient(theta,dZ)
 	D["N2"]=(g/theta)*dthetadZ
-
+	
 	return(D)
 
 def HRRS_stations_available_per_year(YYYY):
