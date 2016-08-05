@@ -80,9 +80,11 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 					if TPbased:
 						D = TP_based_HRRS_data(ff)
 						alt_to_km = 1.0    # here the altitude is already in km
+						temp_to_K = 0.0
 					else:
 						D = read_HRRS_data(ff)
 						alt_to_km = 1.0E-3     # raw data are in m -- convert to km 
+						temp_to_K = 273.15	# raw data need to be converted to kelvin
 		
 					if D is not None:
 						# also add a column holding the date 
@@ -92,7 +94,9 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 						D['StationNumber'] = pd.Series(s, index=D.index)
 
 						# make sure altitude is in km 
+						# and temp in Kelvin
 						D['Alt']=D['Alt']*alt_to_km
+						D['Temp']=D['Temp']+temp_to_K
 					
 						# get rid of some unneeded columns 
 						if not TPbased:
