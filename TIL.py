@@ -306,16 +306,16 @@ def ztrop(z,T,hostname='taurus',debug=False):
 
 	# compute the lapse rate
 	dZ = np.gradient(z)
-	LR = np.gradient(T,dZ)
+	LR = -np.gradient(T,dZ)
 
 	# now loop through lapse-rates, and if it falls below the 2K/km boundary, see if the WMO criterion is met  
 	for ll,zz in zip(LR,z):
-		if abs(ll)<2.0:
+		if ll<2.0:
 			zz_upper = zz+2.0
 			upper_neighbors = np.where(np.logical_and(z>=zz, z<=zz_upper))
 			LRtest = np.mean(LR[upper_neighbors])
 			# if this average number is within 2K/km, we're done 
-			if abs(LRtest)<2.0 and (zz>8.0):
+			if (LRtest<2.0) and (zz>6.0):
 				ztrop = zz
 				break
 
