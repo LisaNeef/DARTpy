@@ -131,7 +131,15 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 	"""
 
 	# read in the data as a data frame 
-	DF = read_HRRS_data(ff)
+	DF0 = read_HRRS_data(ff)
+
+	# drop unnecessary columns 
+	useless_cols=['Time','Dewpt','RH','Ucmp','Vcmp','spd','dir','Lat','Lon', 
+			'Wcmp',  'Ele', 'Azi', 'Qp', 'Qt', 'Qrh', 'Qu', 'Qv', 'QdZ']
+	DF0.drop(useless_cols,inplace=True,axis=1)
+
+	# get rid of NaNs
+	DF=DF0.dropna()
 
 	if debug:
 		print('Loading file '+ff)
@@ -142,6 +150,13 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 	# compute the height of the lapse-tropopause from the altitude array 
 	z=DF['Alt']/1E3       # Altitude in km 
 	T=DF['Temp']+273.15      # Temp in Kelvin
+	P=DF['Press']
+	N2=DF['N2']
+
+	#z = z0.dropna()
+	#T = T0.dropna()
+	#P = P0.dropna()
+	#N2 = N20.dropna()
 
 	from TIL import ztrop
 	ztropp=ztrop(z=z,T=T,debug=debug,hostname=hostname)
@@ -161,12 +176,10 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		# now compute the altitude relative to the tropopause, plus mean tropopause height 
 		zTP = DF['Alt']*1E-3-ztropp+ztrop_mean
 
-		# interpolate temp, pressure to this new grid 
-		# testing independently showed that linear interpolation is enough, and cubic
-		# produces bonkers results...but maybe not for all applications 
+		# interpolate temp, pressure to this new coordinate
 		fT = interp1d(zTP, T, kind='linear')
-		fP = interp1d(zTP, DF['Press'], kind='linear')
-		fN2 = interp1d(zTP, DF['N2'], kind='linear')
+		fP = interp1d(zTP, P, kind='linear')
+		fN2 = interp1d(zTP, N2, kind='linear')
 
 		# create a regularly spaced grid (in km) 
 		zTPgrid=np.arange(0.0,20.0, 50E-3)
