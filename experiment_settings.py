@@ -638,6 +638,28 @@ def get_truth_names(exp_name):
 	truth_name_out = truth_names[exp_name]
 	return(truth_name_out)
 
+def get_corresponding_NODA(exp_name):
+
+	"""
+	Given the name of a DART experiment, return the name of an experiment that is similar 
+	but has no data assimilation. These can be used, e.g., to compute climatologies of values 
+	"""
+
+	noda_names = {
+	'W0910_NODA_OLDensemble'  : 'W0910_NODA_OLDensemble',
+	'W0910_TROPICS_OLDensemble'  : 'W0910_NODA_OLDensemble',
+	'W0910_GLOBAL_OLDensemble'  : 'W0910_NODA_OLDensemble',
+	'W0910_NODA'  : 'W0910_NODA',
+	'W0910_TROPICS'  : 'W0910_NODA',
+	'W0910_GLOBAL'  : 'W0910_NODA',
+	'ERPALL' : 'NODA',
+	'NODA' :  'NODA',
+	'RST' :  'NODA',
+	'ERPRST' :  'NODA'
+	}
+
+	noda_name_out = noda_names[exp_name]
+	return(noda_name_out)
 
 def climatology_runs(clim_name,hostname='taurus',debug=False):
 
