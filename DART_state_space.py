@@ -2265,7 +2265,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			file_type_found = False
 			# here are the different categories of variables:
 			# TODO: subroutine that reads the control variables specific to each model/experiment
-			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq','brunt']
+			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq','brunt','P']
 			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
 			dynamical_heating_rates_list = ['VTY','WS']
 
@@ -2311,10 +2311,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				lon = None
 				file_type_found = True
 
-			# pressure needs to be recreated from the hybrid model levels -- this is done in a separate routine 
-			if E['variable'] == 'P':
-				V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
-				file_type_found = True
+			# it might be that pressure needs to be recreated from the hybrid model levels 
+			# -- this can be done in a separate routine. Right now this is commented out because it's faster 
+			# to just compute pressure in the format of DART diagnostic files and then read those in. 
+			# TODO: build in some dynamic way to test whether Pressure is available or needs to be recreated 
+			#if E['variable'] == 'P':
+			#	V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
+			#	file_type_found = True
 
 			# for all other variables, compute the diagnostic from model h files 
 			if file_type_found is False:
@@ -2365,7 +2368,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			return None,None,None,None,None
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,TPbased=False,hostname='taurus',vertical_coord='log_levels',debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -2381,6 +2384,8 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	Ediff: DART experiment dictionary of the experiment/quantity that we want to subtract out  (default is None)  
 	color, linestyle, linewidth, alpha: parameters for the plotting (optional) 
 	scaling_factor: factor by which we multiply the profile to be plotted (default is 1.0)    
+	TPbased: If this is set to true, compute the height of each gridbox relative to the local tropopause and 
+		plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
 	hostname: the computer this is being run on (default is taurus)  
 	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
 		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
@@ -2417,6 +2422,17 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	if ('+' in E['variable']):
 		Vmatrix = sum(V for V in Vmatrix_list)
+
+	# ---adjustment intro tropopause-based coordinates  
+	#if TPbased: 
+
+		# retrieve tropopause height for the same times 
+
+
+
+
+	# ---adjustment intro tropopause-based coordinates  
+
 
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
