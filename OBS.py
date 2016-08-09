@@ -8,7 +8,7 @@ import pandas as pd
 import datetime
 import experiment_settings as es
 import DART as dart
-#import os.path
+import os.path
 #from netCDF4 import Dataset
 
 def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
@@ -344,7 +344,7 @@ def HRRS_station_data(hostname):
 	datadir = es.obs_data_paths('HRRS',hostname)
 
 	ff=datadir+'ListOfStations.dat'
-	colnames=[ 'WBAN','Station Name','State','Country','WMO Code','Lat','Lon','Height','Transition date']
+	colnames=[ 'WBAN','Station_Name','State','Country','WMO_Code','Lat','Lon','Height','Transition date']
 	stations = pd.read_csv(ff,delimiter=",",error_bad_lines=False,skiprows=1,names=colnames,index_col='WBAN')
 
 

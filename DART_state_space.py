@@ -26,7 +26,8 @@ var3d = ['U','US','V','VS','T','Z3','DELF']
 var2d = ['PS','FLUT']
 var1d = ['hyam','hybm','hyai','hybi']
 
-
+# constants
+H = 7.0    # 7.0km scale height 
 
 def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,ncolors=19,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False,stat_sig=None):
 
@@ -2368,7 +2369,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			return None,None,None,None,None
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,TPbased=False,hostname='taurus',vertical_coord='log_levels',debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -2384,13 +2385,13 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	Ediff: DART experiment dictionary of the experiment/quantity that we want to subtract out  (default is None)  
 	color, linestyle, linewidth, alpha: parameters for the plotting (optional) 
 	scaling_factor: factor by which we multiply the profile to be plotted (default is 1.0)    
-	TPbased: If this is set to true, compute the height of each gridbox relative to the local tropopause and 
-		plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
 	hostname: the computer this is being run on (default is taurus)  
 	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
 		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
 		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
 		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
+		'TPbased': in this case, compute the height of each gridbox relative to the local tropopause and 
+			plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
 	debug: set to True to print out extra output 
 	"""
 	daterange = E['daterange']
@@ -2410,11 +2411,24 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		Etemp=E.copy()
 		Etemp['variable']=variable
 		# load the requested array, and the difference array if needed 
-		Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+		Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+		# convert to TP-based coordinates if requested 	
+		if vertical_coord=='TPbased': 
+			Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+		else:
+			Vmain=Vmain0
+			lev=lev0
+
 		if Ediff is not None:
 			Etempdiff=Ediff.copy()
 			Etempdiff['variable']=variable
-			Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
+			Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
+			# convert to TP-based coordinates if requested 	
+			if vertical_coord=='TPbased': 
+				Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+			else:
+				Vdiff=Vdiff0
+				lev=lev0
 			Vmatrix=Vmain-Vdiff
 		else:
 			Vmatrix=Vmain
@@ -2422,17 +2436,6 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	if ('+' in E['variable']):
 		Vmatrix = sum(V for V in Vmatrix_list)
-
-	# ---adjustment intro tropopause-based coordinates  
-	#if TPbased: 
-
-		# retrieve tropopause height for the same times 
-
-
-
-
-	# ---adjustment intro tropopause-based coordinates  
-
 
 	# average over the last dimension, which is always time (by how we formed this array) 
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
@@ -2473,6 +2476,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		p0=1000.0 
 		y = H*np.log(p0/lev)
 		ylabel = 'log-p height (km)'
+	if vertical_coord=='TPbased':
+		#from matplotlib import rcParams
+		#rcParams['text.usetex'] = True
+		y=lev
+		ylabel='z (TP-based) (km)'
 
         # plot the profile  - loop over copies if that dimension is there  
 	# from the way DART_diagn_to_array works, copy is always the 0th dimension  
@@ -2501,10 +2509,17 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	if 'levels' in vertical_coord:
 		plt.ylim(E['levrange'])
 	else:
-		ylim=[H*np.log(p0/p) for p in E['levrange']]
+		H=7.0
+		p0 = 1000.0
+		ylim0=H*np.log(p0/E['levrange'][0])
+		if E['levrange'][1]==0:
+			ylimf = np.max(y)
+		else:
+			ylimf=H*np.log(p0/E['levrange'][1])
+		ylim=(ylim0,ylimf)
 		plt.ylim(ylim)
+	return M,y
 	
-	return M,lev
 
 def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,log_levels=False,invert_yaxis=False,debug=False):
 
@@ -2617,3 +2632,105 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 
 	return MT,lat
 
+def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
+
+	"""
+	This routine takes some multi-dimensional variable field and a corresponding array for vertical levels, 
+	and transforms the vertical coordinate into altitudes defined relative to the local tropopause, plus
+	the time-mean tropopause in that location, i.e. zt = z-ztrop-ztropmean 
+	(See [Birner 2006](http://www.agu.org/pubs/crossref/2006/2005JD006301.shtml))
+
+	After computing the TP-based height at each location, we run through all latitudes, 
+	longitudes, times, and copies, and interpolate the tropopause-based heights 
+	to a regular grid so that we can average. 
+	The `interp1d` function creates a functional relationship between the variable in 
+	Vmatrix and the TP-based coordinates, and the grid to which we interpolate has to be 
+	within the bounds of this function (i.e. the min and max values of TP-based altitude 
+	for each column).  -- Might have to play with this for your own data. 
+ 
+	INPUTS:
+	E: a DART experiment dictionary giving the details of the data that we are requesting 
+	Vmatrix: a multi-dimensional model data grid, ideally the output of DART_diagn_to_array  
+	lev: a vector of vertical level pressures. These can be in Pascal or hPa. 
+	"""
+
+	# given the data matrix, we have to retrieve several other things: 
+	# and the climatological-mean tropopause height for every point on the grid. 
+	#   this last one is most easily computed by using the ensemble mean of a corresponding 
+	#   No-DA experiment. 
+	#
+	# First define all the things we need in experiment dictionaries, and then 
+	# stick those into a list to loop over 
+
+	# tropopause height of the experiment 
+	Etrop=E.copy()
+	Etrop['variable']='ptrop'
+	Etrop['matrix_name']='ztrop'
+
+	# the pressure field of the requested experiment 
+	Ep=E.copy()
+	Ep['variable']='P'
+	Ep['matrix_name']='z'  
+
+	# the climatological mean tropopause height (i.e. the tropopause height in the mean of the No-assim experiment)
+	EtropNODA = Etrop.copy()
+	EtropNODA['exp_name']= es.get_corresponding_NODA(Etrop['exp_name'])
+	EtropNODA['copystring']='ensemble mean'
+	EtropNODA['matrix_name']='ztropmean'
+
+	# now loop over these experiment and retrieve the data, also converting pressures to altitudes 
+	# stick these into a dictionary 
+	EE = [Etrop,Ep,EtropNODA]
+	Zdict = dict()
+	for Etemp in EE:
+		if Etemp is not None:
+			V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp)
+			if np.max(V) > 10000.0:     # this will be true if pressure units are Pascal
+				P0=1.0E5
+			else:                        # otherwise assume pressure is in hPa
+				P0=1.0E3
+			Z = H*np.log(P0/V)
+			
+			# for tropopause heights, convert 2d to 3d array by adding an additional dimension 
+			if 'ztrop' in Etemp['matrix_name']:
+				# find which is the vertical levels dimension 
+				nlev = len(lev)
+				levdim = list(Vmatrix.shape).index(nlev)  
+				Zx = np.expand_dims(Z, axis=levdim)
+				Z3d=np.broadcast_to(Zx,Vmatrix.shape)
+			else:
+				Z3d=Z
+				       
+			# add final array to dictionary 
+			Zdict[Etemp['matrix_name']]=Z3d
+
+	# now for each point, compute z-ztrop+ztropmean
+	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
+
+	# create a regular grid 
+	zTPgrid=np.arange(7.0,20.0, 1.0)
+
+	# empty array to hold interpolated data
+	Snew = list(Vmatrix.shape)
+	Snew[3] = len(zTPgrid)
+	Vnew = np.zeros(shape=Snew)
+
+	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
+	S=Vmatrix.shape
+
+	from scipy.interpolate import interp1d
+	for ii in range(S[0]):
+		for jj in range(S[1]):
+			for kk in range(S[2]):
+				for ll in range(S[4]):
+					Vcolumn = Vmatrix[ii,jj,kk,:,ll]
+					ZTcolumn = ZT[ii,jj,kk,:,ll]
+					f = interp1d(ZTcolumn,Vcolumn, kind='cubic')
+					# need to check whether the sampled ZTcolumn covers the 
+					# grid to which we want to interpolate
+					if (np.min(zTPgrid) < np.min(ZTcolumn)) or (np.max(zTPgrid) > np.max(ZTcolumn)):
+						Vnew[ii,jj,kk,:,ll] = np.nan
+					else:
+						Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
+
+	return Vnew,zTPgrid
