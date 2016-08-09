@@ -500,6 +500,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		print('+++++++++++++++++++++++++++++++++++++++++')
 		print("Retrieving experiment "+E['exp_name'])
 		print("for diagnostic "+E['diagn'])
+		print("variable "+E['variable'])
 		print("copy "+E['copystring'])
 		datestr = date.strftime("%Y-%m-%d")
 		print("and date "+datestr)
