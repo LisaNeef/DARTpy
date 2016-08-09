@@ -1742,7 +1742,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	else:
 		return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1760,6 +1760,12 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
 	colorbar_label: string with which to label the colorbar  
 	scaling_factor: factor by which to multiply the array to be plotted 
+	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
+		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
+		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
+		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
+		'TPbased': in this case, compute the height of each gridbox relative to the local tropopause and 
+			plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
 	debug: set to True to get extra ouput
 	"""
 
@@ -1769,9 +1775,21 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		return
 
 	# load the requested array, and the difference array if needed 
-	Vmain,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# convert to TP-based coordinates if requested 	
+	if vertical_coord=='TPbased': 
+		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+	else:
+		Vmain=Vmain0
+		lev=lev0
 	if Ediff is not None:
-		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		# convert to TP-based coordinates if requested 	
+		if vertical_coord=='TPbased': 
+			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+		else:
+			Vdiff=Vdiff0
+			lev=lev0
 		Vmatrix=Vmain-Vdiff
 	else:
 		Vmatrix=Vmain
@@ -1825,7 +1843,22 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Returning with nothing plotted...')
 		return None,None
 
-	cs = plt.contourf(lat,lev,scaling_factor*MT,L,cmap=cmap,extend="both")
+	# compute vertical coordinate depending on choice of pressure or altitude 
+	if 'levels' in vertical_coord:
+		y=lev
+		ylabel = 'Level (hPa)'
+	if vertical_coord=='z':
+		H=7.0
+		p0=1000.0 
+		y = H*np.log(p0/lev)
+		ylabel = 'log-p height (km)'
+	if vertical_coord=='TPbased':
+		#from matplotlib import rcParams
+		#rcParams['text.usetex'] = True
+		y=lev
+		ylabel='z (TP-based) (km)'
+
+	cs = plt.contourf(lat,y,scaling_factor*MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
