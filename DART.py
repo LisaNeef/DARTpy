@@ -513,7 +513,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 	# a list of 2d variables -- if the var is 2d, don't need to load vertical levels 
 	# TODO: add other 2d variables to this list 
-	variables_2d = ['PS','ptrop']
+	variables_2d = ['PS','ptrop','ztrop']
 
 	# find the directory for this run   
 	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
