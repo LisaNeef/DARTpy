@@ -562,6 +562,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 						'var129':['Z','z','var129'],
 						'msl':['var151'],
 						'mslp':['var151'],
+						'ztrop':['ptrop'],
 						'Nsq':['brunt']}
 
 			possible_varnames_list=possible_varnames_dict[E['variable']]
@@ -647,6 +648,20 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			VV2 = VV[0,copies,j1:j2+1,i1:i2+1]
 		else:
 			VV2 = VV[0,copies,j1:j2+1,i1:i2+1,k1:k2+1]
+
+		#------------extra computations  
+
+		# if tropopause altitude (ztrop) was requested, we retrieved tropopause pressure -- 
+		# convert it here 
+		if E['variable']=='ztrop':
+			H = 7.0		# 7 km scale height 
+			if np.max(VV2) > 1.0E4:   # in this case, pressure is in Pa 
+				P0 = 1.0E5
+			else:
+				P0 = 1.0E3
+			VVpress = VV2
+			VV2 = H*np.log(P0/VVpress)
+				
 
 		# if the ensemble variance was requested, square it here
 		if (E['extras'] == 'ensemble variance'): 
