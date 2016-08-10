@@ -1874,9 +1874,11 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# axis labels 
 	plt.xlabel('Latitude')
-	plt.ylabel('Pressure (hPa)')
-	plt.yscale('log')
-	plt.gca().invert_yaxis()
+	plt.ylabel(ylabel)
+	if vertical_coord=='log_levels':
+		plt.yscale('log')
+	if 'levels' in vertical_coord:
+		plt.gca().invert_yaxis()
 
 	# make sure the axes only go as far as the ranges in E
 	plt.ylim(E['levrange'])
@@ -2741,12 +2743,12 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
 
 	# create a regular grid 
-	zTPgrid=np.arange(7.0,20.0, 1.0)
+	zTPgrid=np.arange(6.0,21.0, 1.0)
 
 	# empty array to hold interpolated data
 	Snew = list(Vmatrix.shape)
 	Snew[3] = len(zTPgrid)
-	Vnew = np.zeros(shape=Snew)
+	Vnew = np.empty(shape=Snew)*np.nan
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
 	S=Vmatrix.shape
@@ -2758,12 +2760,20 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 				for ll in range(S[4]):
 					Vcolumn = Vmatrix[ii,jj,kk,:,ll]
 					ZTcolumn = ZT[ii,jj,kk,:,ll]
+
+					# here is the interpolation function:
 					f = interp1d(ZTcolumn,Vcolumn, kind='cubic')
+
+					# check whether the sampled ZTcolumn covers the grid we interpolate to
+					select = np.where(np.logical_and(zTPgrid>min(ZTcolumn), zTPgrid<max(ZTcolumn)))
+					zTPnew=zTPgrid[select]
+					Vnew[ii,jj,kk,select,ll] = f(zTPnew)
+					
 					# need to check whether the sampled ZTcolumn covers the 
 					# grid to which we want to interpolate
-					if (np.min(zTPgrid) < np.min(ZTcolumn)) or (np.max(zTPgrid) > np.max(ZTcolumn)):
-						Vnew[ii,jj,kk,:,ll] = np.nan
-					else:
-						Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
+					#if (np.min(zTPgrid) < np.min(ZTcolumn)) or (np.max(zTPgrid) > np.max(ZTcolumn)):
+					#	Vnew[ii,jj,kk,:,ll] = np.nan
+					#else:
+					#	Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
 
 	return Vnew,zTPgrid
