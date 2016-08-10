@@ -110,7 +110,7 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 		if E['run_category'] is None:
 			diagstring = 'Diag'
 			# additional diagnostics files have the 'Diag' string replaced with something else. 
-			TIL_variables = ['theta','ptrop','Nsq','P','brunt']
+			TIL_variables = ['theta','ptrop','Nsq','P','brunt','ztrop']
 			if E['variable'] in TIL_variables:
 				diagstring='TIL'
 			fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+datestr+'-'+timestr+'.nc'
