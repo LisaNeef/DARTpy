@@ -201,9 +201,10 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		new_data={'Press':Pnew,'Temp':Tnew,'Alt':zTPnew,'N2':N2new,'ztropp':ztropp}
 		Dout = pd.DataFrame(data=new_data) 
 	else:
-		print('No clear lapse-rate tropopause found for the following sounding:')
-		print(ff)
-		print('Returning None')
+		if debug:
+			print('No clear lapse-rate tropopause found for the following sounding:')
+			print(ff)
+			print('Returning None')
 		Dout=None
 
 	return(Dout)
@@ -310,11 +311,12 @@ def read_HRRS_data(ff):
 	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
 	g = 9.80616                     # Acceleration due to gravity       m/s^2
 	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
-	theta=(D['Temp']+273.15)*(P0/D['Press'])**(Rd/cp)		# note that this includes convertion of Celsius to Kelvin  
+	theta=(D['Temp']+273.15)*(P0/D['Press'])**(Rd/cp)		# note that this includes conversion of Celsius to Kelvin  
 	dZ = np.gradient(D['Alt']) 
 	dthetadZ = np.gradient(theta,dZ)
 	D["N2"]=(g/theta)*dthetadZ
 	
+
 	return(D)
 
 def HRRS_stations_available_per_year(YYYY):
