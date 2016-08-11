@@ -2720,7 +2720,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	for Etemp in EE:
 		if Etemp is not None:
 			V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp)
-			if np.max(V) > 10000.0:     # this will be true if pressure units are Pascal
+			if np.max(V) > 2000.0:     # this will be true if pressure units are Pascal
 				P0=1.0E5
 			else:                        # otherwise assume pressure is in hPa
 				P0=1.0E3
@@ -2752,6 +2752,8 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
 	S=Vmatrix.shape
+	print('--interpolating heights of matrix of this shape:----')
+	print(S)
 
 	from scipy.interpolate import interp1d
 	for ii in range(S[0]):
@@ -2765,7 +2767,10 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 					f = interp1d(ZTcolumn,Vcolumn, kind='cubic')
 
 					# check whether the sampled ZTcolumn covers the grid we interpolate to
-					select = np.where(np.logical_and(zTPgrid>min(ZTcolumn), zTPgrid<max(ZTcolumn)))
+					select = np.where(np.logical_and(zTPgrid>np.min(ZTcolumn), zTPgrid<np.max(ZTcolumn)))
+					print(np.min(ZTcolumn))
+					print(np.max(ZTcolumn))
+					print(select)
 					zTPnew=zTPgrid[select]
 					Vnew[ii,jj,kk,select,ll] = f(zTPnew)
 					
