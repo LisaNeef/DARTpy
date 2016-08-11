@@ -186,7 +186,7 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		fN2 = interp1d(zTP, N2, kind='linear')
 
 		# create a regularly spaced grid (in km) 
-		zTPgrid=np.arange(0.0,20.0, 50E-3)
+		zTPgrid=np.arange(0.0,26.0, 50E-3)
 
 		# select whatever part of the regular grid fits into the range sampled by this sounding 
 		select = np.where(np.logical_and(zTPgrid>min(zTP), zTPgrid<max(zTP)))

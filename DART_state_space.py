@@ -2743,7 +2743,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
 
 	# create a regular grid 
-	zTPgrid=np.arange(6.0,21.0, 1.0)
+	zTPgrid=np.arange(6.0,26.0, 1.0)
 
 	# empty array to hold interpolated data
 	Snew = list(Vmatrix.shape)
