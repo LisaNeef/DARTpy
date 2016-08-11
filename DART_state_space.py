@@ -2752,8 +2752,6 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
 	S=Vmatrix.shape
-	print('--interpolating heights of matrix of this shape:----')
-	print(S)
 
 	from scipy.interpolate import interp1d
 	for ii in range(S[0]):
@@ -2768,9 +2766,6 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 
 					# check whether the sampled ZTcolumn covers the grid we interpolate to
 					select = np.where(np.logical_and(zTPgrid>np.min(ZTcolumn), zTPgrid<np.max(ZTcolumn)))
-					print(np.min(ZTcolumn))
-					print(np.max(ZTcolumn))
-					print(select)
 					zTPnew=zTPgrid[select]
 					Vnew[ii,jj,kk,select,ll] = f(zTPnew)
 					
