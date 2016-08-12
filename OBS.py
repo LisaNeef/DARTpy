@@ -157,11 +157,6 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 	P=DF['Press']
 	N2=DF['N2']
 
-	#z = z0.dropna()
-	#T = T0.dropna()
-	#P = P0.dropna()
-	#N2 = N20.dropna()
-
 	from TIL import ztrop
 	ztropp=ztrop(z=z,T=T,debug=debug,hostname=hostname)
 
@@ -183,7 +178,7 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		# interpolate temp, pressure to this new coordinate
 		fT = interp1d(zTP, T, kind='linear')
 		fP = interp1d(zTP, P, kind='linear')
-		fN2 = interp1d(zTP, N2, kind='linear')
+	#	fN2 = interp1d(zTP, N2, kind='linear')
 
 		# create a regularly spaced grid (in km) 
 		zTPgrid=np.arange(0.0,26.0, 50E-3)
@@ -195,7 +190,14 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		# now compute the variables on this grid using the interpolate function 
 		Tnew = fT(zTPnew)
 		Pnew = fP(zTPnew)
-		N2new = fN2(zTPnew)
+	#	N2new = fN2(zTPnew)
+
+		# N2 comes out quite noisy when computed from raw radiosonde observations. 
+		# The spline (needed to get the obs on a common grid) is an opportunity for smoothing 
+		# the temperature field a bit, which will yield a smoother N2 profile -- so just recompute 
+		# N2 here  
+		from TIL import Nsq
+		N2new = Nsq(Tnew,zTPnew)
 
 		# now create a new dataframe with the TP-based heights 
 		new_data={'Press':Pnew,'Temp':Tnew,'Alt':zTPnew,'N2':N2new,'ztropp':ztropp}
