@@ -320,3 +320,34 @@ def ztrop(z,T,hostname='taurus',debug=False):
 				break
 
 	return(ztrop)
+
+def Nsq(T,z,p=None):
+
+	"""
+	This is a simple subroutine that computes the buoyancy frequency from 1D arrays of temperature and altitude. 
+	INPUTS:
+	T: a temperature profile in Kelvin 
+	z: a vector of altitudes in km
+	p: a vector of pressures in hPa 
+	If pressure is also giveni (must be in hPa), that makes the calculation slightly easier, but it's optional. 
+	"""
+	P0=1000.0
+	Rd = 286.9968933                # Gas constant for dry air        J/degree/kg
+	g = 9.80616                     # Acceleration due to gravity       m/s^2
+	cp = 1005.0                     # heat capacity at constant pressure    m^2/s^2*K
+	H = 7.0				# scale height - 7.0km
+
+	# is a pressure profile given?  
+	if p is None:
+		p = P0*np.exp(-z/H)
+
+	# compute potential temperature 
+	theta = T*(P0/p)**(Rd/cp)
+
+	# compute vertical gradient of pot. temp. 
+	dZ = np.gradient(z) 
+	dthetadZ = np.gradient(theta,dZ)
+	N2=(g/theta)*dthetadZ
+
+	return(N2)
+
