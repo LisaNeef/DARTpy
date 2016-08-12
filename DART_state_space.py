@@ -2018,7 +2018,7 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 	# return the colorbar handle if available, so we can adjust it later
 	return Mlist
 
-def Nsq(E,date,hostname='taurus',debug=False):
+def Nsq_from_3d(E,date,hostname='taurus',debug=False):
 
 	"""
 	given a DART experiment dictionary on a certain date and time, compute the buoyancy frequency as a 3D field 
@@ -2720,7 +2720,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	for Etemp in EE:
 		if Etemp is not None:
 			V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp)
-			if np.max(V) > 2000.0:     # this will be true if pressure units are Pascal
+			if np.max(V) > 1000.0:     # this will be true if pressure units are Pascal
 				P0=1.0E5
 			else:                        # otherwise assume pressure is in hPa
 				P0=1.0E3
