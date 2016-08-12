@@ -345,7 +345,8 @@ def Nsq(T,z,p=None):
 	theta = T*(P0/p)**(Rd/cp)
 
 	# compute vertical gradient of pot. temp. 
-	dZ = np.gradient(z) 
+	# note that this includes a conversion of altitude from km to meters
+	dZ = np.gradient(z*1.0E3) 
 	dthetadZ = np.gradient(theta,dZ)
 	N2=(g/theta)*dthetadZ
 
