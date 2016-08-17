@@ -2742,7 +2742,12 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	lonf = f.variables['lon'][:]
 	levf = f.variables['lev'][:]
 	timef = f.variables['time'][:]
-	Zdict['ztropmean'] = f.variables['ptrop'][:]
+	ptrop = f.variables['ptrop'][:]
+	if np.max(levf) > 1500.0:     # this will be true if pressure units are Pascal
+		P0=1.0E5
+	else:                        # otherwise assume pressure is in hPa
+		P0=1.0E3
+	Zdict['ztropmean'] = H*np.log(P0/ptrop)
 
 	# now for each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
