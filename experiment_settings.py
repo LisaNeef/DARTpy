@@ -695,3 +695,28 @@ def obs_data_paths(obs_type,hostname):
 	data_dir_dict={'HRRS':'/data/c1/lneef/HRRS/'}
 	
 	return data_dir_dict[obs_type]
+
+def time_mean_file(E,hostname='taurus'):
+
+	"""
+	Given some DART experiment dictionary E, read the experiment name and requested variable, 
+	and return the path to the file that contains a temporal-mean of that variable. 
+
+	TODO: can make this more flexible, e.g. fiding the time mean of a given copy, if needed later
+	"""
+
+	file_dict= {'W0910_NODA':'nechpc-waccm-dart-gpsro-ncep-no-assim-02.cam_ensemble_mean.VARIABLE.2009-2010.DJF.nc',
+		'W0910_GLOBAL':'nechpc-waccm-dart-gpsro-ncep-global-02.cam_ensemble_mean.VARIABLE.2009-2010.DJFmean.nc'}
+	
+	if hostname=='taurus'
+		path_dict= {'W0910_NODA':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-global-02/atm/hist/',
+			'W0910_GLOBAL':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-no-assim-02/atm/hist/'}
+
+	# replace the wildcard VARIABLE with whatever variable we are looking for 
+	filenane = file_dict[E['exp_name']].replace('VARIABLE',E['variable'])
+	path = path_dict[E['exp_name']]
+	
+	filename_out = path+filename
+
+
+
