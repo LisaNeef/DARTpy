@@ -2707,15 +2707,9 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	Ep['variable']='P'
 	Ep['matrix_name']='z'  
 
-	# the climatological mean tropopause height (i.e. the tropopause height in the mean of the No-assim experiment)
-	EtropNODA = Etrop.copy()
-	EtropNODA['exp_name']= es.get_corresponding_NODA(Etrop['exp_name'])
-	EtropNODA['copystring']='ensemble mean'
-	EtropNODA['matrix_name']='ztropmean'
-
 	# now loop over these experiment and retrieve the data, also converting pressures to altitudes 
 	# stick these into a dictionary 
-	EE = [Etrop,Ep,EtropNODA]
+	EE = [Etrop,Ep]
 	Zdict = dict()
 	for Etemp in EE:
 		if Etemp is not None:
@@ -2738,6 +2732,17 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 				       
 			# add final array to dictionary 
 			Zdict[Etemp['matrix_name']]=Z3d
+
+	# we also need the time-mean tropopause height. 
+	# It's best to compute this before hand and save it in a file, the name of 
+	# which is stored in experiment_settings. 
+	ztropmean_file = es.time_mean_file(Etrop)
+	f = Dataset(ztropmean_file,'r')
+	latf = f.variables['lat'][:]
+	lonf = f.variables['lon'][:]
+	levf = f.variables['lev'][:]
+	timef = f.variables['time'][:]
+	Zdict['ztropmean'] = f.variables['ptrop'][:]
 
 	# now for each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
