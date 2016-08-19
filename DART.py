@@ -702,7 +702,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			Etr['diagn'] = 'Truth'
 			filename_truth = es.find_paths(Etr,date,'truth',hostname=hostname,debug=debug)
 			if not os.path.exists(filename):
-				#print("+++cannot find files that look like  "+filename_truth+' -- returning None')
+				print("+++cannot find files that look like  "+filename_truth+' -- returning None')
 				return None,None,None,None,None,None,None
 			else:
 				if debug:
