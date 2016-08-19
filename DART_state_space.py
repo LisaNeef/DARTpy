@@ -2277,6 +2277,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			DR = E['daterange']
 
 
+
 	# if none of the above worked, we have to 
 	# loop over the dates given in the experiment dictionary and load the desired data  
 	Vlist = []
@@ -2321,7 +2322,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 				# for the same data in model output files. 
 				if V is None:
 					file_type_found = False
-					print('Cannot find variable '+E['variable']+' in DART output')
+					print('DART_diagn_to_array: Cannot find variable '+E['variable']+' in DART output')
 					print('for experiment '+E['exp_name'])
 					print('---> looking for model output files instead')
 				else:
@@ -2707,9 +2708,15 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	Ep['variable']='P'
 	Ep['matrix_name']='z'  
 
+	# the DJF-mean tropopause height
+	Etropmean=E.copy()
+	Etropmean['variable']='ptrop'
+	Etropmean['matrix_name']='ztropmean'  
+	Etropmean['extras']='DJFmean'  
+
 	# now loop over these experiment and retrieve the data, also converting pressures to altitudes 
 	# stick these into a dictionary 
-	EE = [Etrop,Ep]
+	EE = [Etrop,Ep,Etropmean]
 	Zdict = dict()
 	for Etemp in EE:
 		if Etemp is not None:
@@ -2736,18 +2743,27 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	# we also need the time-mean tropopause height. 
 	# It's best to compute this before hand and save it in a file, the name of 
 	# which is stored in experiment_settings. 
-	ztropmean_file = es.time_mean_file(Etrop)
+	ztropmean_file = es.time_mean_file(Etrop,hostname)
 	f = Dataset(ztropmean_file,'r')
 	latf = f.variables['lat'][:]
 	lonf = f.variables['lon'][:]
-	levf = f.variables['lev'][:]
 	timef = f.variables['time'][:]
 	ptrop = f.variables['ptrop'][:]
-	if np.max(levf) > 1500.0:     # this will be true if pressure units are Pascal
+	# need to select the lat/lon limits specified in E
+	# NOTE: here I've made assumptions abouot the shape of ptrop (it works for WACCM data)-- this needs to be 
+	# made more general 
+	latrange=Etrop['latrange']
+	j2 = (np.abs(latf-latrange[1])).argmin()
+	j1 = (np.abs(latf-latrange[0])).argmin()
+	lonrange=Etrop['lonrange']
+	i2 = (np.abs(lonf-lonrange[1])).argmin()
+	i1 = (np.abs(lonf-lonrange[0])).argmin()
+	ptrop2 = np.squeeze(ptrop)[j1:j2+1,i1:i2+1]
+	if np.max(ptrop2) > 1000.0:     # this will be true if pressure units are Pascal
 		P0=1.0E5
 	else:                        # otherwise assume pressure is in hPa
 		P0=1.0E3
-	Zdict['ztropmean'] = H*np.log(P0/ptrop)
+	Zdict['ztropmean'] = H*np.log(P0/ptrop2)
 
 	# now for each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']

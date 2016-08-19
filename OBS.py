@@ -11,7 +11,7 @@ import DART as dart
 import os.path
 #from netCDF4 import Dataset
 
-def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
+def HRRS_as_DF(OBS,TPbased=False,TPbased_vertical_res=50E-3,hostname='taurus',debug=False):
 
 	"""
 	Loop over a set of dates and a specified latitude- and longitude range, and return 
@@ -28,6 +28,8 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 		relative to the tropopause  - default is False. 
 	hostname: default is taurus 
 	debug: set to True to print some stuff out. Default is False. 
+	TPbased_vertical_res: resolution of the grid to which we inteprolate the obs doing TP-based 
+		coordinates. Default is 50m. 
 	"""
 
 	# first read in station information as a dataframe 
@@ -78,7 +80,7 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 					# read in the station data 
 					if TPbased:
-						D = TP_based_HRRS_data(ff)
+						D = TP_based_HRRS_data(ff,TPbased_vertical_res)
 						alt_to_km = 1.0    # here the altitude is already in km
 						temp_to_K = 0.0
 					else:
@@ -113,7 +115,7 @@ def HRRS_as_DF(OBS,TPbased=False,hostname='taurus',debug=False):
 
 	return(DFout)
 
-def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
+def TP_based_HRRS_data(ff,vertical_res_km=50E-3,debug=False,hostname='taurus'):
 
 	"""
 	Given a single high-res radiosonde data sounding (identified by its 
@@ -132,6 +134,10 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 	Here the LR tropopause follows the WMO criterion. Quoting Birner et al. (2002):
 	The thermal TP is defined as the lowest level where the temperature lapse rate falls 
 	below 2 K/km and its average between this level and all higher levels within 2 km remains below this value [WMO, 1957]. 
+
+	INPUTS:  
+	ff: the full path to the HRRS profile that we will load 
+	vertical_res_km: vertical resolution of the grid to which we interpolate, in km. The default is 50m, which is roughly the vertical resolution of the HRRS obs. 
 	"""
 
 	# read in the data as a data frame 
@@ -178,10 +184,9 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		# interpolate temp, pressure to this new coordinate
 		fT = interp1d(zTP, T, kind='linear')
 		fP = interp1d(zTP, P, kind='linear')
-	#	fN2 = interp1d(zTP, N2, kind='linear')
 
 		# create a regularly spaced grid (in km) 
-		zTPgrid=np.arange(0.0,26.0, 50E-3)
+		zTPgrid=np.arange(0.0,26.0, vertical_res_km)
 
 		# select whatever part of the regular grid fits into the range sampled by this sounding 
 		select = np.where(np.logical_and(zTPgrid>min(zTP), zTPgrid<max(zTP)))
@@ -190,14 +195,13 @@ def TP_based_HRRS_data(ff,debug=False,hostname='taurus'):
 		# now compute the variables on this grid using the interpolate function 
 		Tnew = fT(zTPnew)
 		Pnew = fP(zTPnew)
-	#	N2new = fN2(zTPnew)
 
 		# N2 comes out quite noisy when computed from raw radiosonde observations. 
 		# The spline (needed to get the obs on a common grid) is an opportunity for smoothing 
 		# the temperature field a bit, which will yield a smoother N2 profile -- so just recompute 
 		# N2 here  
 		from TIL import Nsq
-		N2new = Nsq(Tnew,zTPnew)
+		N2new = Nsq(Tnew,zTPnew,Pnew)
 
 		# now create a new dataframe with the TP-based heights 
 		new_data={'Press':Pnew,'Temp':Tnew,'Alt':zTPnew,'N2':N2new,'ztropp':ztropp}

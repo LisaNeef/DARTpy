@@ -502,7 +502,10 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		print("for diagnostic "+E['diagn'])
 		print("variable "+E['variable'])
 		print("copy "+E['copystring'])
-		datestr = date.strftime("%Y-%m-%d")
+		if isinstance(date,str):
+			datestr=date
+		else:
+			datestr = date.strftime("%Y-%m-%d")
 		print("and date "+datestr)
 		print('+++++++++++++++++++++++++++++++++++++++++')
 
@@ -542,7 +545,19 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			P0 = f.variables['P0'][:]
 			hybm = f.variables['hybm'][:]
 			hyam = f.variables['hyam'][:]
-		CopyMetaData = f.variables['CopyMetaData'][:]
+
+		# load CopyMetaData if availabe
+		if 'CopyMetaData' in f.variables:
+			CMD = f.variables['CopyMetaData'][:]
+			CMD = f.variables['CopyMetaData'][:]
+			CopyMetaData = []
+			for ii in range(0,len(CMD)):
+				temp = CMD[ii,].tostring().decode("utf-8")
+				CopyMetaData.append(temp.rstrip())
+		else:
+			# if it's not available, look it up for that experiment 
+			CopyMetaData = es.get_expt_CopyMetaData_state_space(E)
+
 
 		# load the requested dynamical variable  - these can have different names, so 
 		# first check if the requested variable, and if it's not found, try alternatives 
@@ -599,26 +614,27 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 			# if the diagnostic is the Truth, then the copy string can only be one thing
 			if (E['diagn'] == 'Truth'):
-				copies = get_copy(f,'true state')
+				copies = get_copy(f,CopyMetaData,'true state')
 			# if we want the ensemble variance or std, copystring has to be the ensemble spread
 			if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled') or (E['extras'] == 'ensemble std'):
-				copies = get_copy(f,'ensemble spread')
+				copies = get_copy(f,CopyMetaData,'ensemble spread')
 			# if requesting the entire ensemble, loop over ensemble members here 
 			if E['copystring'] is 'ensemble':
-				copies = [get_copy(f,cs.tostring().decode("utf-8") ) for cs in CopyMetaData if 'ensemble member' in cs.tostring().decode("utf-8")]
+				#copies = [get_copy(f,cs.tostring().decode("utf-8") ) for cs in CopyMetaData if 'ensemble member' in cs.tostring().decode("utf-8")]
+				copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
 
 			# if none of the above apply, just choose whatever is in copystring 
 			if copies is None:
-				copies = [get_copy(f,E['copystring'],debug=debug)]
+				copies = [get_copy(f,CopyMetaData,E['copystring'],debug=debug)]
 		else:
 			# if E['copystring'] is a list, loop through it and find the copies to load 
 			for CS in E['copystring']:
 				if CS is 'ensemble':
 					# in this case look for all the copies that have ensemble status = "ensemble member"	
-					copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if 'ensemble member' in ''.join(cstring)]
+					copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
 				else:
 					# for all other copystrings, just look for the CopyMetaData entries that contrain that copystring
-					copies = [get_copy(f,''.join(cstring)) for cstring in CopyMetaData if ''.join(cstring)==CS]
+					copies = [get_copy(f,CopyMetaData,cstring) for cstring in CopyMetaData if cstring==CS]
 
 		#------finding which copies to retrieve  
 
@@ -655,7 +671,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# convert it here 
 		if E['variable']=='ztrop':
 			H = 7.0		# 7 km scale height 
-			if np.max(VV2) > 1.0E4:   # in this case, pressure is in Pa 
+			if np.max(VV2) > 1000.0:   # in this case, pressure is in Pa 
 				P0 = 1.0E5
 			else:
 				P0 = 1.0E3
@@ -747,7 +763,7 @@ def get_obs_type_number(f,obs_type_string):
 
 	return obs_type
 
-def get_copy(f,copystring,debug=False):
+def get_copy(f,CopyMetaData,copystring,debug=False):
 
 	"""
 	having opened a DART output diagnostic netcdf file, find the copy number that corresponds to a given copystring
@@ -762,14 +778,7 @@ def get_copy(f,copystring,debug=False):
 			spacing = '     '
 		copystring = "ensemble member"+spacing+ensindex
 
-        # figure out which copy to load
-	CMD = f.variables['CopyMetaData'][:]
-	CopyMetaData = []
-	for ii in range(0,len(CMD)):
-		temp = CMD[ii,].tostring().decode("utf-8")
-		CopyMetaData.append(temp.rstrip())
-	if debug:
-		print(CopyMetaData.index)
+	# now find the index of the list that fits the input string 
 	copy = CopyMetaData.index(copystring)
 
 	return copy

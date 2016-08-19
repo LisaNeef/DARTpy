@@ -62,6 +62,7 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 	+ 'obs_epoch' -- load obs_epoch_XXXX.nc files  
 	+ 'diag' -- load standard  DART Posterior_Diag or Prior_Diag files 
 	+ 'truth' -- load true state files from a perfect-model simulation
+	+ 'mean' -- load a DART-style diagnostic file that's a mean over a time period 
 
 	"""
 
@@ -97,24 +98,32 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 		if E['run_category'] == 'ERPDA':
 			fname = '/../obs_epoch/'+obs_epoch_name
 
+
 	#------------regular DART output files or true state files 
 	if (file_type == 'diag') or (file_type == 'truth'):
 		if E['diagn']=='Truth':
 			file_type='truth'
-		datestr = date.strftime("%Y-%m-%d")
-		seconds = date.hour*60*60
-		if seconds == 0:
-			timestr = '00000'
+		# either load a given date, or a time mean 
+		if isinstance(date,str):
+			endstring=date
 		else:
-			timestr = str(seconds)
+			datestr = date.strftime("%Y-%m-%d")
+			seconds = date.hour*60*60
+			if seconds == 0:
+				timestr = '00000'
+			else:
+				timestr = str(seconds)
+			endstring =datestr+'-'+timestr
 		if E['run_category'] is None:
 			diagstring = 'Diag'
 			# additional diagnostics files have the 'Diag' string replaced with something else. 
 			TIL_variables = ['theta','ptrop','Nsq','P','brunt','ztrop']
 			if E['variable'] in TIL_variables:
 				diagstring='TIL'
-			fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+datestr+'-'+timestr+'.nc'
-			fname_truth = '/dart/hist/cam_'+'True_State'+'.'+datestr+'-'+timestr+'.nc'
+
+			fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+endstring+'.nc'
+			#fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+datestr+'-'+timestr+'.nc'
+			fname_truth = '/dart/hist/cam_'+'True_State'+'.'+endstring+'.nc'
 		if E['run_category'] == 'ERPDA':
 			gday = dart.date_to_gday(date)
 			# for all my (Lisa's) old experiments, obs sequence 1 is 1 Jan 2009
@@ -705,12 +714,12 @@ def time_mean_file(E,hostname='taurus'):
 	TODO: can make this more flexible, e.g. fiding the time mean of a given copy, if needed later
 	"""
 
-	file_dict= {'W0910_NODA':'nechpc-waccm-dart-gpsro-ncep-no-assim-02.cam_ensemble_mean.VARIABLE.2009-2010.DJF.nc',
+	file_dict= {'W0910_NODA':'nechpc-waccm-dart-gpsro-ncep-no-assim-02.cam_ensemble_mean.VARIABLE.2009-2010.DJFmean.nc',
 		'W0910_GLOBAL':'nechpc-waccm-dart-gpsro-ncep-global-02.cam_ensemble_mean.VARIABLE.2009-2010.DJFmean.nc'}
 	
 	if hostname=='taurus':
-		path_dict= {'W0910_NODA':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-global-02/atm/hist/',
-			'W0910_GLOBAL':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-no-assim-02/atm/hist/'}
+		path_dict= {'W0910_NODA':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-no-assim-02/atm/hist/',
+			'W0910_GLOBAL':'/data/c1/lneef/DART-WACCM/nechpc-waccm-dart-gpsro-ncep-global-02/atm/hist/'}
 
 	# replace the wildcard VARIABLE with whatever variable we are looking for 
 	filename = file_dict[E['exp_name']].replace('VARIABLE',E['variable'])
@@ -718,5 +727,5 @@ def time_mean_file(E,hostname='taurus'):
 	
 	filename_out = path+filename
 
-
+	return(filename_out)
 
