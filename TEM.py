@@ -125,9 +125,9 @@ def load_Wang_TEM_file(E,datetime_in,hostname='taurus',verbose=False):
 
 		# if lat2 or lev2 are single numbers, turn them into length-1 lists. -- this 
 		# is needed to make the plotting codes work  
-		if type(lat2) != 'list':
+		if isinstance(lat2, np.float64) or isinstance(lat2, np.float32) :
 			lat2=[lat2]
-		if type(lev2) != 'list':
+		if isinstance(lev2, np.float64) or isinstance(lev2, np.float32) :
 			lev2=[lev2]
 
 		# now select the relevant lat and lev regions 
