@@ -2406,7 +2406,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			return None,None,None,None,None
 	return Vmatrix,lat,lon,lev,new_daterange
 
-def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',debug=False):
+def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',label_for_legend=True,debug=False):
 
 	"""
 	Plot a vertical profile of some DART diagnostic / variable, 
@@ -2429,6 +2429,9 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
 		'TPbased': in this case, compute the height of each gridbox relative to the local tropopause and 
 			plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
+	label_for_legend: if this is set to true, the profile being plotted is assigned whatever is given in E['title']
+		to appear when you do plt.legend(). The default is True; set this to False to ignore certain profiles 
+		(e.g. individual ensemble members) in the legend. 
 	debug: set to True to print out extra output 
 	"""
 	daterange = E['daterange']
@@ -2528,7 +2531,10 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				color2 = color[iC]
 			else:
 				color2=color 
-			plt.plot(M[iC,:],y,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+			if label_for_legend:
+				plt.plot(M[iC,:],y,color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+			else:
+				plt.plot(M[iC,:],y,color=color2,linestyle=linestyle,linewidth=linewidth,alpha=alpha)
 	else:
 		plt.plot(M,y,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
@@ -2596,10 +2602,16 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	# if it's a 3d variable, figure out which dimension is vertical levels and then average over that dimension  
 	shape_tuple2 = Mlon.shape
 	if lev is not None:
+		levdim = None
 		for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
 			if dimlength == len(lev):
 				levdim = ii
-		Mlonlev = np.squeeze(np.mean(Mlon,axis=levdim))
+		# levdim wont be set if this dimension already got squeezed out, and in that case 
+		# we wont have to average
+		if levdim is not None:
+			Mlonlev = np.squeeze(np.mean(Mlon,axis=levdim))
+		else:
+			Mlonlev = np.squeeze(Mlon)
 	else:
 		Mlonlev = np.squeeze(Mlon)
 
@@ -2626,10 +2638,17 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 		# average over vertical levels if needed 
 		shape_tuple2 = Mlon2.shape
 		if lev is not None:
+			levdim=None
 			for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
 				if dimlength == len(lev):
 					levdim = ii
-			Mlonlev2 = np.squeeze(np.mean(Mlon2,axis=levdim))
+				# it could be that the lev dimension was already squeezed out because 
+				# it has length 1 -- in that case, levdim = None and then 
+				# we don't have to average. 
+			if levdim is not None:
+				Mlonlev2 = np.squeeze(np.mean(Mlon2,axis=levdim))
+			else:
+				Mlonlev2 = np.squeeze(Mlon2)
 		else:
 			Mlonlev2 = np.squeeze(Mlon2)
 
@@ -2637,8 +2656,6 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 		M = Mlonlev-Mlonlev2
 	else:
 		M = Mlonlev
-
-
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(lat):
