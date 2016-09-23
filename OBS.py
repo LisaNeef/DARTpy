@@ -80,7 +80,7 @@ def HRRS_as_DF(OBS,TPbased=False,TPbased_vertical_res=50E-3,hostname='taurus',de
 
 					# read in the station data 
 					if TPbased:
-						D = TP_based_HRRS_data(ff,TPbased_vertical_res)
+						D = TP_based_HRRS_data(ff,vertical_res_km=TPbased_vertical_res)
 						alt_to_km = 1.0    # here the altitude is already in km
 						temp_to_K = 0.0
 					else:
@@ -343,7 +343,7 @@ def HRRS_stations_available_per_year(YYYY):
 
 	return(stations_avail_dict[YYYY])
 
-def HRRS_station_data(hostname):
+def HRRS_station_data(hostname='taurus'):
 
 	"""
 	Read in information about the high-res radiosondes and return it as a pandas dataframe.
