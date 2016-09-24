@@ -2722,6 +2722,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	Etrop['matrix_name']='ztrop'
 
 	# the pressure field of the requested experiment 
+	# this is used to compute the altitude of every grid point 
 	Ep=E.copy()
 	Ep['variable']='P'
 	Ep['matrix_name']='z'  
@@ -2738,7 +2739,21 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	Zdict = dict()
 	for Etemp in EE:
 		if Etemp is not None:
-			V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
+			print(Etemp['matrix_name'])
+			# the pressure field wont be around if the data are on levels 
+			# of constant pressure 
+			# instead load temp field and then expand the constant levels array to be 
+			# of the same shape 
+			if Etemp['levtype']=='pressure_levels':
+				Etemp['variable']='T'
+				VT,dumlat,dumlon,levT,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
+				for idim,dimlength in enumerate(VT.shape):
+					if dimlength != len(levT):
+						levT = np.expand_dims(levT,axis=idim)
+					V = np.broadcast_to(levT,VT.shape)
+			else:
+				# otherwise, load the 3d pressure field 
+				V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
 			if np.max(V) > 1000.0:     # this will be true if pressure units are Pascal
 				P0=1.0E5
 			else:                        # otherwise assume pressure is in hPa
@@ -2758,7 +2773,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 			# add final array to dictionary 
 			Zdict[Etemp['matrix_name']]=Z3d
 
-	# now for each point, compute z-ztrop+ztropmean
+			#ll no wfor each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
 
 	# create a regular grid 
