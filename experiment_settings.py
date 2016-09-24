@@ -62,7 +62,6 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 	+ 'obs_epoch' -- load obs_epoch_XXXX.nc files  
 	+ 'diag' -- load standard  DART Posterior_Diag or Prior_Diag files 
 	+ 'truth' -- load true state files from a perfect-model simulation
-	+ 'mean' -- load a DART-style diagnostic file that's a mean over a time period 
 
 	"""
 
@@ -70,7 +69,7 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 	if E['run_category'] == 'NCAR':
 		data_dir_list,truth_dir_list = exp_paths_NCAR(hostname,E['exp_name'])
 		path_found = True
-	if E['exp_name'] == 'ERA':
+	if 'ERA' in E['exp_name']:
 		data_dir_list,truth_dir_list = exp_paths_era(date,hostname,diagnostic=E['diagn'])
 		path_found = True
 	if not path_found:
@@ -412,18 +411,23 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 	truth_dir_list = None
 	run_dir_list = None
 
-	# find the year, month, and date requested 
-	y = str(datetime_in.year)
-	month = datetime_in.month
-	day = datetime_in.day
-	if month < 10:
-		m = '0'+str(month)
+	# find the requested date, or a time mean 
+	if isinstance(datetime_in,str):
+		endstring=datetime_in
 	else:
-		m = str(month)
-	if day < 10:
-		d = '0'+str(day)
-	else:
-		d = str(day)
+		# find the year, month, and date requested 
+		y = str(datetime_in.year)
+		month = datetime_in.month
+		day = datetime_in.day
+		if month < 10:
+			m = '0'+str(month)
+		else:
+			m = str(month)
+		if day < 10:
+			d = '0'+str(day)
+		else:
+			d = str(day)
+		endstring=y+'-'+m+'-'+d
 
 	if (hostname=='taurus'):
 		stub = '/data/c1/lneef/ERA/'
@@ -435,7 +439,8 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 				variable_str='T'
 			else:
 				variable_str=variable
-			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
+			#fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
+			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+endstring+'.nc'
 		if (resolution == 0.75) or (resolution == 1.5):
 			# the "pure" ERA-Interim files are separated by variable
 			varname=variable
