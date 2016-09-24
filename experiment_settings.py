@@ -436,7 +436,7 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 			else:
 				variable_str=variable
 			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
-		if resolution == 0.75:
+		if (resolution == 0.75) or (resolution == 1.5):
 			# the "pure" ERA-Interim files are separated by variable
 			varname=variable
 			if (variable=='GPH') or (variable=='geopotential') or (variable=='Z') or  (variable=='Z3'):
