@@ -185,8 +185,17 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 
 		# if a certain date range is requested, and all times otherwise.
 		if isinstance(datetime_in,str):
-			t1=0
-			t2=len(time_dates)-2
+			time2 = time_dates
+			if len(VV.shape)==4:
+				# 3D variables have shape time x lev x lat x lon
+				Vout = VV[:,k1:k2+1,j1:j2+1,i1:i2+1]
+			if len(VV.shape)==3:
+				# 2D variables have shape time x lat x lon
+				Vout = VV[:,j1:j2+1,i1:i2+1]
+				lev2 = None
+			if len(VV.shape)==1:
+				# some variables are just vertical
+				Vout = VV[k1:k2+1]
 		else:
 			t0 = E['daterange'][0]
 			tF = E['daterange'][len(E['daterange'])-1]
@@ -194,18 +203,18 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 			DF = np.array([t-tF for t in time_dates])
 			t1 = abs(D0).argmin()
 			t2 = abs(DF).argmin()
-		time2 = time_dates[t1:t2+1]
+			time2 = time_dates[t1:t2+1]
 
-		if len(VV.shape)==4:
-			# 3D variables have shape time x lev x lat x lon
-			Vout = VV[t1:t2+1,k1:k2+1,j1:j2+1,i1:i2+1]
-		if len(VV.shape)==3:
-			# 2D variables have shape time x lat x lon
-			Vout = VV[t1:t2+1,j1:j2+1,i1:i2+1]
-			lev2 = None
-		if len(VV.shape)==1:
-			# some variables are just vertical
-			Vout = VV[k1:k2+1]
+			if len(VV.shape)==4:
+				# 3D variables have shape time x lev x lat x lon
+				Vout = VV[t1:t2+1,k1:k2+1,j1:j2+1,i1:i2+1]
+			if len(VV.shape)==3:
+				# 2D variables have shape time x lat x lon
+				Vout = VV[t1:t2+1,j1:j2+1,i1:i2+1]
+				lev2 = None
+			if len(VV.shape)==1:
+				# some variables are just vertical
+				Vout = VV[k1:k2+1]
 		if 'Vout' not in locals():
 			print('unable to deal with the variable shape for variable '+E['variable']+':')
 			print(VV.shape)
