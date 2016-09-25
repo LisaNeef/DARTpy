@@ -182,12 +182,18 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
                 #time:units = "hours since 1958-01-01 00:00:00" ;
 		reftime = datetime.datetime(1958,1,1,0,0,0)
 		time_dates = [reftime+datetime.timedelta(hours=x) for x in list(time)]
-		t0 = E['daterange'][0]
-		tF = E['daterange'][len(E['daterange'])-1]
-		D0 = np.array([t-t0 for t in time_dates])
-		DF = np.array([t-tF for t in time_dates])
-		t1 = abs(D0).argmin()
-		t2 = abs(DF).argmin()
+
+		# if a certain date range is requested, and all times otherwise.
+		if isinstance(datetime_in,str):
+			t1=0
+			t2=len(time_dates)-2
+		else:
+			t0 = E['daterange'][0]
+			tF = E['daterange'][len(E['daterange'])-1]
+			D0 = np.array([t-t0 for t in time_dates])
+			DF = np.array([t-tF for t in time_dates])
+			t1 = abs(D0).argmin()
+			t2 = abs(DF).argmin()
 		time2 = time_dates[t1:t2+1]
 
 		if len(VV.shape)==4:
