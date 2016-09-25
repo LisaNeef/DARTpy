@@ -2283,7 +2283,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 	for date in DR:
 
 		# most --but not all-- ERA data are loaded by their own routine  
-		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq','brunt']
+		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq','brunt','ztrop']
 		if 'ERA' in E['exp_name'] and E['variable'] in era_variables_list:
 			if (E['variable'] == 'Nsq'):
 				# ERA buoyancy frequency can be calculated with the Nsq function 
@@ -2523,7 +2523,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		p0=1000.0 
 		y = H*np.log(p0/lev)
 		ylabel = 'log-p height (km)'
-	if vertical_coord=='TPbased':
+	if 'TPbased' in vertical_coord:
 		#from matplotlib import rcParams
 		#rcParams['text.usetex'] = True
 		y=lev

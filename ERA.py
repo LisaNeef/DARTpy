@@ -47,7 +47,7 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 		
 		# a list of 2d variables, in which case we don't need to load level  
 		# TODO: add other 2d vars to this list 
-		variables_2d = ['PS','ptrop','LNSP']
+		variables_2d = ['PS','ptrop','LNSP','ztrop']
 
 		# load the grid variables 
 		# check whether lat/lon/lev are named as such, or whether the full 
@@ -92,19 +92,24 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 			V = f.variables[E['variable']]
 		else:
 			# if not available, try other names 
-			if (E['variable']=='T') or (E['variable']=='TS'):
-				possible_varnames = ['T','t','var130']
-			if (E['variable']=='U') or (E['variable']=='US'):
-				possible_varnames = ['U','u','var131']
-			if (E['variable']=='V') or (E['variable']=='VS'):
-				possible_varnames = ['V','v','var132']
-			if (E['variable']=='Z') or (E['variable']=='geopotential'):
-				possible_varnames = ['Z','z','var129']
+			possible_varnames_dict={'T':['T','t','var130'],
+						'TS':['T','t','var130'],
+						'U':['U','u','var131'],
+						'US':['U','u','var131'],
+						'V':['V','v','var132'],
+						'VS':['V','v','var132'],
+						'Z':['Z','z','var129'],
+						'geopotential':['Z','z','var129'],
+						'GPH':['Z','z','var129'],
+						'Z3':['Z','z','var129'],
+						'msl':['msl','var151'],
+						'MSLP':['msl','var151'],
+						'ztrop':['ptrop']}
+			possible_varnames=possible_varnames_dict[E['variable']]
+
+			# multiplicative factors for some variables 
 			if (E['variable']=='GPH') or (E['variable']=='Z3'):
-				possible_varnames = ['Z','z','var129']
 				prefac = 1/9.8    # convert geopotential to geopotential height
-			if (E['variable']=='msl') or (E['variable']=='MSLP'):
-				possible_varnames = ['msl','var151']
 
 			if 'possible_varnames' in locals():
 				# loop over the list of possible variable names and load the first one we find 
@@ -215,6 +220,19 @@ def load_ERA_file(E,datetime_in,resol=0.75,hostname='taurus',verbose=False):
 			if len(VV.shape)==1:
 				# some variables are just vertical
 				Vout = VV[k1:k2+1]
+
+		#------------extra computations  
+		# if tropopause altitude (ztrop) was requested, we retrieved tropopause pressure -- 
+		# convert it here 
+		if E['variable']=='ztrop':
+			H = 7.0		# 7 km scale height 
+			if np.max(Vout) > 1000.0:   # in this case, pressure is in Pa 
+				P0 = 1.0E5
+			else:
+				P0 = 1.0E3
+			VVpress = Vout
+			Vout = H*np.log(P0/VVpress)
+
 		if 'Vout' not in locals():
 			print('unable to deal with the variable shape for variable '+E['variable']+':')
 			print(VV.shape)

@@ -442,14 +442,20 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 			#fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+y+'-'+m+'-'+d+'.nc'
 			fstub='ERA_'+variable_str+'_'+diagnostic.lower()+'_'+endstring+'.nc'
 		if (resolution == 0.75) or (resolution == 1.5):
-			# the "pure" ERA-Interim files are separated by variable
-			varname=variable
-			if (variable=='GPH') or (variable=='geopotential') or (variable=='Z') or  (variable=='Z3'):
-				varname='z'
-			if (variable=='U') or (variable=='US'): 
-				varname='u'
-			if (variable=='T'): 
-				varname='t'
+			# these "pure" ERA-Interim files are separated by variable
+			# but the abbrevs used in the filenames are often different than the variable names I use  
+			varname_dict={'GPH':'z',
+					'geopotential':'z',
+					'Z':'z',
+					'Z3':'z',
+					'U':'u',
+					'US':'u',
+					'T':'t',
+					'ztrop':'ptrop'}
+			if variable in varname_dict:
+				varname=varname_dict[variable]
+			else:	
+				varname=variable
 			fstub = 'ERA_'+varname+'_dm_1.5deg_'+endstring+'.nc'
 			# different files loaded for increments - these are actually 2.5 degree:
 			if diagnostic.lower() == 'increment':
