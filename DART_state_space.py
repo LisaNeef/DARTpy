@@ -2081,8 +2081,10 @@ def Nsq_from_3d(E,date,hostname='taurus',debug=False):
 				import re
 				resol = float(re.sub('\ERA', '',E['exp_name']))
 				field,lat,lon,lev,time_out = era.load_ERA_file(Etemp,date,hostname=hostname,verbose=debug,resol=resol)
-				H[vname]=np.squeeze(field)
+				#H[vname]=np.squeeze(field)
+				H[vname]=field
 			# 3D pressure array from 1D array
+			# here "3D" actually si 4D, because we have a dummy dimension for "copy" 
 			nlat = len(lat)
 			nlon = len(lon)
 			P1 = np.repeat(lev[:,np.newaxis],nlat,axis=1)
@@ -2105,12 +2107,15 @@ def Nsq_from_3d(E,date,hostname='taurus',debug=False):
 	z = 7000.0*np.log(P0/P)
 
 	# compute the vertical gradient in potential temperature 
+	#dZ = np.gradient(np.squeeze(z))	# 3D gradient of height (with respect to model level) 
+	#dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
 	dZ = np.gradient(np.squeeze(z))	# 3D gradient of height (with respect to model level) 
+	
 	dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
 	dthetadZ = dthetadZ_3D[0] # this is the vertical temperature gradient with respect to pressure 
 
 	# compute the buoyancy frequency 
-	N2 = (g/np.squeeze(theta))*dthetadZ
+	N2 = (g/theta)*dthetadZ
 
 	return N2,lat,lon,lev
 
@@ -2287,7 +2292,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 		if 'ERA' in E['exp_name'] and E['variable'] in era_variables_list:
 			if (E['variable'] == 'Nsq'):
 				# ERA buoyancy frequency can be calculated with the Nsq function 
-				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+				V,lat,lon,lev = Nsq_from_3d(E,date,hostname=hostname,debug=debug)
 			if 'V' not in locals():
 				# all other variables are loaded via a function in the ERA module:
 				import ERA as era
@@ -2778,7 +2783,11 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 				nlev = len(lev)
 				levdim = list(Vmatrix.shape).index(nlev)  
 				Zx = np.expand_dims(Z, axis=levdim)
-				Z3d=np.broadcast_to(Zx,Vmatrix.shape)
+				try:
+					Z3d=np.broadcast_to(Zx,Vmatrix.shape)
+				except ValueError:
+					print(Zx.shape)
+					print(Vmatrix.shape)
 			else:
 				Z3d=Z
 				       
