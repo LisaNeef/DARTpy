@@ -2765,12 +2765,14 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 			else:
 				# otherwise, load the 3d pressure field 
 				V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
-			if np.max(V) > 1000.0:     # this will be true if pressure units are Pascal
-				P0=1.0E5
-			else:                        # otherwise assume pressure is in hPa
-				P0=1.0E3
+			try:
+				if np.max(V) > 1000.0:     # this will be true if pressure units are Pascal
+					P0=1.0E5
+				else:                        # otherwise assume pressure is in hPa
+					P0=1.0E3
+			except ValueError:  #raised if `V` has an empty dimension, which sometimes happens when we load netcdf files with time means 
+				pass
 			Z = H*np.log(P0/V)
-			
 			# for tropopause heights, convert 2d to 3d array by adding an additional dimension 
 			if 'ztrop' in Etemp['matrix_name']:
 				# find which is the vertical levels dimension 
@@ -2792,7 +2794,7 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	# empty array to hold interpolated data
 	Snew = list(Vmatrix.shape)
-	Snew[3] = len(zTPgrid)
+	Snew[levdim] = len(zTPgrid)
 	Vnew = np.empty(shape=Snew)*np.nan
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
