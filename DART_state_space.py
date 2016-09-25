@@ -2749,7 +2749,6 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	Zdict = dict()
 	for Etemp in EE:
 		if Etemp is not None:
-			print(Etemp['matrix_name'])
 			# the pressure field wont be around if the data are on levels 
 			# of constant pressure 
 			# instead load temp field and then expand the constant levels array to be 
@@ -2798,23 +2797,51 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	Vnew = np.empty(shape=Snew)*np.nan
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
+	# this is a pretty weirdly coded loop designed to work with arrays of either shape 
+	# copy x lev x lat x lon x time or
+	# copy x lat x lon x lev x time or
+	# note that so far I've only coded this for two array shapes 
+	# -- add more if needed 
+
 	S=Vmatrix.shape
 
 	from scipy.interpolate import interp1d
+	if levdim==1:
+		# if levels is the 1st dimension, then the jj index is for the third dimension
+		jjindex = 3
+	if levdim==3:
+		# if levels is the 3rd dimension, then the jj index is for the first dimension
+		jjindex = 1
 	for ii in range(S[0]):
-		for jj in range(S[1]):
+		for jj in range(S[jjindex]):
 			for kk in range(S[2]):
 				for ll in range(S[4]):
-					Vcolumn = Vmatrix[ii,jj,kk,:,ll]
-					ZTcolumn = ZT[ii,jj,kk,:,ll]
+					if levdim == 3:
+						Vcolumn = Vmatrix[ii,jj,kk,:,ll]
+						ZTcolumn = ZT[ii,jj,kk,:,ll]
+					if levdim == 1:
+						Vcolumn = Vmatrix[ii,:,kk,jj,ll]
+						ZTcolumn = ZT[ii,:,kk,jj,ll]
 
 					# here is the interpolation function:
-					f = interp1d(ZTcolumn,Vcolumn, kind='cubic')
+					try:
+						f = interp1d(ZTcolumn,Vcolumn, kind='cubic')
+					except ValueError:
+						print('these data columns give the interpolation trouble:')
+						print(Vcolumn)
+						print(ZTcolumn)
+						print('these are the shapes of the temp and trop heigh arrays:')
+						print(Vmatrix.shape)
+						print(ZT.shape)
+						print(E)
 
 					# check whether the sampled ZTcolumn covers the grid we interpolate to
 					select = np.where(np.logical_and(zTPgrid>np.min(ZTcolumn), zTPgrid<np.max(ZTcolumn)))
 					zTPnew=zTPgrid[select]
-					Vnew[ii,jj,kk,select,ll] = f(zTPnew)
+					if levdim == 1:
+						Vnew[ii,select,kk,jj,ll] = f(zTPnew)
+					if levdim == 3:
+						Vnew[ii,jj,kk,select,ll] = f(zTPnew)
 					
 					# need to check whether the sampled ZTcolumn covers the 
 					# grid to which we want to interpolate
