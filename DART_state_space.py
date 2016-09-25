@@ -2453,8 +2453,15 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		# load the requested array, and the difference array if needed 
 		Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
 		# convert to TP-based coordinates if requested 	
-		if vertical_coord=='TPbased': 
-			Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+		if 'TPbased' in vertical_coord: 
+			vcoord_string=vertical_coord.split('.')
+			if len(vcoord_string) == 1:
+				# iff the mean tropopause for TP-based coordinates is not defined, 
+				# just call a Dec-Feb mean 
+				meantrop='DJFmean'
+			else:
+				meantrop=vcoord_string[1]
+			Vmain,lev=to_TPbased(E,Vmain0,lev0,meantrop=meantrop,hostname=hostname,debug=debug)
 		else:
 			Vmain=Vmain0
 			lev=lev0
@@ -2686,7 +2693,7 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 
 	return MT,lat
 
-def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
+def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	"""
 	This routine takes some multi-dimensional variable field and a corresponding array for vertical levels, 
@@ -2706,6 +2713,8 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	E: a DART experiment dictionary giving the details of the data that we are requesting 
 	Vmatrix: a multi-dimensional model data grid, ideally the output of DART_diagn_to_array  
 	lev: a vector of vertical level pressures. These can be in Pascal or hPa. 
+	meantrop: a string denoting how we compute the mean tropopause. This has to also appear 
+		in the filename that holds mean tropopause height (default is 'DJFmean')
 	"""
 
 	# given the data matrix, we have to retrieve several other things: 
@@ -2732,6 +2741,7 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 	Etropmean['variable']='ptrop'
 	Etropmean['matrix_name']='ztropmean'  
 	Etropmean['daterange']=['DJFmean']  
+	Etropmean['daterange']=[meantrop]  
 
 	# now loop over these experiment and retrieve the data, also converting pressures to altitudes 
 	# stick these into a dictionary 
@@ -2744,13 +2754,14 @@ def to_TPbased(E,Vmatrix,lev,hostname='taurus',debug=False):
 			# of constant pressure 
 			# instead load temp field and then expand the constant levels array to be 
 			# of the same shape 
-			if Etemp['levtype']=='pressure_levels':
+			if (Etemp['variable']=='P') and (Etemp['levtype']=='pressure_levels'):
 				Etemp['variable']='T'
 				VT,dumlat,dumlon,levT,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
+				Px=levT
 				for idim,dimlength in enumerate(VT.shape):
 					if dimlength != len(levT):
-						levT = np.expand_dims(levT,axis=idim)
-					V = np.broadcast_to(levT,VT.shape)
+						Px = np.expand_dims(Px,axis=idim)
+				V = np.broadcast_to(Px,VT.shape)
 			else:
 				# otherwise, load the 3d pressure field 
 				V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
