@@ -450,10 +450,10 @@ def exp_paths_era(datetime_in,hostname='taurus',resolution=0.75,diagnostic=None,
 				varname='u'
 			if (variable=='T'): 
 				varname='t'
-			fstub = 'ERA_'+varname+'_dm_1.5deg_'+y+'-'+m+'-'+d+'.nc'
+			fstub = 'ERA_'+varname+'_dm_1.5deg_'+endstring+'.nc'
 			# different files loaded for increments - these are actually 2.5 degree:
 			if diagnostic.lower() == 'increment':
-				fstub = '../2.5deg/ERA_TUV_increments_'+y+'-'+m+'-'+d+'.nc'
+				fstub = '../2.5deg/ERA_TUV_increments_'+endstring+'.nc'
 
 		if 'fstub' not in locals():
 			print('Cannot find path to requested ERA data:')
