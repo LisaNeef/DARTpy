@@ -2107,15 +2107,25 @@ def Nsq_from_3d(E,date,hostname='taurus',debug=False):
 	z = 7000.0*np.log(P0/P)
 
 	# compute the vertical gradient in potential temperature 
-	#dZ = np.gradient(np.squeeze(z))	# 3D gradient of height (with respect to model level) 
-	#dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
+	# this still has issues when lat or lon have length 1 -- need to fix this.
 	dZ = np.gradient(np.squeeze(z))	# 3D gradient of height (with respect to model level) 
-	
-	dthetadZ_3D = np.gradient(np.squeeze(theta),dZ[0])
+	try:
+		dthetadZ_3D = np.gradient(np.squeeze(theta,axis=0),dZ[0])
+	except ValueError:
+		print('shape of z and its gradient')
+		print(z.shape)
+		print(dZ[0].shape)
+		print(np.squeeze(theta,axis=0).shape)
 	dthetadZ = dthetadZ_3D[0] # this is the vertical temperature gradient with respect to pressure 
 
 	# compute the buoyancy frequency 
-	N2 = (g/theta)*dthetadZ
+	try:
+		N2 = (g/theta)*dthetadZ
+	except ValueError: 
+		print('problemo with shaoes that comprise N2') 
+		print(theta.shape)
+		print(dthetadZ.shape)
+		print(z.shape)
 
 	return N2,lat,lon,lev
 
