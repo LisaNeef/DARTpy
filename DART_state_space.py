@@ -1887,10 +1887,10 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M,L
 
-def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),scale_by_pressure=False,hostname='taurus',debug=False):
+def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),narrow=1,scale_by_pressure=False,hostname='taurus',debug=False):
 
 	"""
-	Retrieve TWO DART diagnostics (defined in the dictionary entry E['diagn']) over levels and latitude,  
+	Retrieve TWO DART diagnostic output fields over levels and latitude,  
 	and then plot them as a "quiver" plot (i.e. vector field). 
 	In this case, E['variable'] should be a LIST or TUPLE of the two variable that we plot, e.g. FPHI and FZ for the components
 	of EP flux, e.g. E['variable'] = (x,y), where x is the x-component of the vectors, and y the y-component. 
@@ -1902,6 +1902,7 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 	Ediff - dictionary for the difference experiment (default is None)
 	alpha - tuple of scaling factors for the horizontal and vertical components, 
 		e.g. for EP flux alpha should be (4.899E-3,0)
+	narrow - only plot every nth arrow. (Default is 1 -- plot every arrow). This number must be an integer. 
 	scale_by_pressure: set to True to scale the arrows by the pressure at each point
 	"""
 
@@ -2002,7 +2003,12 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 
 
         # plot
-	plt.quiver(X,Y,alpha[0]*Mlist[0],alpha[1]*Mlist[1],pivot='mid', units='inches')
+	Q= plt.quiver(X[::narrow,::narrow],Y[::narrow,::narrow],
+		alpha[0]*Mlist[0][::narrow, ::narrow],alpha[1]*Mlist[1][::narrow, ::narrow],
+		pivot='mid', units='inches', width=0.022,
+               scale=1 / 0.15)
+	#qk = plt.quiverkey(Q, 0.5, 0.03, 1, r'$1 \frac{m}{s}$',
+	#		   fontproperties={'weight': 'bold'})
 
 
 	# axis labels 
