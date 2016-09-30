@@ -1881,13 +1881,12 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		plt.gca().invert_yaxis()
 
 	# make sure the axes only go as far as the ranges in E
-	plt.ylim(E['levrange'])
 	plt.xlim(E['latrange'])
 
 	# return the colorbar handle if available, so we can adjust it later
 	return CB,M,L
 
-def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),narrow=1,scale_by_pressure=False,hostname='taurus',debug=False):
+def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),narrow=1,arrowscale=1.0,scale_by_pressure=False,vertical_coord='log_levels',hostname='taurus',debug=False):
 
 	"""
 	Retrieve TWO DART diagnostic output fields over levels and latitude,  
@@ -1903,9 +1902,13 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 	alpha - tuple of scaling factors for the horizontal and vertical components, 
 		e.g. for EP flux alpha should be (4.899E-3,0)
 	narrow - only plot every nth arrow. (Default is 1 -- plot every arrow). This number must be an integer. 
+	arrowscale - scale the size of the arrows (this feeds directly into the scale argument of the quiver function)
 	scale_by_pressure: set to True to scale the arrows by the pressure at each point
+	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
+		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
+		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
+		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
 	"""
-
 	# throw an error if the desired variable is 2 dimensional 
 	if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
@@ -1935,7 +1938,13 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 				if dimlength == len(lonP):
 					londim = ii
 			VPlonave = np.squeeze(np.mean(VP,axis=londim))
-			Vnorm = Vmatrix/VPlonave
+			try:
+				Vnorm = Vmatrix/VPlonave
+			except ValueError: 
+				# warning: I have my suspicions about this...it might be that 
+				# reshape effs it up. 
+				VPlonave2 = np.reshape(VPlonave,Vmatrix.shape)
+				Vnorm = Vmatrix/VPlonave2
 		else:
 			Vnorm = Vmatrix
 
@@ -1998,27 +2007,43 @@ def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alp
 		# MT is the field we want to plot --> append it to the list
 		Mlist.append(MT)
 
-	# create a mesh
-	X,Y = np.meshgrid(lat,lev)
+	# compute vertical coordinate depending on choice of pressure or altitude 
+	if 'levels' in vertical_coord:
+		y=lev
+		ylabel = 'Level (hPa)'
+	if vertical_coord=='z':
+		H=7.0
+		p0=1000.0 
+		y = H*np.log(p0/lev)
+		ylabel = 'log-p height (km)'
+	if vertical_coord=='TPbased':
+		#from matplotlib import rcParams
+		#rcParams['text.usetex'] = True
+		y=lev
+		ylabel='z (TP-based) (km)'
 
+	# create a mesh
+	X,Y = np.meshgrid(lat,y)
 
         # plot
 	Q= plt.quiver(X[::narrow,::narrow],Y[::narrow,::narrow],
 		alpha[0]*Mlist[0][::narrow, ::narrow],alpha[1]*Mlist[1][::narrow, ::narrow],
 		pivot='mid', units='inches', width=0.022,
-               scale=1 / 0.15)
+               scale=arrowscale)
 	#qk = plt.quiverkey(Q, 0.5, 0.03, 1, r'$1 \frac{m}{s}$',
 	#		   fontproperties={'weight': 'bold'})
 
 
 	# axis labels 
 	plt.xlabel('Latitude')
-	plt.ylabel('Pressure (hPa)')
-	plt.yscale('log')
-	plt.gca().invert_yaxis()
+	plt.ylabel(ylabel)
+	if vertical_coord=='log_levels':
+		plt.yscale('log')
+		plt.ylabel('Pressure (hPa)')
+	if 'levels' in vertical_coord:
+		plt.gca().invert_yaxis()
 
 	# make sure the axes only go as far as the ranges in E
-	plt.ylim(E['levrange'])
 	plt.xlim(E['latrange'])
 
 	# return the colorbar handle if available, so we can adjust it later
