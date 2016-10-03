@@ -643,25 +643,37 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',includ
 
 		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
 
-		# for individual ensemble mmbers, DART_diagn_to_array leaves a length-1 dimension in the 0th
-		# spot -- 
-		# EDIT: don't think we need this step any longer, but need to check to make sure 
-		#VV = np.squeeze(Vmatrix)
-		VV=Vmatrix
-			
 		# if averaging, do that here
 		if averaging:
-			Mlat = np.mean(VV,axis=0)
-			Mlatlon = np.mean(Mlat,axis=0)
-			if E['variable'] != 'PS':
-				Mlatlonlev = np.mean(Mlatlon,axis=0)
+			nlat = len(lat)
+			nlon = len(lon)
+			
+			# average over latitude
+			for s,slen in enumerate(Vmatrix.shape):
+				if slen == nlat:
+					Mlat = np.mean(Vmatrix,axis=s)
+					
+			# average over longitude  
+			for s,slen in enumerate(Mlat.shape):
+				if slen == nlon:
+					Mlatlon = np.mean(Mlat,axis=s)
+
+			# for 3d variables, average over level:
+			if E['variable'] not in var2d: 
+				nlev = len(lev)
+				for s,slen in enumerate(Mlatlon.shape):
+					if slen == nlev:
+						Mlatlonlev = np.mean(Mlatlon,axis=s)
 			else:
-				Mlatlonlev = Mlatlon
+				Mlatlonlev=Mlatlon
+
+			# thee might be another length-1 dimension left --average that out here  
+			VV = np.squeeze(Mlatlonlev)
 		else:
-			Mlatlonlev = VV
+			VV = Vmatrix
 
 		# append ensemble member to list
-		VElist.append(Mlatlonlev)
+		VElist.append(VV)
 
 
 	# turn the list of ensemble states into a matrix 
@@ -734,7 +746,7 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 	for iens in np.arange(1,N):
 		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_')
 	plt.hold(True)
-	if truth_option is not None:
+	if truth is not None:
 		cs = plt.plot(t,VT,color=color_truth,linewidth=2.0,label=truth_label)
 	plt.plot(t,VM,color=color_mean,label='Ensemble Mean',linewidth=linewidth,alpha=alpha,linestyle=linestyle)
 
