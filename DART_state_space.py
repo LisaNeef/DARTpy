@@ -731,9 +731,11 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 
 	# retrieve the truth if desired 
 	if truth is not None:
-		VT,dum,lev,lat,lon = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
+		VT,dum,levT,latT,lonT = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
 									hostname=hostname,debug=debug,
 									ensemble_members=ensemble_members)
+	else:
+		VT=None
 
 
 	# set up a  time grid 
@@ -744,11 +746,11 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 	VM = np.mean(VE,axis=0)
 	cs = plt.plot(t,VE[0,:],color=color_ensemble,label='Ensemble')
 	for iens in np.arange(1,N):
-		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_')
+		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_',linewidth=0.7*linewidth,alpha=alpha)
 	plt.hold(True)
 	if truth is not None:
 		cs = plt.plot(t,VT,color=color_truth,linewidth=2.0,label=truth_label)
-	plt.plot(t,VM,color=color_mean,label='Ensemble Mean',linewidth=linewidth,alpha=alpha,linestyle=linestyle)
+	plt.plot(t,VM,color=color_ensemble,label='Ensemble Mean',linewidth=linewidth,linestyle=linestyle)
 
 	# show a legend if desired
 	if show_legend:
