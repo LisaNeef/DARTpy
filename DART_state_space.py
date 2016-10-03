@@ -695,60 +695,37 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',includ
 	return VE,VT,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
+def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_truth="#000000",linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
 	along with the truth (if available), 
 	for some DART experiment
 
-	input truth_option chooses what to plot as the "truth" to compare the ensemble to: 
-	'pmo': plots the reference (or "truth") state, available only for PMO experiments. 
-	'ERA': plots corresponding ERA-40 or ERA-Interin data  
-	None: plots no true state.  
+	INPUTS:
+	truth: a second experiment that is used as the "true" state. A good choice for this might be 
+		another analysis, like ERA-Interim 
+		The defauly is None -- plotting no true state. 
 	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
-
-	input color_choice chooses a different color palette: 
-	1 = gray ensemble with black ensemble mean (boring but straightforward)
-	2 = "helmholtz" blue (sort of)
+	color_ensemble: the color that we want to plot the ensemble in -- default is gray  
+	color_truth: the color that we want to plot the "truth" in (if specified) -- default is black
 
 	"""
 
 	# retrieve the ensemble
-	if truth_option == 'pmo':
-		include_truth = True
-		truth_label='Truth'
-	else:
-		include_truth = False
-	VE,VT,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=include_truth,hostname=hostname,debug=debug,ensemble_members=ensemble_members)
+	VE,dum,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=False,
+								hostname=hostname,debug=debug,
+								ensemble_members=ensemble_members)
 
-	# retrieve ERA data if desired
-	if truth_option=='ERA':
-		VT,t_tr,lat2,lon2,lev2 = era.retrieve_era_averaged(E)
-		truth_label='ERA'
+	# retrieve the truth if desired 
+	if truth is not None:
+		VT,dum,lev,lat,lon = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
+									hostname=hostname,debug=debug,
+									ensemble_members=ensemble_members)
+
 
 	# set up a  time grid 
 	t = E['daterange']
-	if truth_option=='pmo':
-		t_tr = t
-		VT = VT[0,:]
-
-	# if no color limits are specified, at least make them even on each side
-	# change the default color cycle to colorbrewer colors, which look a lot nicer
-	if color_choice == 1:
-		# TODO: replace with call to moduel palettable to get colorbrewer colors back
-		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
-		#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
-		color_ensemble = "#878482"
-		color_truth = colors[0]
-		color_mean = "#000000"
-	if color_choice == 2:
-		#bmap = brewer2mpl.get_map('YlGnBu', 'sequential', 9)
-		# TODO: replace with call to moduel palettable to get colorbrewer colors back
-		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
-		color_ensemble = colors[4]
-		color_mean = colors[7]
-		color_truth = "#000000"
 
         # plot global diagnostic in in time
 	N = VE.shape[0]
@@ -758,7 +735,7 @@ def plot_state_space_ensemble(E=None,truth_option='ERA',color_choice=1,linewidth
 		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_')
 	plt.hold(True)
 	if truth_option is not None:
-		cs = plt.plot(t_tr,VT,color=color_truth,linewidth=2.0,label=truth_label)
+		cs = plt.plot(t,VT,color=color_truth,linewidth=2.0,label=truth_label)
 	plt.plot(t,VM,color=color_mean,label='Ensemble Mean',linewidth=linewidth,alpha=alpha,linestyle=linestyle)
 
 	# show a legend if desired
