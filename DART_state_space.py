@@ -603,7 +603,7 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 
 	return cs,CB
 
-def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',include_truth=False,hostname='taurus',debug=False):
+def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scaling_factor=1.0,include_truth=False,hostname='taurus',debug=False):
 
 	"""
 	retrieve the prior or posterior ensemble averaged over some region of the state,
@@ -616,6 +616,7 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',includ
 	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
 	include_truth: set to True to include the true state for this run. Note that if the truth does not exist but is requested, this 
 		subroutine will throw an error. 
+	scaling_factor: factor by which to multiply the array to be plotted 
 	hostname
 	debug
 	"""
@@ -668,46 +669,21 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',includ
 				Mlatlonlev=Mlatlon
 
 			# thee might be another length-1 dimension left --average that out here  
-			VV = np.squeeze(Mlatlonlev)
+			VV = scaling_factor*np.squeeze(Mlatlonlev)
 		else:
-			VV = Vmatrix
+			VV = scaling_factor*Vmatrix
 
 		# append ensemble member to list
 		VElist.append(VV)
 
-
 	# turn the list of ensemble states into a matrix 
 	VE = np.concatenate([V[np.newaxis,...] for V in VElist], axis=0)
 
-	# load the corresponding truth, if desired or if it exists
-	if include_truth:
-		Etr = E.copy()
-		Etr['diagn'] = 'Truth'
-		Etr['copystring'] = 'true state'
-
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Etr,hostname=hostname,debug=debug)
-		# for individual ensemble mmbers, DART_diagn_to_array leaves a length-1 dimension in the 0th
-		# spot -- need to squeeze that out
-		VV = np.squeeze(Vmatrix)
-
-		# average the true state, if desired 
-		if averaging:
-			Mlat = np.mean(VV,axis=0)
-			Mlatlon = np.mean(Mlat,axis=0)
-			if E['variable'] != 'PS':
-				VT = np.mean(Mlatlon,axis=0)
-			else:
-				VT = Mlatlon
-		else:
-			VT = VV
-	else:
-		VT = None
-
 	# output
-	return VE,VT,lev,lat,lon
+	return VE,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_truth="#000000",linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
+def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_truth="#000000",scaling_factor=1.0,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
@@ -721,18 +697,19 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
 	color_ensemble: the color that we want to plot the ensemble in -- default is gray  
 	color_truth: the color that we want to plot the "truth" in (if specified) -- default is black
+	scaling_factor: factor by which to multiply the array to be plotted 
 
 	"""
 
 	# retrieve the ensemble
-	VE,dum,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=False,
-								hostname=hostname,debug=debug,
+	VE,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=False,
+								hostname=hostname,debug=debug,scaling_factor=scaling_factor,
 								ensemble_members=ensemble_members)
 
 	# retrieve the truth if desired 
 	if truth is not None:
-		VT,dum,levT,latT,lonT = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
-									hostname=hostname,debug=debug,
+		VT,levT,latT,lonT = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
+									hostname=hostname,debug=debug,scaling_factor=scaling_factor,
 									ensemble_members=ensemble_members)
 	else:
 		VT=None
@@ -772,9 +749,7 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 
 	# format the x-axis labels to be dates
 	if len(t) > 30:
-		#plt.gca().xaxis.set_major_locator(mdates.MonthLocator(bymonthday=1,interval=1))
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		#plt.gca().xaxis.set_minor_locator(mdates.DayLocator(interval=1))
 	if len(t) < 10:
 		plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(t))))
 	fmt = mdates.DateFormatter('%b-%d')
