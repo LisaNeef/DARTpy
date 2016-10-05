@@ -22,7 +22,7 @@ import experiment_settings as es
 
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
-var3d = ['U','US','V','VS','T','Z3','DELF','Q']
+var3d = ['U','US','V','VS','T','Z3','DELF','Q','CH4','OH']
 var2d = ['PS','FLUT']
 var1d = ['hyam','hybm','hyai','hybi']
 
@@ -482,7 +482,8 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	plt.yscale('log')
 	plt.gca().invert_yaxis()
 	plt.axis('tight')
-	return cs,CB
+
+	return cs,CB,M
 
 def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D'),clim=None,hostname='taurus',cbar=True,debug=False):
 
