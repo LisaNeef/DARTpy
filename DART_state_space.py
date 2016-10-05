@@ -395,32 +395,36 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		return
 
 	# load the desired DART diagnostic for the desired variable and daterange:
-	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	VV,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# load the desired DART diagnostic for the difference experiment dictionary
+	if Ediff is not None:
+		VD,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix=VV-VD
+	else:	
+		Vmatrix=VV
 
 	# figure out which dimension is longitude and then average over that dimension 
 	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
-	shape_tuple = Vmatrix.shape
 	if debug:
 		print('shape of array after concatenating dates:')
-		print(shape_tuple)
+		print(Vmatrix.shape)
 	if lon is not None:
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lon):
-				londim = ii
-		Vlon = np.squeeze(np.mean(Vmatrix,axis=londim))
+		for idim,dimlen in enumerate(Vmatrix.shape):
+			if dimlen == len(lon):
+				londim = idim
+		Vlon = np.mean(Vmatrix,axis=londim)
 	else:
-		Vlon = np.squeeze(Vmatrix)  
+		Vlon = Vmatrix  
 	if debug:
 		print('shape of array after averaging out longitude:')
 		print(Vlon.shape)
 
-	# figure out which dimension is longitude and then average over that dimension 
-	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
-	shape_tuple = Vlon.shape
+	# figure out which dimension is latitude and then average over that dimension 
 	if lat is not None:
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lat):
-				latdim = ii
+		for idim,dimlen in enumerate(Vlon.shape):
+			if dimlen == len(lat):
+				latdim = idim
 		Vlonlat = np.squeeze(np.mean(Vlon,axis=latdim))
 	else:
 		Vlonlat = Vlon
@@ -428,28 +432,8 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		print('shape of array after averaging out latitude:')
 		print(Vlonlat.shape)
 
-	# if computing a difference to another field, load that here  
-	if (Ediff != None):
-
-		# load the desired DART diagnostic for the difference experiment dictionary
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
-		# average over longitudes 
-		if lon is not None:
-			Vlon2 = np.squeeze(np.mean(Vmatrix,axis=londim))
-		else:
-			Vlon2 = np.squeeze(Vmatrix)
-
-		# average over latitudes
-		if lat is not None:
-			Vlonlat2 = np.squeeze(np.mean(Vlon2,axis=latdim))
-		else:
-			Vlonlat2 = np.squeeze(Vlon2)
-
-		# subtract the difference field out from the primary field  
-		M = Vlonlat-Vlonlat2
-	else:
-		M = Vlonlat
+	# squeeze out any leftover length-1 dimensions
+	M = scaling_factor*np.squeeze(Vlonlat)
 
         # choose color map based on the variable in question
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
@@ -468,7 +452,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	if debug:
 		print('shape of the array to be plotted:')
 		print(M.shape)
-	cs = plt.contourf(t,lev,M*scaling_factor,L,cmap=cmap,extend="both")
+	cs = plt.contourf(t,lev,M,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
