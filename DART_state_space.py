@@ -22,7 +22,7 @@ import experiment_settings as es
 
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
-var3d = ['U','US','V','VS','T','Z3','DELF']
+var3d = ['U','US','V','VS','T','Z3','DELF','Q']
 var2d = ['PS','FLUT']
 var1d = ['hyam','hybm','hyai','hybi']
 
@@ -1723,7 +1723,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	"""
 
 	# throw an error if the desired variable is 2 dimensional 
-	if (E['variable'] == 'PS') or (E['variable'] == 'FLUT'):
+	if E['variable'].upper() not in var3d:
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
