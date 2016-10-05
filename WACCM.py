@@ -155,7 +155,7 @@ def load_WACCM_multi_instance_h_file(E,datetime_in,instance,hostname='taurus',ve
 		scalar_variables = ['P0']
 		variables_1d = ['hyam','hybm','hyai','hybi']
 		variables_2d = ['PS','FLUT','OLR']
-		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V','Q','O3']
+		variables_3d = ['US','VS','T','Z3','QRS_TOT','QRL','QRL_TOT','U','V','Q','O3','CH4','OH']
 
 		if E['variable'] in scalar_variables:
 			# scalar 
@@ -219,7 +219,9 @@ def history_file_lookup(E):
 	'Q':1,
 	'QRL':0,
 	'QRL_TOT':0,
-	'QRS_TOT':0
+	'QRS_TOT':0,
+	'CH4':0,
+	'OH':0
 	}
 		
 	# if the desired key does not exist, set output hnumber to None
