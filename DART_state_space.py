@@ -603,19 +603,16 @@ def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange
 
 	return cs,CB
 
-def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scaling_factor=1.0,include_truth=False,hostname='taurus',debug=False):
+def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scaling_factor=1.0,hostname='taurus',debug=False):
 
 	"""
 	retrieve the prior or posterior ensemble averaged over some region of the state,
-	along with the truth (if desired), 
 	for some DART experiment
 	
 	INPUTS:
 	E: standard experiment dictionary 
 	averaging: set to True to average over the input latitude, longitude, and level ranges (default=True).
 	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
-	include_truth: set to True to include the true state for this run. Note that if the truth does not exist but is requested, this 
-		subroutine will throw an error. 
 	scaling_factor: factor by which to multiply the array to be plotted 
 	hostname
 	debug
@@ -683,51 +680,41 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scalin
 	return VE,lev,lat,lon
 
 
-def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_truth="#000000",scaling_factor=1.0,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
+def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,label_ensemble='Ensemble',label_mean='Mean',scaling_factor=1.0,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
 
 	"""
 	plot the prior or posterior ensemble averaged over some region of the state,
-	along with the truth (if available), 
 	for some DART experiment
 
 	INPUTS:
-	truth: a second experiment that is used as the "true" state. A good choice for this might be 
-		another analysis, like ERA-Interim 
-		The defauly is None -- plotting no true state. 
 	ensemble_members: set to "all" to request entire ensemble, or specify a list with the numbers of the ensemble members you want to plot  
 	color_ensemble: the color that we want to plot the ensemble in -- default is gray  
-	color_truth: the color that we want to plot the "truth" in (if specified) -- default is black
+	color_mean: the color that we want to plot the ensemble mean in -- if this is None (default), then 
+		the color of the ensemble is chosen
+	label_ensemble: string with which to label the ensemble in the plot 
+	label_mean: string with which to label the mean in the plot 
 	scaling_factor: factor by which to multiply the array to be plotted 
 
 	"""
 
 	# retrieve the ensemble
-	VE,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,include_truth=False,
+	VE,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,
 								hostname=hostname,debug=debug,scaling_factor=scaling_factor,
 								ensemble_members=ensemble_members)
-
-	# retrieve the truth if desired 
-	if truth is not None:
-		VT,levT,latT,lonT = retrieve_state_space_ensemble(E=truth,averaging=True,include_truth=False,
-									hostname=hostname,debug=debug,scaling_factor=scaling_factor,
-									ensemble_members=ensemble_members)
-	else:
-		VT=None
-
-
 	# set up a  time grid 
 	t = E['daterange']
+
+	# color for the mean state 
+	if color_mean is None:
+		color_mean=color_ensemble
 
         # plot global diagnostic in in time
 	N = VE.shape[0]
 	VM = np.mean(VE,axis=0)
-	cs = plt.plot(t,VE[0,:],color=color_ensemble,label='Ensemble')
+	cs = plt.plot(t,VE[0,:],color=color_ensemble,label=label_ensemble)
 	for iens in np.arange(1,N):
 		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_',linewidth=0.7*linewidth,alpha=alpha)
-	plt.hold(True)
-	if truth is not None:
-		cs = plt.plot(t,VT,color=color_truth,linewidth=2.0,label=truth_label)
-	plt.plot(t,VM,color=color_ensemble,label='Ensemble Mean',linewidth=linewidth,linestyle=linestyle)
+	plt.plot(t,VM,color=color_mean,label=label_mean,linewidth=linewidth,linestyle=linestyle)
 
 	# show a legend if desired
 	if show_legend:
@@ -755,7 +742,7 @@ def plot_state_space_ensemble(E=None,truth=None,color_ensemble='#777777',color_t
 	fmt = mdates.DateFormatter('%b-%d')
 	plt.gca().xaxis.set_major_formatter(fmt)
 
-	return VE,VT,t,lg
+	return VE,t,lg
 
 def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,x_as_days=False,hostname='taurus',debug=False):
 
