@@ -373,7 +373,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	return CB,cs,M
 
 
-def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,hostname='taurus',debug=False):
+def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,hostname='taurus',debug=False):
 
 	"""
 	Given a DART experiment dictionary E, plot the desired diagnostic as a function of vertical level and time, 
@@ -387,6 +387,12 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
 	scaling_factor: factor by which to multiply the array to be plotted 
+	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
+		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
+		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
+		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
+		'TPbased': in this case, compute the height of each gridbox relative to the local tropopause and 
+			plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
 	"""
 
 	# throw an error if the desired variable is 2 dimensional 
@@ -394,15 +400,27 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-	# load the desired DART diagnostic for the desired variable and daterange:
-	VV,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+#BINK
 
-	# load the desired DART diagnostic for the difference experiment dictionary
+	# load the requested array, and the difference array if needed 
+	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# convert to TP-based coordinates if requested 	
+	if vertical_coord=='TPbased': 
+		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+	else:
+		Vmain=Vmain0
+		lev=lev0
 	if Ediff is not None:
-		VD,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-		Vmatrix=VV-VD
-	else:	
-		Vmatrix=VV
+		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		# convert to TP-based coordinates if requested 	
+		if vertical_coord=='TPbased': 
+			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+		else:
+			Vdiff=Vdiff0
+			lev=lev0
+		Vmatrix=Vmain-Vdiff
+	else:
+		Vmatrix=Vmain
 
 	# figure out which dimension is longitude and then average over that dimension 
 	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
@@ -447,12 +465,27 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 	else:
 		L  = np.linspace(start=0,stop=clim,num=11)
 
+	# compute vertical coordinate depending on choice of pressure or altitude 
+	if 'levels' in vertical_coord:
+		y=lev
+		ylabel = 'Level (hPa)'
+	if vertical_coord=='z':
+		H=7.0
+		p0=1000.0 
+		y = H*np.log(p0/lev)
+		ylabel = 'log-p height (km)'
+	if vertical_coord=='TPbased':
+		#from matplotlib import rcParams
+		#rcParams['text.usetex'] = True
+		y=lev
+		ylabel='z (TP-based) (km)'
+
         # contour data 
 	t = new_daterange
 	if debug:
 		print('shape of the array to be plotted:')
 		print(M.shape)
-	cs = plt.contourf(t,lev,M,L,cmap=cmap,extend="both")
+	cs = plt.contourf(t,y,M,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
@@ -478,10 +511,11 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,clim=None
 
 
 	plt.xlabel('time')
-	plt.ylabel('Pressure (hPa)')
-	plt.yscale('log')
-	plt.gca().invert_yaxis()
-	plt.axis('tight')
+	plt.ylabel(ylabel)
+	if vertical_coord=='log_levels':
+		plt.yscale('log')
+	if 'levels' in vertical_coord:
+		plt.gca().invert_yaxis()
 
 	return cs,CB,M
 
