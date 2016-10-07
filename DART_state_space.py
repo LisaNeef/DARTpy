@@ -456,7 +456,9 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	M = scaling_factor*np.squeeze(Vlonlat)
 
         # choose color map 
-	cmap = nice_colormaps(cmap_type)
+	cc = nice_colormaps(cmap_type,reverse_colors)
+	cmap=cc.mpl_colormap
+	ncolors = cc.number
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
@@ -2876,10 +2878,18 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	return Vnew,zTPgrid
 
-def nice_colormaps(cmap_type):
+def nice_colormaps(cmap_type='sequential',reverse_colors=False):
 
 	"""
 	A tool for picking colormaps for contour plots that look nice.
+
+	INPUTS:
+	cmap_type: choose 'sequential' or 'divergent' (sequential is the default). 
+	reverse_colors: set to True to flip the colormap. The default is False. 
+
+
+	OUTPUT: 
+	a palettable object from which you can extract mpl_colors, colors, number of colors, etc. 
 	"""
 
 
@@ -2887,16 +2897,14 @@ def nice_colormaps(cmap_type):
 	if cmap_type=='sequential':
 		# sequential maps look cool with the cubehelix-type maps.
 		# number 2 looks like a good balance of colorful and garish. 
-		if reverse_colors:
-			cmap = pb.cubehelix.cubehelix2_16_r.mpl_colormap
-		else:
-			cmap = pb.cubehelix.cubehelix2_16.mpl_colormap
-
+		cname = 'cubehelix.cubehelix2_16'
 	else:
-		# The colorbrewer2 collection has nice divergent colormaps. 
-		if reverse_colors:
-			cmap = pb.colorbrewer.diverging.RdBu_11_r.mpl_colormap
-		else:
-			cmap = pb.colorbrewer.diverging.RdBu_11.mpl_colormap
+		cname = 'colorbrewer.diverging.RdBu_11'
 
+	if reverse_colors:
+		rev='_r'
+	else:
+		rev=''
+
+	cmap = eval('pb.'+cname+rev)
 	return cmap
