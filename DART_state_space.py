@@ -17,6 +17,7 @@ import re
 import ERA as era
 import TEM as tem
 import experiment_settings as es
+import palettable as pb
 
 ## here are some common settings for the different subroutines
 
@@ -373,7 +374,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	return CB,cs,M
 
 
-def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,hostname='taurus',debug=False):
+def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,cmap_type='sequential',hostname='taurus',debug=False):
 
 	"""
 	Given a DART experiment dictionary E, plot the desired diagnostic as a function of vertical level and time, 
@@ -387,6 +388,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
 	scaling_factor: factor by which to multiply the array to be plotted 
+	cmap_type: what kind of colormap do we want? choose 'sequential' or 'divergent'
 	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
 		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
 		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
@@ -453,17 +455,17 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	# squeeze out any leftover length-1 dimensions
 	M = scaling_factor*np.squeeze(Vlonlat)
 
-        # choose color map based on the variable in question
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
+        # choose color map 
+	cmap = nice_colormaps(cmap_type)
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
 		clim = scaling_factor*np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=11)
+		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
 	else:
-		L  = np.linspace(start=0,stop=clim,num=11)
+		L  = np.linspace(start=0,stop=clim,num=ncolors)
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
@@ -2873,3 +2875,28 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 					#	Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
 
 	return Vnew,zTPgrid
+
+def nice_colormaps(cmap_type):
+
+	"""
+	A tool for picking colormaps for contour plots that look nice.
+	"""
+
+
+	# choose sequential or divergent colormap  
+	if cmap_type=='sequential':
+		# sequential maps look cool with the cubehelix-type maps.
+		# number 2 looks like a good balance of colorful and garish. 
+		if reverse_colors:
+			cmap = pb.cubehelix.cubehelix2_16_r.mpl_colormap
+		else:
+			cmap = pb.cubehelix.cubehelix2_16.mpl_colormap
+
+	else:
+		# The colorbrewer2 collection has nice divergent colormaps. 
+		if reverse_colors:
+			cmap = pb.colorbrewer.diverging.RdBu_11_r.mpl_colormap
+		else:
+			cmap = pb.colorbrewer.diverging.RdBu_11.mpl_colormap
+
+	return cmap
