@@ -462,7 +462,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if clim is None:
-		clim = scaling_factor*np.nanmax(np.absolute(M[np.isfinite(M)]))
+		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	if cmap_type == 'divergent':
 		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
