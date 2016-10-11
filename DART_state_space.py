@@ -24,7 +24,7 @@ import palettable as pb
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
 var3d = ['U','US','V','VS','T','Z3','DELF','Q','CH4','OH']
-var2d = ['PS','FLUT']
+var2d = ['PS','FLUT','ptrop']
 var1d = ['hyam','hybm','hyai','hybi']
 
 # constants
@@ -808,7 +808,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 	# loop over experiment dictionaries and load the timeseries of the desired diagnostic
 	names = []
-	for iE,E in zip(range(nE),EE):
+	for iE,E in enumerate(EE):
 
 		# store the name of this experiment
 		names.append(E['title'])
@@ -829,41 +829,44 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 			# load the data over the desired latitude and longitude range  
 			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
 
+			# load the difference array if desired  
+			if EEdiff is not None:
+				Ediff = EEdiff[iE]
+				lev2,lat2,lon2,VVdiff,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
+				Vmatrix = VV-VVdiff
+			else:
+				Vmatrix = VV
 
 			# compute global average only if the file was found
-			if VV is not None:
-				# average over latitude, longitude, and level  
-				Mlat = np.mean(VV,axis=0)
-				Mlatlon = np.mean(Mlat,axis=0)
-				if E['variable'] in var3d:
-					Mlatlonlev = np.mean(Mlatlon,axis=0)
-				if E['variable'] in var2d:
-					Mlatlonlev = Mlatlon
-				M1 = Mlatlonlev
+			if Vmatrix is not None:
 
-				# repeat for the difference experiment
-				if (EEdiff != None):
-					Ediff = EEdiff[iE]
-					lev2,lat2,lon2,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-					if VV is not None:
-						M2lat = np.mean(VV,axis=0)
-						M2latlon = np.mean(M2lat,axis=0)
-						if E['variable'] in var3d:
-							M2latlonlev = np.mean(M2latlon,axis=0)
-						if E['variable'] in var2d:
-							M2latlonlev = M2latlon
-						M2 = M2latlonlev
-						M = M1-M2
-					else:
-						M = np.NAN
+				# average over latitude, longitude, and vertical level 
+				if lat is not None:
+					Vlat = average_over_named_dimension(Vmatrix,lat)
+				else:	
+					Vlat=Vmatrix
+				if lon is not None:
+					Vlatlon = average_over_named_dimension(Vlat,lon)
 				else:
-					M = M1
+					Vlatlon=Vlat
+				if lev is not None:
+					Vlatlonlev = average_over_named_dimension(Vlatlon,lev)
+				else:
+					Vlatlonlev=Vlatlon
+
+				# squeeze out any remaining length-1 dimensions  
+				M = np.squeeze(Vlatlonlev)
+
 			else:
 				# if no file was found, just make the global average a NAN
 				M = np.NAN
 
 			# append the resulting vector to the larger array (or initialize it)
-			MM[iE,ii] = M
+			try:
+				MM[iE,ii] = M
+			except ValueError:
+				print("Array M doesn't seem to fit. Here is it's shape:")
+				print(M.shape)
 
 
 	#------plotting----------
@@ -2762,7 +2765,6 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	Etropmean=E.copy()
 	Etropmean['variable']='ptrop'
 	Etropmean['matrix_name']='ztropmean'  
-	Etropmean['daterange']=['DJFmean']  
 	Etropmean['daterange']=[meantrop]  
 
 	# now loop over these experiment and retrieve the data, also converting pressures to altitudes 
@@ -2811,7 +2813,7 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 			# add final array to dictionary 
 			Zdict[Etemp['matrix_name']]=Z3d
 
-			#ll no wfor each point, compute z-ztrop+ztropmean
+			#now for each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
 
 	# create a regular grid 
@@ -2908,3 +2910,25 @@ def nice_colormaps(cmap_type='sequential',reverse_colors=False):
 
 	cmap = eval('pb.'+cname+rev)
 	return cmap
+
+def average_over_named_dimension(V,dim):
+
+	"""
+	This subroutine takes a multi-dimensional data matrix and finds the dimension that matches 
+	the length of a given input dimension, and then averages over that. 
+	So for example, if you have an atmosphere data array shaped like lat x lon x lev 
+	and you put in that array and an array with the levels, you will get back an average over the 
+	3rd dimension.   
+
+	INPUTS:  
+	V: multi dimensional data array  
+	dim: dimension array (1xN, where N is the length of the dim in question)  
+	"""
+
+	for idim,dimlen in enumerate(V.shape):
+		if dimlen == len(dim):
+			desired_dimension_number = idim
+	Vave = np.mean(V,axis=desired_dimension_number)
+
+	return(Vave)
+
