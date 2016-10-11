@@ -872,7 +872,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	# change the default color cycle to colorbrewer Dark2, or use what is supplied
 	if colors is None:
 		cc = nice_colormaps('qualitative')
-		colors=cc.colors
+		colors=cc.mpl_colors
 
 	# set all line styles to a plain line if not previous specified  
 	if linestyles == None:
@@ -904,11 +904,13 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	plt.xlabel('Time (Days)')
 	if ylim is not None:
 		plt.ylim(ylim)
+	else:
+		ylim= plt.gca().get_ylim()
 	if xlim is not None:
 		plt.xlim(xlim)
 
 	# format the y-axis labels to be exponential if the limits are quite high
-	if (ylim > 100):
+	if (np.max(ylim) > 100):
 		ax = plt.gca()
 		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
