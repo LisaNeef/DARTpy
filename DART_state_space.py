@@ -402,8 +402,6 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and latitude - need to pick a different variable!')
 		return
 
-#BINK
-
 	# load the requested array, and the difference array if needed 
 	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 	# convert to TP-based coordinates if requested 	
@@ -873,9 +871,8 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 	# change the default color cycle to colorbrewer Dark2, or use what is supplied
 	if colors is None:
-		# TODO: replace with call to moduel palettable to get colorbrewer colors back
-		colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors)
-		#bmap = brewer2mpl.get_map('Dark2', 'qualitative', 7)
+		cc = nice_colormaps('qualitative')
+		colors=cc.colors
 
 	# set all line styles to a plain line if not previous specified  
 	if linestyles == None:
@@ -2902,7 +2899,7 @@ def nice_colormaps(cmap_type='sequential',reverse_colors=False):
 	cname_dict['sequential'] = 'cubehelix.cubehelix2_16'
 	# colorbrewer has nice divergent maps -- let's choose a simple red-blue with lots of shades. 
 	cname_dict['divergent'] = 'colorbrewer.diverging.RdBu_11'
-	cname_dict['qualitative'] = 'colorbrewer.qualitative.dark2_8'
+	cname_dict['qualitative'] = 'colorbrewer.qualitative.Dark2_8'
 
 
 	cname = cname_dict[cmap_type]
