@@ -24,7 +24,7 @@ import palettable as pb
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
 var3d = ['U','US','V','VS','T','Z3','DELF','Q','CH4','OH']
-var2d = ['PS','FLUT','ptrop']
+var2d = ['PS','FLUT','ptrop','ztrop']
 var1d = ['hyam','hybm','hyai','hybi']
 
 # constants
@@ -756,10 +756,10 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
 			ax.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
 	# format the x-axis labels to be dates
-	if len(t) > 30:
-		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-	if len(t) < 10:
-		plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(t))))
+	#if len(t) > 30:
+	plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+	#if len(t) < 10:
+	#	plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(t))))
 	fmt = mdates.DateFormatter('%b-%d')
 	plt.gca().xaxis.set_major_formatter(fmt)
 
@@ -816,7 +816,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		#Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 		# for each experiment loop over the input date range
-		for date, ii in zip(E['daterange'],range(len(E['daterange']))):  
+		for ii,date in enumerate(E['daterange']):
 
 			# fill in the day count (if desired) 
 			if x_as_days:
@@ -894,7 +894,12 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 			x = x0[~np.isnan(y0)]
 		else:
 			x = E['daterange']
-		cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE],marker=markers[iE])
+		try:
+			cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE],marker=markers[iE])
+		except ValueError:
+			print("There's a problem plotting the time and global average array. Here are their shapes:")
+			print(len(x))
+			print(y.shape)
 
 	# include legend if desire
 	if include_legend:
@@ -910,16 +915,16 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		plt.xlim(xlim)
 
 	# format the y-axis labels to be exponential if the limits are quite high
-	if (np.max(ylim) > 100):
+	if (np.max(ylim) > 1000):
 		ax = plt.gca()
 		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
 	if not x_as_days:
 		# format the x-axis labels to be dates
-		if len(x) > 30:
-			plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-		if len(x) < 10:
-			plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(t))))
+		#if len(x) > 30:
+		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+		#if len(x) < 10:
+		#	plt.gca().xaxis.set_major_locator(mdates.DayLocator(bymonthday=range(len(E['daterange']))))
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_formatter(fmt)
 
