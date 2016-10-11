@@ -2895,13 +2895,17 @@ def nice_colormaps(cmap_type='sequential',reverse_colors=False):
 	"""
 
 
-	# choose sequential or divergent colormap  
-	if cmap_type=='sequential':
-		# sequential maps look cool with the cubehelix-type maps.
-		# number 2 looks like a good balance of colorful and garish. 
-		cname = 'cubehelix.cubehelix2_16'
-	else:
-		cname = 'colorbrewer.diverging.RdBu_11'
+	# choose qualitative, sequential, or divergent colormap  
+	cname_dict = dict()
+	# sequential maps look cool with the cubehelix-type maps, for which
+	# number 2 looks like a good balance of colorful and garish. 
+	cname_dict['sequential'] = 'cubehelix.cubehelix2_16'
+	# colorbrewer has nice divergent maps -- let's choose a simple red-blue with lots of shades. 
+	cname_dict['divergent'] = 'colorbrewer.diverging.RdBu_11'
+	cname_dict['qualitative'] = 'colorbrewer.qualitative.dark2_8'
+
+
+	cname = cname_dict[cmap_type]
 
 	if reverse_colors:
 		rev='_r'
