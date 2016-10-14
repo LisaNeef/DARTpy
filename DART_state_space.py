@@ -1725,7 +1725,7 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	else:
 		return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,ncolors=19,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1740,7 +1740,6 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
 	reverse_colors: set to True to flip the colormap
-	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
 	colorbar_label: string with which to label the colorbar  
 	scaling_factor: factor by which to multiply the array to be plotted 
 	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
@@ -1777,22 +1776,19 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	else:
 		Vmatrix=Vmain
 
-	# and average over the last dimension, which is always time (by how we formed this array) 
-	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-	# figure out which dimension is longitude and then average over that dimension 
-	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
-	shape_tuple = VV.shape
+	# average over time and longitude 
+	V0 = average_over_named_dimension(Vmatrix,new_daterange)
 	if lon is not None:
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lon):
-				londim = ii
-		M = np.squeeze(np.mean(VV,axis=londim))
+		V1 = average_over_named_dimension(V0,lon)
 	else:
-		M = np.squeeze(VV)
+		V1 = V0
+	# squeeze out any leftover length-1 dimensions 
+	M = np.squeeze(V1)
 
-        # choose a color map based on the variable in question
-	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff,reverse=reverse_colors,ncol=ncolors)
+        # choose color map 
+	cc = nice_colormaps(cmap_type,reverse_colors)
+	cmap=cc.mpl_colormap
+	ncolors = cc.number
 
 	if clim is None:
 		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
