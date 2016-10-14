@@ -23,7 +23,7 @@ import palettable as pb
 
 # list the 3d, 2d, 1d variables 
 # TODO: fill this in with other common model variables 
-var3d = ['U','US','V','VS','T','Z3','DELF','Q','CH4','OH']
+var3d = ['U','US','V','VS','T','Z3','DELF','Q','CH4','OH','Nsq']
 var2d = ['PS','FLUT','ptrop','ztrop']
 var1d = ['hyam','hybm','hyai','hybi']
 
@@ -1725,7 +1725,152 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	else:
 		return Xout,lat,lon,lev
 
-def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',reverse_colors=False,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
+def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',cmap_type='sequential',reverse_colors=False,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
+
+	"""
+	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) 
+	and plot if over longtitude and vertical levels.  
+	Whatever diagnostic is chosen, we average over all longitudes in E['lonrange'] and 
+	all times in E['daterange']
+
+	INPUTS:
+	E: basic experiment dictionary
+	Ediff: experiment dictionary for the difference experiment
+	clim: color limits (single number, applied to both ends if the colormap is divergent)
+	L: list of contour levels - default is none, which choses the levels evenly based on clim 
+	hostname: name of the computer on which the code is running
+	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
+	cmap_type: choose a sequential, qualitative, or diverging colormap
+	reverse_colors: set to True to flip the colormap
+	colorbar_label: string with which to label the colorbar  
+	scaling_factor: factor by which to multiply the array to be plotted 
+	vertical_coord: option for how to plot the vertical coordinate. These are your choices:
+		'log_levels' (default) -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a logarithmic scale 
+		'levels' -- plot whatever the variable 'lev' gives (e.g. pressure in hPa) on a linear scale 
+		'z' -- convert lev (assumed to be pressure) into log-pressure height coordinates uzing z=H*exp(p/p0) where p0 = 1000 hPa and H=7km  
+		'TPbased': in this case, compute the height of each gridbox relative to the local tropopause and 
+			plot everything on a "tropopause-based" grid, i.e. zt = z-ztrop-ztropmean 
+	debug: set to True to get extra ouput
+	"""
+
+	# throw an error if the desired variable is 2 dimensional 
+	if E['variable'] in var2d:
+		print('Attempting to plot a two dimensional variable ('+E['variable']+') over level and longitude - need to pick a different variable!')
+		return
+
+	# load the requested array, and the difference array if needed 
+	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	# convert to TP-based coordinates if requested 	
+	if vertical_coord=='TPbased': 
+		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+	else:
+		Vmain=Vmain0
+		lev=lev0
+	if Ediff is not None:
+		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		# convert to TP-based coordinates if requested 	
+		if vertical_coord=='TPbased': 
+			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+		else:
+			Vdiff=Vdiff0
+			lev=lev0
+		Vmatrix=Vmain-Vdiff
+	else:
+		Vmatrix=Vmain
+
+	# average over time and latitude  
+	V0 = average_over_named_dimension(Vmatrix,new_daterange)
+	if lat is not None:
+		V1 = average_over_named_dimension(V0,lat)
+	else:
+		V1 = V0
+
+	# squeeze out any leftover length-1 dimensions 
+	M = np.squeeze(V1)
+
+        # choose color map 
+	cc = nice_colormaps(cmap_type,reverse_colors)
+	cmap=cc.mpl_colormap
+	ncolors = cc.number
+
+
+	if clim is None:
+		clim0 = np.nanmax(M[np.isfinite(M)])
+		clim1 = np.nanmin(M[np.isfinite(M)])
+		clim=[clim0,clim1]
+
+	# if not already specified, 
+	# set the contour levels - it depends on the color limits and the number of colors we have  
+	if L is None:
+	contour_levels_dict = {'divergent':np.linspace(start=-clim[0],stop=clim[1],num=ncolors),
+				'sequential':L  = np.linspace(start=clim[0],stop=clim[1],num=ncolors),
+				'qualitative':L  = np.linspace(start=0,stop=clim,num=ncolors)}
+
+
+	# transpose the array if necessary  
+	if M.shape[0]==len(lon):
+		MT = np.transpose(M)
+	else:
+		MT = M
+
+	if len(MT.shape) < 2:
+		print('plot_diagnostic_lev_lat: the derived array is not 2-dimensional. This is its shape:')
+		print(MT.shape)
+		print('Returning with nothing plotted...')
+		return None,None
+
+	if (MT.shape[0] != len(lev)) |  (MT.shape[1] != len(lon)):
+		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
+		print(MT.shape)
+		print(len(lev))
+		print(len(lon))
+		print('Returning with nothing plotted...')
+		return None,None
+
+	# compute vertical coordinate depending on choice of pressure or altitude 
+	if 'levels' in vertical_coord:
+		y=lev
+		ylabel = 'Level (hPa)'
+	if vertical_coord=='z':
+		H=7.0
+		p0=1000.0 
+		y = H*np.log(p0/lev)
+		ylabel = 'log-p height (km)'
+	if vertical_coord=='TPbased':
+		#from matplotlib import rcParams
+		#rcParams['text.usetex'] = True
+		y=lev
+		ylabel='z (TP-based) (km)'
+
+	cs = plt.contourf(lon,y,scaling_factor*MT,L,cmap=cmap,extend="both")
+
+	# add a colorbar if desired 
+	if cbar is not None:
+		if (clim > 1000) or (clim < 0.01):
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
+		else:
+			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
+		if colorbar_label is not None:
+			CB.set_label(colorbar_label)
+	else: 
+		CB = None
+
+
+	# axis labels 
+	plt.xlabel('Latitude')
+	plt.ylabel(ylabel)
+	if vertical_coord=='log_levels':
+		plt.yscale('log')
+	if 'levels' in vertical_coord:
+		plt.gca().invert_yaxis()
+
+	# make sure the axes only go as far as the ranges in E
+	plt.xlim(E['lonrange'])
+
+	# return the colorbar handle if available, so we can adjust it later
+	return CB,M,L
+
+def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',cmap_type='sequential',reverse_colors=False,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) over levels and latitude.  
@@ -1739,6 +1884,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	L: list of contour levels - default is none, which choses the levels evenly based on clim 
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
+	cmap_type: choose a sequential, qualitative, or diverging colormap -- default is sequential 
 	reverse_colors: set to True to flip the colormap
 	colorbar_label: string with which to label the colorbar  
 	scaling_factor: factor by which to multiply the array to be plotted 
