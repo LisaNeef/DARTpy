@@ -1857,7 +1857,7 @@ def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 
 	# axis labels 
-	plt.xlabel('Latitude')
+	plt.xlabel('Longitude')
 	plt.ylabel(ylabel)
 	if vertical_coord=='log_levels':
 		plt.yscale('log')
@@ -2742,7 +2742,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	return M,y
 	
 
-def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,log_levels=False,invert_yaxis=False,debug=False):
+def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,invert_yaxis=False,debug=False):
 
 	"""
 	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) and plot it 
@@ -2761,83 +2761,35 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	"""
 
 	# load the desired DART diagnostic for the desired variable and daterange:
-	Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	VV,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-	# and average over the last dimension, which is always time (by how we formed this array) 
-	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-	# figure out which dimension is longitude and then average over that dimension 
-	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
-	shape_tuple = VV.shape
+	# load the difference array if desired  
+	if Ediff is not None:
+		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix = VV-Vmatrix
+	else:
+		Vmatrix = VV
+		
+	# average over time, longitude, and vertical levels  
+	V0 = average_over_named_dimension(Vmatrix,new_daterange)
 	if lon is not None:
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lon):
-				londim = ii
-		Mlon = np.squeeze(np.mean(VV,axis=londim))
+		V1 = average_over_named_dimension(V0,lon)
 	else:
-		Mlon = np.squeeze(VV)
-
-	# if it's a 3d variable, figure out which dimension is vertical levels and then average over that dimension  
-	shape_tuple2 = Mlon.shape
+		V1 = V0
 	if lev is not None:
-		levdim = None
-		for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
-			if dimlength == len(lev):
-				levdim = ii
-		# levdim wont be set if this dimension already got squeezed out, and in that case 
-		# we wont have to average
-		if levdim is not None:
-			Mlonlev = np.squeeze(np.mean(Mlon,axis=levdim))
-		else:
-			Mlonlev = np.squeeze(Mlon)
+		V2 = average_over_named_dimension(V1,lev)
 	else:
-		Mlonlev = np.squeeze(Mlon)
+		V2 = V1
 
-	# if computing a difference to another field, load that here  
-	if (Ediff != None):
-
-		# load the desired DART diagnostic for the difference experiment dictionary
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
-		# average over time 
-		VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-		# average over longitudes 
-		# as before, look for the londim (it might be different this time) 
-		shape_tuple = VV.shape
-		if lon is not None:
-			for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-				if dimlength == len(lon):
-					londim = ii
-			Mlon2 = np.squeeze(np.mean(VV,axis=londim))
-		else:
-			Mlon2 = np.squeeze(VV)
-
-		# average over vertical levels if needed 
-		shape_tuple2 = Mlon2.shape
-		if lev is not None:
-			levdim=None
-			for dimlength,ii in zip(shape_tuple2,range(len(shape_tuple2))):
-				if dimlength == len(lev):
-					levdim = ii
-				# it could be that the lev dimension was already squeezed out because 
-				# it has length 1 -- in that case, levdim = None and then 
-				# we don't have to average. 
-			if levdim is not None:
-				Mlonlev2 = np.squeeze(np.mean(Mlon2,axis=levdim))
-			else:
-				Mlonlev2 = np.squeeze(Mlon2)
-		else:
-			Mlonlev2 = np.squeeze(Mlon2)
-
-		# subtract the difference field out from the primary field  
-		M = Mlonlev-Mlonlev2
-	else:
-		M = Mlonlev
+	# squeeze out any remaining length-1 dimensions and scale 
+	M = scaling_factor*np.squeeze(V2)
 
 	# transpose the array if necessary  
-	if M.shape[0]==len(lat):
-		MT = np.transpose(M)
+	if len(M.shape)>1:
+		if M.shape[0]==len(lat):
+			MT = np.transpose(M)
+		else:
+			MT = M
 	else:
 		MT = M
 
@@ -2846,16 +2798,14 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	if len(MT.shape) == 2:
 		ncopies = MT.shape[0]
 		for icopy in range(ncopies):
-			plt.plot(lat,scaling_factor*MT[icopy,:],color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+			plt.plot(lat,MT[icopy,:],color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 	else:
-		plt.plot(lat,scaling_factor*MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+		plt.plot(lat,MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
 	# axis labels 
 	plt.xlabel('Latitude')
 
 	# vertical axis adjustments if desired (e.g. if plotting tropopause height) 
-	if log_levels:
-		plt.yscale('log')
 	if invert_yaxis:
 		plt.gca().invert_yaxis()
 
