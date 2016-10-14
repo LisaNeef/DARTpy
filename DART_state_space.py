@@ -1785,27 +1785,27 @@ def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	else:
 		V1 = V0
 
-	# squeeze out any leftover length-1 dimensions 
-	M = np.squeeze(V1)
+	# squeeze out any leftover length-1 dimensions,and multiply by scaling factor if needed  
+	M = scaling_factor*np.squeeze(V1)
 
         # choose color map 
 	cc = nice_colormaps(cmap_type,reverse_colors)
 	cmap=cc.mpl_colormap
 	ncolors = cc.number
 
-
+	# create color limits if they weren't already specified 
 	if clim is None:
-		clim0 = np.nanmax(M[np.isfinite(M)])
-		clim1 = np.nanmin(M[np.isfinite(M)])
+		clim1 = np.nanmax(M[np.isfinite(M)])
+		clim0 = np.nanmin(M[np.isfinite(M)])
+		# for divergent colormaps, need to have the color limits even 
+		if cmap_type == 'divergent':
+			clim1 = np.nanmax(np.absolute(M[np.isfinite(M)]))
+			clim0 = -clim1
 		clim=[clim0,clim1]
 
-	# if not already specified, 
-	# set the contour levels - it depends on the color limits and the number of colors we have  
+	# create contour levels based on the array that we have  
 	if L is None:
-	contour_levels_dict = {'divergent':np.linspace(start=-clim[0],stop=clim[1],num=ncolors),
-				'sequential':L  = np.linspace(start=clim[0],stop=clim[1],num=ncolors),
-				'qualitative':L  = np.linspace(start=0,stop=clim,num=ncolors)}
-
+		L  = np.linspace(start=clim[0],stop=clim[1],num=ncolors)
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(lon):
@@ -1842,11 +1842,11 @@ def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		y=lev
 		ylabel='z (TP-based) (km)'
 
-	cs = plt.contourf(lon,y,scaling_factor*MT,L,cmap=cmap,extend="both")
+	cs = plt.contourf(lon,y,MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
-		if (clim > 1000) or (clim < 0.01):
+		if (np.max(clim) > 1000) or (np.max(clim) < 0.01):
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
