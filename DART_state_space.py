@@ -2814,6 +2814,78 @@ def plot_diagnostic_lat(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 
 	return MT,lat
 
+def plot_diagnostic_lon(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,hostname='taurus',scaling_factor=1.0,invert_yaxis=False,debug=False):
+
+	"""
+	Retrieve a DART diagnostic (defined in the dictionary entry E['diagn']) and plot it 
+	as a function of longitude
+	Whatever diagnostic is chosen, we average over all latgitudes in E['latrange'] and 
+	all times in E['daterange'], and if the quantity is 3d, average over vertical levels  
+
+	INPUTS:
+	E: basic experiment dictionary
+	Ediff: experiment dictionary for the difference experiment
+	hostname: name of the computer on which the code is running
+	ncolors: how many colors the colormap should have. Currently only supporting 11 and 18. 
+	colorbar_label: string with which to label the colorbar  
+	scaling_factor: factor by which to multiply the array to be plotted 
+	debug: set to True to get extra ouput
+	"""
+
+	# load the desired DART diagnostic for the desired variable and daterange:
+	VV,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
+	# load the difference array if desired  
+	if Ediff is not None:
+		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix = VV-Vmatrix
+	else:
+		Vmatrix = VV
+		
+	# average over time, latitude, and vertical levels  
+	V0 = average_over_named_dimension(Vmatrix,new_daterange)
+	if lat is not None:
+		V1 = average_over_named_dimension(V0,lat)
+	else:
+		V1 = V0
+	if lev is not None:
+		V2 = average_over_named_dimension(V1,lev)
+	else:
+		V2 = V1
+
+	# squeeze out any remaining length-1 dimensions and scale 
+	M = scaling_factor*np.squeeze(V2)
+
+	# transpose the array if necessary  
+	if len(M.shape)>1:
+		if M.shape[0]==len(lat):
+			MT = np.transpose(M)
+		else:
+			MT = M
+	else:
+		MT = M
+
+	# if we are plotting multiple copies (e.g. the entire ensemble), need to loop over them  
+	# otherwise, the plot is simple
+	if len(MT.shape) == 2:
+		ncopies = MT.shape[0]
+		for icopy in range(ncopies):
+			plt.plot(lon,MT[icopy,:],color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+	else:
+		plt.plot(lon,MT,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
+
+	# axis labels 
+	plt.xlabel('Latitude')
+
+	# vertical axis adjustments if desired (e.g. if plotting tropopause height) 
+	if invert_yaxis:
+		plt.gca().invert_yaxis()
+
+	# make sure the axes only go as far as the ranges in E
+	plt.xlim(E['lonrange'])
+
+	return MT,lon
+
 def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	"""
