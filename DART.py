@@ -549,7 +549,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# load CopyMetaData if availabe
 		if 'CopyMetaData' in f.variables:
 			CMD = f.variables['CopyMetaData'][:]
-			CMD = f.variables['CopyMetaData'][:]
 			CopyMetaData = []
 			for ii in range(0,len(CMD)):
 				temp = CMD[ii,].tostring().decode("utf-8")
@@ -557,7 +556,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		else:
 			# if it's not available, look it up for that experiment 
 			CopyMetaData = es.get_expt_CopyMetaData_state_space(E)
-
 
 		# load the requested dynamical variable  - these can have different names, so 
 		# first check if the requested variable, and if it's not found, try alternatives 
@@ -589,16 +587,9 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			if 'varname_load' not in locals():
 				print('Unable to find variable '+E['variable']+' in file '+filename)
 
-		# change the prefactor for certain variables 
-		prefac=1.0	# a prefactor that can be changed for loading some variables 
-
 		# now actually load the variable, and replace its bad 
 		# values with NaNs
 		V = f.variables[varname_load]
-		VV = prefac*V[:]
-		if hasattr(V,'_FillValue'):
-				VV[VV==V._FillValue]=np.nan
-
 		if (variable=='US'):
 			lat = f.variables['slat'][:]
 		else:
@@ -660,10 +651,13 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		lon2 = lon[i1:i2+1]
 
 
+		# now read in only the part of the variable within the lat, lon, and lev bounds 
+		# note that this assumes output shaped like time x copy x lat x lon x lev 
+		# TODO: is there away to make this more agnostic?  
 		if variable in variables_2d:
-			VV2 = VV[0,copies,j1:j2+1,i1:i2+1]
+			VV = V[:,copies,j1:j2+1,i1:i2+1]
 		else:
-			VV2 = VV[0,copies,j1:j2+1,i1:i2+1,k1:k2+1]
+			VV = V[:,copies,j1:j2+1,i1:i2+1,k1:k2+1]
 
 		#------------extra computations  
 
@@ -675,13 +669,13 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 				P0 = 1.0E5
 			else:
 				P0 = 1.0E3
-			VVpress = VV2
-			VV2 = H*np.log(P0/VVpress)
+			VVpress = VV
+			VV = H*np.log(P0/VVpress)
 				
 
 		# if the ensemble variance was requested, square it here
 		if (E['extras'] == 'ensemble variance'): 
-			VVout = np.square(VV2)
+			VVout = np.square(VV)
 
 		# if the copystring is ensemble variance scaled, square the ensemble spread and scale by ensemble size
 		if (E['extras'] == 'ensemble variance scaled'):
@@ -689,9 +683,9 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 				print('squaring and scaling ensemble spread to get scaled variance')
 			N = get_ensemble_size(f)
 			fac = (N+1)/N
-			VVout = fac*np.square(VV2)
+			VVout = fac*np.square(VV)
 		else:
-			VVout = VV2
+			VVout = VV
 
 		# close the primary file  
 		f.close()
