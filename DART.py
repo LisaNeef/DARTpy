@@ -493,7 +493,19 @@ def load_DART_obs_epoch_file(E,date_in=None, hostname='taurus',debug=False):
 	return obs_out,copy_names,obs_names_out,lons_list,lats_list,levs_list,QCdict
 
 
-def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname='taurus',debug=False):
+def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname='taurus',debug=False,return_single_variables=False):
+
+	"""
+	Read a DART diagnostic netcdf file (e.g. files with names like modelname_Prior_Diagn.nc, etc)
+	for a single data/time 
+	and for the variable and experiment specified in the experiment dictionary E. 
+
+	This code returns a dictionary, Dout, which holds the requested variable, its corresponding 
+	spacial dimension arrays (e.g. lat, lon, lev), units, and long name. 
+	To get  these as single variables, set the input parameter return_single_variables to True. This will be 
+	deprecated eventually when all other visualization codes are changed to deal with single variables.  
+	"""
+
 
 	# if debugging, print out what we're doing  
 	if debug:
@@ -590,6 +602,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# now actually load the variable, and replace its bad 
 		# values with NaNs
 		V = f.variables[varname_load]
+
 		if (variable=='US'):
 			lat = f.variables['slat'][:]
 		else:
@@ -627,7 +640,12 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 					# for all other copystrings, just look for the CopyMetaData entries that contrain that copystring
 					copies = [get_copy(f,CopyMetaData,cstring) for cstring in CopyMetaData if cstring==CS]
 
-		#------finding which copies to retrieve  
+		#------done finding which copies to retrieve  
+
+		# initialize output directory and record the variable's metadata. 
+		Dout = dict()
+		Dout['units']=V.units
+		Dout['long_name']=V.long_name
 
 		# figure out which vertical level range we want
 		if variable in variables_2d:
@@ -654,10 +672,16 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# now read in only the part of the variable within the lat, lon, and lev bounds 
 		# note that this assumes output shaped like time x copy x lat x lon x lev 
 		# TODO: is there away to make this more agnostic?  
+		# note also that we only choose the first time -- this works well with DART output 
+		# that have one time instance in each file, only. Again, another TODO woul dbe to make
+		# this more grid-agnostic. 
 		if variable in variables_2d:
-			VV = V[:,copies,j1:j2+1,i1:i2+1]
+			VV = V[0,copies,j1:j2+1,i1:i2+1]
 		else:
-			VV = V[:,copies,j1:j2+1,i1:i2+1,k1:k2+1]
+			VV = V[0,copies,j1:j2+1,i1:i2+1,k1:k2+1]
+
+		# close the primary file  
+		f.close()
 
 		#------------extra computations  
 
@@ -665,7 +689,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# convert it here 
 		if E['variable']=='ztrop':
 			H = 7.0		# 7 km scale height 
-			if np.max(VV2) > 1000.0:   # in this case, pressure is in Pa 
+			if np.max(VV) > 1000.0:   # in this case, pressure is in Pa 
 				P0 = 1.0E5
 			else:
 				P0 = 1.0E3
@@ -687,8 +711,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		else:
 			VVout = VV
 
-		# close the primary file  
-		f.close()
 
 		# if requestiing the mean square error (MSE), load the corresponding truth run and subtract it out, then square  
 		if (E['extras'] == 'MSE'):
@@ -720,7 +742,18 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			SE = np.square(VV2-VT2)
 			VVout = SE
 
-	return lev2,lat2,lon2,VVout,P0,hybm,hyam
+
+	if return_single_variables:
+		return lev2,lat2,lon2,VVout,P0,hybm,hyam
+	else:
+		Dout = dict()
+		Dout['lev']=lev2
+		Dout['lat']=lat2
+		Dout['lon']=lon2
+		Dout['P0']=P0
+		Dout['hybm']=hybm
+		Dout['hyam']=hyam
+		return(Dout)
 
 def get_ensemble_size(f):
 
