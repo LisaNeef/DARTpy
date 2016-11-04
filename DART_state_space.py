@@ -2385,7 +2385,7 @@ def bootstrapci_from_anomalies(E,P=95,nsamples=1000,hostname='taurus',debug=Fals
 
 	return CI,sig
 
-def DART_diagn_to_array(E,hostname='taurus',debug=False):
+def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=False):
 
 	"""
 	This subroutine loops over the dates given in E['daterange'] and load the appropriate DART diagnostic for each date, 
@@ -2393,6 +2393,11 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 	The files we load depend on the desired DART diagnostic (given in E['diagn']), variable (E['variable']), and 
 	any extra computations needed (E['extras'])  
+
+	This code returns a dictionary, Dout, which holds the requested variable, its corresponding 
+	spacial dimension arrays (e.g. lat, lon, lev), units, and long name. 
+	To get  these as single variables, set the input parameter return_single_variables to True. This will be 
+	deprecated eventually when all other visualization codes are changed to deal with single variables.  
 	"""
 
 	#----------------ANOMALIES------------------------------
@@ -2486,10 +2491,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 
 			# DART control variables are in the Prior_Diag and Posterior_Diag files 
 			if E['variable'] in dart_control_variables_list:
-				lev,lat,lon,V,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-				# if the above returns an error (bc we can't find the DART output files), we can still look 
-				# for the same data in model output files. 
-				if V is None:
+				try:
+					DD = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+					file_type_found = True
+				except RuntimeError:
+					# if the above returns an error (bc we can't find the DART output files), we can still look 
+					# for the same data in model output files. 
 					file_type_found = False
 					print('DART_diagn_to_array: Cannot find variable '+E['variable']+' in DART output')
 					print('for experiment '+E['exp_name'])
@@ -2497,8 +2504,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					import pprint
 					pprint.pprint(E, width=1)
 					print('---> looking for model output files instead')
-				else:
-					file_type_found = True
 
 			# transformed Eulerian mean diagnostics have their own routine 
 			if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
@@ -2549,6 +2554,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
+		if not return_single_variables:
+			V = DD['data']
 		Vlist.append(V)
 
 		# store the dimensions of the array V one time 
@@ -2575,7 +2582,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False):
 			d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
 			print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
 			return None,None,None,None,None
-	return Vmatrix,lat,lon,lev,new_daterange
+
+	if return_single_variables:
+		return Vmatrix,lat,lon,lev,new_daterange
+	else:
+		DD['data']=Vmatrix
+		DD['daterange']=new_daterange
+		return(DD)
 
 def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',label_for_legend=True,debug=False):
 

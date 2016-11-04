@@ -530,6 +530,10 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# TODO: add other 2d variables to this list 
 	variables_2d = ['PS','ptrop','ztrop']
 
+	# this is the dictionary that holds the output
+	if not return_single_variables:
+		Dout=dict()
+
 	# find the directory for this run   
 	# this requires running a subroutine called `find_paths`, stored in a module `experiment_datails`, 
 	# but written my each user -- it should take an experiment dictionary and the hostname 
@@ -537,9 +541,15 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	# the filepath that corresponds to the desired field, diagnostic, etc. 
 	filename = es.find_paths(E,date,'diag',hostname=hostname,debug=debug)
 	if not os.path.exists(filename):
-		if debug:
-			print("+++cannot find files that look like  "+filename+' -- returning None')
-		return None,None,None,None,None,None,None
+		raise RuntimeError("load_DART_diagn_file can't find files that look like  "+filename) 
+		
+		#if debug:
+		#	print("+++cannot find files that look like  "+filename+' -- returning None')
+		#if return_single_variables:
+	#		return None,None,None,None,None,None,None
+		#else:
+		#	Dout['data']=None
+		#	return Dout
 	else:
 		if debug:
 			print('opening file  '+filename)
@@ -643,7 +653,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		#------done finding which copies to retrieve  
 
 		# initialize output directory and record the variable's metadata. 
-		Dout = dict()
 		Dout['units']=V.units
 		Dout['long_name']=V.long_name
 
@@ -747,6 +756,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		return lev2,lat2,lon2,VVout,P0,hybm,hyam
 	else:
 		Dout = dict()
+		Dout['data']=VVout
 		Dout['lev']=lev2
 		Dout['lat']=lat2
 		Dout['lon']=lon2
