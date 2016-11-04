@@ -63,6 +63,10 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 	+ 'diag' -- load standard  DART Posterior_Diag or Prior_Diag files 
 	+ 'truth' -- load true state files from a perfect-model simulation
 
+
+	Note that if E has an additional entry called "extra_string", that string is added 
+	to the name of the file that we retrieve -- that makes it easy to retrieve 
+	unusual files that were created later but in the same style as other files. 
 	"""
 
 	path_found = False
@@ -119,10 +123,12 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 			TIL_variables = ['theta','ptrop','Nsq','P','brunt','ztrop']
 			if E['variable'] in TIL_variables:
 				diagstring='TIL'
-
-			fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+endstring+'.nc'
-			#fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+datestr+'-'+timestr+'.nc'
-			fname_truth = '/dart/hist/cam_'+'True_State'+'.'+endstring+'.nc'
+			if 'extrastring' not in E:
+				fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+endstring+'.nc'
+				fname_truth = '/dart/hist/cam_'+'True_State'+'.'+endstring+'.nc'
+			else:
+				fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+E['extrastring']+'.'+endstring+'.nc'
+				fname_truth = '/dart/hist/cam_'+'True_State'+'.'+E['extrastring']+'.'+endstring+'.nc'
 		if E['run_category'] == 'ERPDA':
 			gday = dart.date_to_gday(date)
 			# for all my (Lisa's) old experiments, obs sequence 1 is 1 Jan 2009
