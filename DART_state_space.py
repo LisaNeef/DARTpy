@@ -2550,6 +2550,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 				# another other variables, retrieve as-is from history files 
+				# TODO: instead of checking for the existence of V (which might be leftover from a previous iteration)
+				# need to be more organized here -- specify in E which file type should be loaded 
 				if 'V' not in locals():
 					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
@@ -2635,7 +2637,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		Etemp=E.copy()
 		Etemp['variable']=variable
 		# load the requested array, and the difference array if needed 
-		Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+		D = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
 		# convert to TP-based coordinates if requested 	
 		if 'TPbased' in vertical_coord: 
 			vcoord_string=vertical_coord.split('.')
@@ -2645,21 +2647,20 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				meantrop='DJFmean'
 			else:
 				meantrop=vcoord_string[1]
-			Vmain,lev=to_TPbased(E,Vmain0,lev0,meantrop=meantrop,hostname=hostname,debug=debug)
+			Vmain,lev=to_TPbased(E,D['data'],D['lev'],meantrop=meantrop,hostname=hostname,debug=debug)
 		else:
-			Vmain=Vmain0
-			lev=lev0
+			Vmain=D['data']
+			lev=D['lev']
 
 		if Ediff is not None:
 			Etempdiff=Ediff.copy()
 			Etempdiff['variable']=variable
-			Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
+			D2 = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
 			# convert to TP-based coordinates if requested 	
 			if vertical_coord=='TPbased': 
-				Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+				Vdiff,lev=to_TPbased(Etempfiff,D2['data'],D2['lev'],hostname=hostname,debug=debug)
 			else:
-				Vdiff=Vdiff0
-				lev=lev0
+				Vdiff=D2['data']
 			Vmatrix=Vmain-Vdiff
 		else:
 			Vmatrix=Vmain
@@ -2672,10 +2673,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
 
 	# find the latidue dimension and average (or take the max, if that option is chosen)
-	if lat is not None:
+	if D['lat'] is not None:
+		nlat = len(D['lat'])
 		shape_tuple = VV.shape
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lat):
+			if dimlength == nlat:
 				latdim = ii
 		Mlat = np.nanmean(VV,axis=latdim)
 		if E['extras'] is not None:
@@ -2685,10 +2687,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		Mlat = VV
 
 	# find the longitude dimension and average (or take the max, if that option is chosen)
-	if lon is not None:
+	if D['lon'] is not None:
+		nlon = len(D['lon'])
 		shape_tuple = Mlat.shape
 		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lon):
+			if dimlength == nlon:
 			    londim = ii
 		Mlon = np.nanmean(Mlat,axis=londim)
 		if E['extras'] is not None:
@@ -2729,10 +2732,13 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	else:
 		plt.plot(M,y,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha)
 
-	# improve axes and labels
+	# x axis stuff 
 	ax = plt.gca()
 	xlim = ax.get_xlim()[1]
 	ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
+	plt.xlabel(D['long_name']+' ('+D['units']+')')
+
+	# y axis stuff 
 	plt.ylabel(ylabel)
 	if vertical_coord=='log_levels':
 		plt.yscale('log')
@@ -2969,8 +2975,10 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 			else:
 				# otherwise, load the 3d pressure field 
 				V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
+				Dpressure = DART_diagn_to_array(Etemp,debug=debug)
+				V = Dpressure['data']
 			try:
-				if np.max(V) > 1000.0:     # this will be true if pressure units are Pascal
+				if (Dpressure['units']=='Pa') or (Dpressure['units']=='Pascal'):
 					P0=1.0E5
 				else:                        # otherwise assume pressure is in hPa
 					P0=1.0E3
