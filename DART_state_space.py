@@ -2391,19 +2391,36 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 	This subroutine loops over the dates given in E['daterange'] and load the appropriate DART diagnostic for each date, 
 	returning a numpy matrix of the relevant date.  
 
-	The files we load depend on the desired DART diagnostic (given in E['diagn']), variable (E['variable']), and 
-	any extra computations needed (E['extras'])  
+	The file type that we load depends on the entry `file_type` in the dictionary E. 
+	Here are the types of files that work:  
 
 	This code returns a dictionary, Dout, which holds the requested variable, its corresponding 
 	spacial dimension arrays (e.g. lat, lon, lev), units, and long name. 
 	To get  these as single variables, set the input parameter return_single_variables to True. This will be 
 	deprecated eventually when all other visualization codes are changed to deal with single variables.  
 	"""
+	import pprint
+
+	# read in the file type  and check if it's admissable  
+	FT = E['file_type']
+	file_types_list = ['ANOM','ERA','DART','WANG-TEM','COVAR','SPECIAL','WACCM']
+	if FT not in file_types_list:
+		if debug:
+			print('DART_diagn_to_array: This code is not set up to handle the given file type:  '+FT)
+			print('Assuming that you just want DART-type output data and loading that.')
+			FT = 'DART'
+
+	# adjust daterange if loading monthly data 
+	if 'monthly' in FT:
+		DRm = [datetime.datetime(dd.year,dd.month,1,12,0) for dd in E['daterange']]
+		DR = list(set(DRm))
+	else:
+		DR = E['daterange']
 
 	#----------------ANOMALIES------------------------------
 	# if plotting anomalies from climatology, climatology, or a climatological standard deviation, 
 	# can load these using the `stds` and `ano` rubroutines in MJO.py  
-	if ('climatology' in E['diagn']) or ('anomaly' in  E['diagn']) or ('climatological_std' in E['diagn']):
+	if FT is 'ANOM':
 		from MJO import ano,stds
 		climatology_option = E['diagn'].split('.')[1]
 		AA,Xclim,lat,lon,lev,new_daterange = ano(E,climatology_option,hostname,debug)	
@@ -2415,52 +2432,16 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
 		return Vmatrix,lat,lon,lev,new_daterange
+		#BINK1: make this return a dict
 
-	#----------------ERA data -- deprecated------------------------------
-	# can use an old routine for loading ERA data, but for consistency 
-	# can also just loop over the dates as below 
-	# if loading regular variables from ERA data, can load those using a subroutine from the ERA module.
-	# in this case, we also don't have to loop over dates.
-	#if (E['exp_name']=='ERA') and (E['variable'] in era_variables_list):
-#		import ERA as era
-#		VV,new_daterange,lat,lon,lev = era.retrieve_era_averaged(E,False,False,False,hostname,debug)
-		# this SR returns an array with time in the first dimension. We want it in the last
-		# dimension, so transpose
-#		Vmatrix = VV.transpose()
-#		return Vmatrix,lat,lon,lev,new_daterange
-	# ERA buoyancy frequency can be calculated with the Nsq function 
-#	if (E['exp_name']=='ERA') and (E['variable'] == 'Nsq'):
-#		Vmatrix,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
-#		return Vmatrix,lat,lon,lev,E['daterange']
-
-	#----------------OTHER DATA------------------------------
-
-	# if loading variables that are saved in monthly means, change the input daterange 
-	# to be monthly, and then only loop over those dates.
-	# WACCM h0 files are always monthly, so for now use the h-file-lookup routine in the WACCM module
-	# to figure out whether the requested variable is monthly
-	#still need to make this able to handle other monthly variables and other models/systems 
-	hnum = waccm.history_file_lookup(E)
-	if hnum is None:
-		DR = E['daterange']
-	else:	
-		if hnum == 0:
-			# instead of days, loop over months  
-			DR2 = E['daterange']
-			DRm = [datetime.datetime(dd.year,dd.month,1,12,0) for dd in DR2]
-			DR = list(set(DRm))
-		else:
-			DR = E['daterange']
-
-	# if none of the above worked, we have to 
-	# loop over the dates given in the experiment dictionary and load the desired data  
+	# ------data types that loop over date ranges  
 	Vlist = []
 	Vshape = None
+
 	for date in DR:
 
-		# most --but not all-- ERA data are loaded by their own routine  
-		era_variables_list = ['U','V','Z','T','MSLP','Z3','ptrop','Q','O3','Nsq','brunt','ztrop']
-		if 'ERA' in E['exp_name'] and E['variable'] in era_variables_list:
+		# ERA-40 and ERA-Interim data 
+		if FT is 'ERA':
 			if (E['variable'] == 'Nsq'):
 				# ERA buoyancy frequency can be calculated with the Nsq function 
 				V,lat,lon,lev = Nsq_from_3d(E,date,hostname=hostname,debug=debug)
@@ -2471,93 +2452,71 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 				resol = float(re.sub('\ERA', '',E['exp_name']))
 				V,lat,lon,lev,dum = era.load_ERA_file(E,date,resol=resol,hostname=hostname,verbose=debug)
 
-		# for regular diagnostic, the file we retrieve depends on the variable in question  
-		else:
-			file_type_found = False
-			# here are the different categories of variables:
-			# TODO: subroutine that reads the control variables specific to each model/experiment
-			dart_control_variables_list = ['US','VS','T','PS','Q','ptrop','theta','Nsq','brunt','P','ztrop']
-			tem_variables_list = ['VSTAR','WSTAR','FPHI','FZ','DELF']
-			dynamical_heating_rates_list = ['VTY','WS']
+		# regular DART diagnostic files (these usually have names like 'Posterior_diagn_XXXX.nc')	
+		if FT is 'DART':
+			try:
+				DD = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+				V = DD['data']
+			except RuntimeError:
+				error_msg_DART_diagn_to_array(FT,E)
+				V = None
 
-			# for covariances and correlations
-			if (E['diagn'].lower() == 'covariance') or (E['diagn'].lower() == 'correlation') :
+		# Wuke Wang TEM diagnostics  
+		if FT is 'WANG-TEM':
+			try:
+				V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+				lon = None
+			except RuntimeError:
+				error_msg_DART_diagn_to_array(FT,E)
+				V = None
+
+		# Covariances and correlations 
+		if FT is 'COVAR':
+			try:
 				lev,lat,lon,Cov,Corr = dart.load_covariance_file(E,date,hostname,debug=debug)
 				if E['diagn'].lower() == 'covariance':
 					V = Cov
 				if E['diagn'].lower() == 'correlation':
 					V = Corr
-				file_type_found = True
+			except RuntimeError:
+				error_msg_DART_diagn_to_array(FT,E)
+				V = None
 
-			# DART control variables are in the Prior_Diag and Posterior_Diag files 
-			if E['variable'] in dart_control_variables_list:
-				try:
-					DD = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-					file_type_found = True
-				except RuntimeError:
-					# if the above returns an error (bc we can't find the DART output files), we can still look 
-					# for the same data in model output files. 
-					file_type_found = False
-					print('DART_diagn_to_array: Cannot find variable '+E['variable']+' in DART output')
-					print('for experiment '+E['exp_name'])
-					print('here is the whole experiment dict:')
-					import pprint
-					pprint.pprint(E, width=1)
-					print('---> looking for model output files instead')
-
-			# transformed Eulerian mean diagnostics have their own routine 
-			if E['variable'].upper() in tem_variables_list+dynamical_heating_rates_list:
-				V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
-				lon = None
-				file_type_found = True
 				
-			# another special case is the buoyancy frequency forcing term -d(wstar*Nsq)/dz, also computed
-			# from a separate routine
+		# other obscure calculations: 	
+		if FT is 'SPECIAL':
+			# buoyancy frequency forcing due to residual circulation 
 			if (E['variable'] == 'Nsq_wstar_forcing') or (E['variable'] == 'Nsq_vstar_forcing'):
 				import TIL as til
 				V,lat,lev = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
 				lon = None
-				file_type_found = True
 			# similar buoyancy frequency forcing from diabaitcc heating 
 			if 'Nsq_forcing_' in E['variable']: 
 				import TIL as til
 				V,lat,lev = til.Nsq_forcing_from_Q(E,date,hostname=hostname,debug=debug)
 				lon = None
-				file_type_found = True
 
 			# it might be that pressure needs to be recreated from the hybrid model levels 
-			# -- this can be done in a separate routine. Right now this is commented out because it's faster 
-			# to just compute pressure in the format of DART diagnostic files and then read those in. 
-			# TODO: build in some dynamic way to test whether Pressure is available or needs to be recreated 
-			#if E['variable'] == 'P':
-			#	V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
-			#	file_type_found = True
+			# Note that it is easier and faster
+			#  to just compute pressure in the format of DART diagnostic files and then read those in. 
+			if E['variable'] == 'P':
+				V,lat,lon,lev = P_from_hybrid_levels(E,date,hostname=hostname,debug=debug)
 
-			# for all other variables, compute the diagnostic from model h files 
-			if file_type_found is False:
-				# another special case is buoyancy frequency -- this is computed in a separate routine 
-				# but only if it wasn't previously found in DART output form 
-				if E['variable'] == 'Nsq':
-					V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+			# buoyancy frequency 
+			if E['variable'] == 'Nsq':
+				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
+
+		if FT is 'WACCM':
 
 				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
 				# because that's what's in the WACCM output 
 				if E['variable'] is 'US':
 					E['variable'] = 'U'
-					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
-					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
-
-				# another other variables, retrieve as-is from history files 
-				# TODO: instead of checking for the existence of V (which might be leftover from a previous iteration)
-				# need to be more organized here -- specify in E which file type should be loaded 
-				if 'V' not in locals():
-					V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
-		if not return_single_variables:
-			V = DD['data']
 		Vlist.append(V)
 
 		# store the dimensions of the array V one time 
@@ -2591,6 +2550,17 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 		DD['data']=Vmatrix
 		DD['daterange']=new_daterange
 		return(DD)
+
+def error_msg_DART_diagn_to_array(FT,E):
+
+	"""
+	Return an error message when a certain experiment, defined by the dictionary E, 
+	can't be found for a given file type, given in the string FT 
+	"""
+	print('DART_diagn_to_array: Cannot find the requested data in file type '+FT)
+	print('here is the whole experiment dict:')
+	pprint.pprint(E, width=1)
+
 
 def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#000000",linestyle='-',linewidth = 2,alpha=1.0,scaling_factor=1.0,hostname='taurus',vertical_coord='log_levels',label_for_legend=True,debug=False):
 
