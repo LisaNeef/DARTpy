@@ -755,7 +755,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 	if return_single_variables:
 		return lev2,lat2,lon2,VVout,P0,hybm,hyam
 	else:
-		Dout = dict()
 		Dout['data']=VVout
 		Dout['lev']=lev2
 		Dout['lat']=lat2
