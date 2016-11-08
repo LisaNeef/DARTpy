@@ -653,8 +653,14 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		#------done finding which copies to retrieve  
 
 		# initialize output directory and record the variable's metadata. 
-		Dout['units']=V.units
-		Dout['long_name']=V.long_name
+		try:
+			Dout['units']=V.units
+		except AttributeError:
+			Dout['units']=''
+		try:
+			Dout['long_name']=V.long_name
+		except AttributeError:
+			Dout['long_name']=''
 
 		# figure out which vertical level range we want
 		if variable in variables_2d:
