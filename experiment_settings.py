@@ -121,7 +121,10 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 			diagstring = 'Diag'
 			# additional diagnostics files have the 'Diag' string replaced with something else. 
 			TIL_variables = ['theta','ptrop','Nsq','P','brunt','ztrop']
-			if E['variable'] in TIL_variables:
+			# the following list returns list of the above variables that appear in the requested variable type 
+			import re
+			matches = [string for string in TIL_variables if string in E['variable']]
+			if len(matches) > 0:
 				diagstring='TIL'
 			if 'extrastring' not in E:
 				fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+endstring+'.nc'
