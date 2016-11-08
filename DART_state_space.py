@@ -2974,7 +2974,6 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 				V = np.broadcast_to(Px,VT.shape)
 			else:
 				# otherwise, load the 3d pressure field 
-				V,dumlat,dumlon,dumlev,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
 				Dpressure = DART_diagn_to_array(Etemp,debug=debug)
 				V = Dpressure['data']
 			try:
