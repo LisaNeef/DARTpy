@@ -1759,27 +1759,29 @@ def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		return
 
 	# load the requested array, and the difference array if needed 
-	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	D = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	
 	# convert to TP-based coordinates if requested 	
 	if vertical_coord=='TPbased': 
-		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
+		Vmain,lev=to_TPbased(E,D['data'],D['lev'],hostname=hostname,debug=debug)
 	else:
-		Vmain=Vmain0
-		lev=lev0
+		Vmain=D['data']
+		lev=D['lev']
 	if Ediff is not None:
-		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Ddiff = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		# convert to TP-based coordinates if requested 	
 		if vertical_coord=='TPbased': 
-			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+			Vdiff,lev=to_TPbased(E,Ddiff['data'],Ddiff['lev'],hostname=hostname,debug=debug)
 		else:
-			Vdiff=Vdiff0
-			lev=lev0
+			Vdiff=Ddiff['data']
 		Vmatrix=Vmain-Vdiff
 	else:
 		Vmatrix=Vmain
 
 	# average over time and latitude  
-	V0 = average_over_named_dimension(Vmatrix,new_daterange)
+	lat = D['lat']
+	lon = D['lon']
+	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
 	if lat is not None:
 		V1 = average_over_named_dimension(V0,lat)
 	else:
@@ -2393,6 +2395,15 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 
 	The file type that we load depends on the entry `file_type` in the dictionary E. 
 	Here are the types of files that work:  
+	+ monthly: if this string is added to whatever is in E['file_type'], the input daterange is automatically changed to monthly values.  
+	+ ANOM: anomalies from climatology, climatologies themselves, or climatological standard deviations. These are loaded using the `ano` and `stds` subroutines in MJO.py  
+	+ ERA: ERA-Interim or ERA-40 data  
+	+ DART: regular DART diagnostic files (these usually have names like 'Posterior_diagn_XXXX.nc')  
+	+ WANG-TEM: For loading transformed Eulerian mean diagnostics made by Wuke Wang. These are pretty ad-hoc files and this should be deprecated eventually.  
+	+ COVAR: covariances and correlations, calculated using FILL IN  
+	+ SPECIAL: this is for quantities that have to be calculated from other subroutines. This is a good place to add paths to functions that compute obscure quantities. For example, buoyancy frequency forcing due to the residual circulation is one of the things you can compute here.  
+	+ WACCM: WACCM and CAM-type history files  
+
 
 	This code returns a dictionary, Dout, which holds the requested variable, its corresponding 
 	spacial dimension arrays (e.g. lat, lon, lev), units, and long name. 
@@ -2402,7 +2413,10 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 	import pprint
 
 	# read in the file type  and check if it's admissable  
-	FT = E['file_type']
+	if 'file_type' in E:
+		FT = E['file_type']
+	else:
+		FT='DART'
 	file_types_list = ['ANOM','ERA','DART','WANG-TEM','COVAR','SPECIAL','WACCM']
 	if FT not in file_types_list:
 		if debug:
@@ -2639,37 +2653,24 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	if ('+' in E['variable']):
 		Vmatrix = sum(V for V in Vmatrix_list)
 
-	# average over the last dimension, which is always time (by how we formed this array) 
-	VV = np.nanmean(Vmatrix,axis=len(Vmatrix.shape)-1)	
-
-	# find the latidue dimension and average (or take the max, if that option is chosen)
-	if D['lat'] is not None:
-		nlat = len(D['lat'])
-		shape_tuple = VV.shape
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == nlat:
-				latdim = ii
-		Mlat = np.nanmean(VV,axis=latdim)
-		if E['extras'] is not None:
-			if 'latmax' in E['extras']:
-				Mlat = np.nanmax(VV,axis=latdim)
+	# average over time 
+	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
+	
+	# average over latitude 
+	lat = D['lat']
+	if lat is not None:
+		V1 = average_over_named_dimension(V0,lat)
 	else:
-		Mlat = VV
+		V1 = V0
 
-	# find the longitude dimension and average (or take the max, if that option is chosen)
-	if D['lon'] is not None:
-		nlon = len(D['lon'])
-		shape_tuple = Mlat.shape
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == nlon:
-			    londim = ii
-		Mlon = np.nanmean(Mlat,axis=londim)
-		if E['extras'] is not None:
-			if 'lonmax' in E['extras']:
-				Mlon = np.nanmax(Mlat,axis=londim)
+	# average over longitude
+	lon = D['lon']
+	if lon is not None:
+		V2 = average_over_named_dimension(V1,lon)
 	else:
-		Mlon = Mlat
-	M = scaling_factor*np.squeeze(Mlon)
+		V2 = V1
+
+	M = V2
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
@@ -2822,17 +2823,20 @@ def plot_diagnostic_lon(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 	"""
 
 	# load the desired DART diagnostic for the desired variable and daterange:
-	VV,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	D = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
 	# load the difference array if desired  
 	if Ediff is not None:
-		Vdiff,lat,lon,lev,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-		Vmatrix = VV-Vmatrix
+		Dfiff = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix = D['data']-Ddiff['data']
 	else:
-		Vmatrix = VV
+		Vmatrix = D['data']
 		
 	# average over time, latitude, and vertical levels  
-	V0 = average_over_named_dimension(Vmatrix,new_daterange)
+	lat = D['lat']
+	lev = D['lev']
+	lon = D['lon']
+	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
 	if lat is not None:
 		V1 = average_over_named_dimension(V0,lat)
 	else:
