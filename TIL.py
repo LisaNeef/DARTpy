@@ -178,7 +178,14 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 
 	N2_forcing = -dxdz*seconds_per_day
 
-	return N2_forcing,lat,lev
+	D = dict()
+	D['data']=N2_forcing  
+	D['lat']=lat
+	D['lon']=lon
+	D['units']='s^{-2}/day'
+	D['long_name']='N^{2} Forcing'
+
+	return D
 
 def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 
@@ -289,7 +296,14 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 	# now loop over ensemble members and compute the n2 forcing for each one
 	N2_forcing = g*dxdz*seconds_per_day
 
-	return N2_forcing,lat,lev
+	D = dict()
+	D['data']=N2_forcing  
+	D['lat']=lat
+	D['lon']=lon
+	D['units']='s^{-2}/day'
+	D['long_name']='N^{2} Forcing'
+
+	return 
 
 def ztrop(z,T,hostname='taurus',debug=False):
 

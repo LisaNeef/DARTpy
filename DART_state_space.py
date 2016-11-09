@@ -1665,7 +1665,12 @@ def compute_DART_diagn_from_Wang_TEM_files(E,datetime_in,hostname='taurus',debug
 			# squeeze out a potential extra time dimension
 			Dout = np.squeeze(Dout)
 
-	return Dout,lat,lev
+		D=dict()
+		D['data']=Dout
+		D['lat']=lat
+		D['lev']=lev
+
+	return D
 
 def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbose=True):
 
@@ -1721,9 +1726,14 @@ def compute_DART_diagn_from_model_h_files(E,datetime_in,hostname='taurus',verbos
 	if Xout is None:
 		print('compute_DART_diagn_from_model_h_files does not know what to do with copystring '+copystring)
 		print('Returning None')
-		return None,None,None,None
+		return None
 	else:
-		return Xout,lat,lon,lev
+		D = dict()
+		D['data']=Xout
+		D['lat']=lat
+		D['lon']=lon
+		D['lev']=lev
+		return D
 
 def plot_diagnostic_lev_lon(E=dart.basic_experiment_dict(),Ediff=None,clim=None,L=None,hostname='taurus',cbar='vertical',cmap_type='sequential',reverse_colors=False,colorbar_label=None,vertical_coord='log_levels',scaling_factor=1.0,debug=False):
 
@@ -2446,7 +2456,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 			S,lat,lon,lev = stds(E,climatology_option,hostname,debug)	
 			Vmatrix = S.reshape(AA.shape)
 		return Vmatrix,lat,lon,lev,new_daterange
-		#BINK1: make this return a dict
+		#TODO: make this return a dict
 
 	# ------data types that loop over date ranges  
 	Vlist = []
@@ -2476,10 +2486,11 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 				V = None
 
 		# Wuke Wang TEM diagnostics  
-		if FT is 'WANG-TEM':
+		if FT == 'WANG-TEM':
 			try:
-				V,lat,lev = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
+				DD = compute_DART_diagn_from_Wang_TEM_files(E,date,hostname=hostname,debug=debug)
 				lon = None
+				V = DD['data']
 			except RuntimeError:
 				error_msg_DART_diagn_to_array(FT,E)
 				V = None
@@ -2502,12 +2513,12 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 			# buoyancy frequency forcing due to residual circulation 
 			if (E['variable'] == 'Nsq_wstar_forcing') or (E['variable'] == 'Nsq_vstar_forcing'):
 				import TIL as til
-				V,lat,lev = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
+				DD = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
 				lon = None
 			# similar buoyancy frequency forcing from diabaitcc heating 
 			if 'Nsq_forcing_' in E['variable']: 
 				import TIL as til
-				V,lat,lev = til.Nsq_forcing_from_Q(E,date,hostname=hostname,debug=debug)
+				DD = til.Nsq_forcing_from_Q(E,date,hostname=hostname,debug=debug)
 				lon = None
 
 			# it might be that pressure needs to be recreated from the hybrid model levels 
@@ -2528,7 +2539,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 					E['variable'] = 'U'
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
-				V,lat,lon,lev = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+				DD = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
@@ -2539,6 +2550,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 
 		# if Vlist still has length 0, we didn't find any data -- abort 
 		if len(Vlist)>0:
+		
+
 			# if Vlist has length, 
 			# remove any Nones that might be in there and check again 
 			Vlist2 = [V for V in Vlist if V is not None]
@@ -2634,7 +2647,11 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 			Vmain,lev=to_TPbased(E,D['data'],D['lev'],meantrop=meantrop,hostname=hostname,debug=debug)
 		else:
 			Vmain=D['data']
-			lev=D['lev']
+			try:
+				lev=D['lev']
+			except KeyError:
+				print(D.keys())
+				return
 
 		if Ediff is not None:
 			Etempdiff=Ediff.copy()
@@ -2664,11 +2681,14 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 		V1 = V0
 
 	# average over longitude
-	lon = D['lon']
-	if lon is not None:
-		V2 = average_over_named_dimension(V1,lon)
+	if 'lon' in D:
+		lon = D['lon']
+		if lon is not None:
+			V2 = average_over_named_dimension(V1,lon)
+		else:
+			V2 = V1
 	else:
-		V2 = V1
+		V2=V1
 
 	M = V2
 
@@ -2707,6 +2727,10 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	ax = plt.gca()
 	xlim = ax.get_xlim()[1]
 	ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
+	if not 'long_name' in D:
+		D['long_name']=''
+	if not 'units' in D:
+		D['units']=''
 	plt.xlabel(D['long_name']+' ('+D['units']+')')
 
 	# y axis stuff 
