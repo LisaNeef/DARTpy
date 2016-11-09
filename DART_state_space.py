@@ -2934,6 +2934,10 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	Zdict = dict()
 	for Etemp in EE:
 		if Etemp is not None:
+			# dirty fix: typically we don't want to retrieve these data from "special" versions of the data 
+			# denoted by some entry in E['extrastring'] (e.g. filtered data), so set that parameter back here. 
+			Etemp['extrastring']=''
+
 			# the pressure field wont be around if the data are on levels 
 			# of constant pressure 
 			# instead load temp field and then expand the constant levels array to be 
