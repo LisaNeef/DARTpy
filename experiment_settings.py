@@ -723,7 +723,8 @@ def obs_data_paths(obs_type,hostname):
 	-- so far, have only coded in a path to high-res radiosondes (HRRS)
 	"""
 
-	data_dir_dict={'HRRS':'/data/c1/lneef/HRRS/'}
+	data_dir_dict={'HRRS':'/data/c1/lneef/HRRS/',
+			'COSMIC':'/data/c1/lneef/COSMIC/'}
 	
 	return data_dir_dict[obs_type]
 
