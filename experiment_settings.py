@@ -127,6 +127,8 @@ def find_paths(E,date,file_type='diag',hostname='taurus',debug=False):
 			if len(matches) > 0:
 				diagstring='TIL'
 			if 'extrastring' not in E:
+				E['extrastring']=''
+			if E['extrastring']=='':
 				fname = '/dart/hist/cam_'+E['diagn']+'_'+diagstring+'.'+endstring+'.nc'
 				fname_truth = '/dart/hist/cam_'+'True_State'+'.'+endstring+'.nc'
 			else:

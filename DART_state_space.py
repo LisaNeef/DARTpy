@@ -2515,11 +2515,13 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 				import TIL as til
 				DD = til.Nsq_forcing_from_RC(E,date,hostname=hostname,debug=debug)
 				lon = None
+				V = DD['data']
 			# similar buoyancy frequency forcing from diabaitcc heating 
 			if 'Nsq_forcing_' in E['variable']: 
 				import TIL as til
 				DD = til.Nsq_forcing_from_Q(E,date,hostname=hostname,debug=debug)
 				lon = None
+				V = DD['data']
 
 			# it might be that pressure needs to be recreated from the hybrid model levels 
 			# Note that it is easier and faster
@@ -2531,6 +2533,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 			if E['variable'] == 'Nsq':
 				V,lat,lon,lev = Nsq(E,date,hostname=hostname,debug=debug)
 
+
 		if FT is 'WACCM':
 
 				# for WACCM and CAM runs, if we requested US or VS, have to change these to U and V, 
@@ -2540,6 +2543,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 				if E['variable'] is 'VS':
 					E['variable'] = 'V'
 				DD = compute_DART_diagn_from_model_h_files(E,date,hostname=hostname,verbose=debug)
+				V = DD['data']
 
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
@@ -2670,27 +2674,27 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 	if ('+' in E['variable']):
 		Vmatrix = sum(V for V in Vmatrix_list)
 
+
 	# average over time 
 	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
 	
 	# average over latitude 
-	lat = D['lat']
-	if lat is not None:
-		V1 = average_over_named_dimension(V0,lat)
+	if D['lat'] is not None:
+		V1 = average_over_named_dimension(V0,D['lat'])
 	else:
 		V1 = V0
 
 	# average over longitude
 	if 'lon' in D:
-		lon = D['lon']
-		if lon is not None:
-			V2 = average_over_named_dimension(V1,lon)
+		if D['lon'] is not None:
+			V2 = average_over_named_dimension(V1,D['lon'])
 		else:
 			V2 = V1
 	else:
 		V2=V1
 
-	M = V2
+	# finally, apply the scaling factor 
+	M = scaling_factor*V2
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
@@ -3122,6 +3126,12 @@ def average_over_named_dimension(V,dim):
 	for idim,dimlen in enumerate(V.shape):
 		if dimlen == len(dim):
 			desired_dimension_number = idim
+	if 'desired_dimension_number' not in locals():
+		print("Looking for dimension of this shape:")
+		print(dim.shape)
+		print("In variable of this shape:")
+		print(V.shape)
+		raise RuntimeError("average_over_named_dimension cannot find the right dimension")
 	Vave = np.mean(V,axis=desired_dimension_number)
 
 	return(Vave)

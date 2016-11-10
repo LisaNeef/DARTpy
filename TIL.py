@@ -56,9 +56,14 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	ET=E.copy()
 	if E['variable'] == 'Nsq_vstar_forcing':
 		ET['variable']='theta'
-		lev,lat,lon,theta,P0,hybm,hyam = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
+		Dtheta = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
+		theta=Dtheta['data']
+		lat=Dtheta['lat']
+		lon=Dtheta['lon']
+		lev=Dtheta['lev']
 		ERC['variable']='VSTAR'
-		vstar,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		Dvstar = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		vstar = Dvstar['data']
 
 		# the above routines do not return arrays of consistent shape, so have to do 
 		# some acrobatics to get everything to match up. 
@@ -119,9 +124,15 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	else:
 		
 		ET['variable']='Nsq'
-		lev,lat,lon,Nsq,P0,hybm,hyam = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
+		D = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
+		Nsq=D['data']
+		lat = D['lat']
+		lon = D['lon']
+		lev = D['lev']
+
 		ERC['variable']='WSTAR'
-		wstar,lat,lev = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		Dwstar = DSS.compute_DART_diagn_from_Wang_TEM_files(ERC,datetime_in,hostname=hostname,debug=debug)
+		wstar=Dwstar['data']
 
 		# find how the dimensions fit to the shape 
 		nlon=len(lon)
@@ -181,7 +192,7 @@ def Nsq_forcing_from_RC(E,datetime_in=None,debug=False,hostname='taurus'):
 	D = dict()
 	D['data']=N2_forcing  
 	D['lat']=lat
-	D['lon']=lon
+	D['lev']=lev
 	D['units']='s^{-2}/day'
 	D['long_name']='N^{2} Forcing'
 
@@ -227,28 +238,21 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 	Qstring = E['variable'].strip('Nsq_forcing_')
 	EQ = E.copy()
 	EQ['variable']=Qstring
-	Q2,lat,lon,lev = DSS.compute_DART_diagn_from_model_h_files(EQ,datetime_in,verbose=debug)
+	DQ = DSS.compute_DART_diagn_from_model_h_files(EQ,datetime_in,verbose=debug)
 	# remove the time dimension, which should have length 1 
-	Q = np.squeeze(Q2)
+	DQ['data'] = np.squeeze(DQ['data'])
 
 	# also load potential temperature 
 	ET = E.copy()
 	ET['variable']='theta'
-	lev,lat,lon,theta2,P0,hybm,hyam = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
+	Dtheta = dart.load_DART_diagnostic_file(ET,datetime_in,hostname=hostname,debug=debug)
 	# squeeze out extra dims, which we get if we load single copies (e.g. ensemble mean)
-	theta = np.squeeze(theta2)
+	Dtheta['data'] = np.squeeze(Dtheta['data'])
 
 	# now find the longitude dimension and average over it  
 	# for both Q and theta  
-	nlon=len(lon)
-	Mean_arrays = []
-	for A in [Q,theta]:
-		for idim,s in enumerate(A.shape):
-			if s == nlon:
-				londim=idim
-		Mean_arrays.append(np.average(A,axis=londim))
-	Q_mean=Mean_arrays[0]
-	theta_mean=Mean_arrays[1]
+	Q_mean = DSS.average_over_named_dimension(DQ['data'],DQ['lon'])
+	theta_mean = DSS.average_over_named_dimension(Dtheta['data'],Dtheta['lon'])
 
 	# if the shapes don't match up, might have to transpose one of them
 #	if Mean_arrays[1].shape[0] != Q_mean.shape[0]:
@@ -273,6 +277,7 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 	X = Q_mean2/theta_mean
 
 	# convert pressure levels to approximate altitude and take the vertical gradient  
+	lev=DQ['lev']
 	zlev = H*np.log(p0/lev)
 	dZ = np.gradient(zlev)   # gradient of vertical levels in m
 
@@ -298,12 +303,12 @@ def Nsq_forcing_from_Q(E,datetime_in=None,debug=False,hostname='taurus'):
 
 	D = dict()
 	D['data']=N2_forcing  
-	D['lat']=lat
-	D['lon']=lon
+	D['lev']=DQ['lev']
+	D['lat']=DQ['lat']
 	D['units']='s^{-2}/day'
 	D['long_name']='N^{2} Forcing'
 
-	return 
+	return D
 
 def ztrop(z,T,hostname='taurus',debug=False):
 
