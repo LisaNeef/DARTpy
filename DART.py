@@ -632,10 +632,20 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			# if we want the ensemble variance or std, copystring has to be the ensemble spread
 			if (E['extras'] == 'ensemble variance') or (E['extras'] == 'ensemble variance scaled') or (E['extras'] == 'ensemble std'):
 				copies = get_copy(f,CopyMetaData,'ensemble spread')
-			# if requesting the entire ensemble, loop over ensemble members here 
+			# if requesting the entire ensemble, find the copies that contain the string 'ensemble member'  
 			if E['copystring'] is 'ensemble':
-				#copies = [get_copy(f,cs.tostring().decode("utf-8") ) for cs in CopyMetaData if 'ensemble member' in cs.tostring().decode("utf-8")]
 				copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
+
+			# we can also request a sample of the total ensemble 
+			if 'ensemble sample' in E['copystring']:
+				copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
+				try:
+					n = int(E['copystring'].split(' ')[2])
+				except ValueError:
+					print('Warning: the copystring '+E['copystring']+' isnt valid. Returning 2 ensemble members instead.')
+					n = 2
+					pass
+				copies2 = np.random.choice(copies,size=n,replace=False)	
 
 			# if none of the above apply, just choose whatever is in copystring 
 			if copies is None:
