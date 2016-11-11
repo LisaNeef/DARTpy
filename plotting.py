@@ -3,7 +3,7 @@
 
 import matplotlib.pyplot as plt
 
-def figexport(fig_name):
+def figexport(fig_name,lgd=None):
 
 	"""
 	This simple wrapper function takes whatever figure is currently open and exports 
@@ -15,6 +15,8 @@ def figexport(fig_name):
 
 	INPUTS:
 	fig_name: a string giving the filename of the figure, to which we append ".png" and ".pdf"  
+	lgd: handle for a legend in the figure -- specify this if the legend is outside the 
+		plot and we need to leave room for it. 
 
 	TODO:
 	it would be really cool to add automatic upload to Imgur - makes it even easier to share plots 
@@ -28,5 +30,9 @@ def figexport(fig_name):
 	print(fig_name_pdf)
 	print(fig_name_png)
 
-	plt.savefig(fig_name_pdf,dpi=96)
-	plt.savefig(fig_name_png,dpi=96)
+	if lgd is not None:
+		plt.savefig(fig_name_pdf,dpi=96,bbox_extra_artists=(lgd,), bbox_inches='tight')
+		plt.savefig(fig_name_png,dpi=96,bbox_extra_artists=(lgd,), bbox_inches='tight')
+	else:
+		plt.savefig(fig_name_pdf,dpi=96)
+		plt.savefig(fig_name_png,dpi=96)
