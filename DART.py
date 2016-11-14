@@ -638,27 +638,20 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 
 			# we can also request a sample of the total ensemble 
 			if 'ensemble sample' in E['copystring']:
-				copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
+				copies2 = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
 				try:
 					n = int(E['copystring'].split(' ')[2])
 				except ValueError:
 					print('Warning: the copystring '+E['copystring']+' isnt valid. Returning 2 ensemble members instead.')
 					n = 2
 					pass
-				copies2 = np.random.choice(copies,size=n,replace=False)	
+				copies = np.random.choice(copies2,size=n,replace=False)	
 
 			# if none of the above apply, just choose whatever is in copystring 
 			if copies is None:
 				copies = [get_copy(f,CopyMetaData,E['copystring'],debug=debug)]
 		else:
-			# if E['copystring'] is a list, loop through it and find the copies to load 
-			for CS in E['copystring']:
-				if CS is 'ensemble':
-					# in this case look for all the copies that have ensemble status = "ensemble member"	
-					copies = [get_copy(f,CopyMetaData,cs) for cs in CopyMetaData if 'ensemble member' in cs]
-				else:
-					# for all other copystrings, just look for the CopyMetaData entries that contrain that copystring
-					copies = [get_copy(f,CopyMetaData,cstring) for cstring in CopyMetaData if cstring==CS]
+			copies = [get_copy(f,CopyMetaData,cstring) for cstring in E['copystring']]
 
 		#------done finding which copies to retrieve  
 
