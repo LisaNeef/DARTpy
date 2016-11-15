@@ -2663,7 +2663,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 			D2 = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
 			# convert to TP-based coordinates if requested 	
 			if vertical_coord=='TPbased': 
-				Vdiff,lev=to_TPbased(Etempfiff,D2['data'],D2['lev'],hostname=hostname,debug=debug)
+				Vdiff,lev=to_TPbased(Etempdiff,D2['data'],D2['lev'],hostname=hostname,debug=debug)
 			else:
 				Vdiff=D2['data']
 			Vmatrix=Vmain-Vdiff
@@ -2972,24 +2972,26 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 			# of the same shape 
 			if (Etemp['variable']=='P') and (Etemp['levtype']=='pressure_levels'):
 				Etemp['variable']='T'
-				VT,dumlat,dumlon,levT,dumnew_daterange = DART_diagn_to_array(Etemp,debug=debug)
-				Px=levT
+				D= DART_diagn_to_array(Etemp,debug=debug)
+				VT = D['data']
+				Px = D['lev']		# these are the pressures at each level 
 				for idim,dimlength in enumerate(VT.shape):
 					if dimlength != len(levT):
 						Px = np.expand_dims(Px,axis=idim)
 				V = np.broadcast_to(Px,VT.shape)
 			else:
-				# otherwise, load the 3d pressure field 
-				Dpressure = DART_diagn_to_array(Etemp,debug=debug)
-				V = Dpressure['data']
+				# otherwise, load the field  of whatever was requested - pressure, tropopopause pressure, or mean trop pressyre 
+				D= DART_diagn_to_array(Etemp,debug=debug)
+				V = D['data']
 			try:
-				if (Dpressure['units']=='Pa') or (Dpressure['units']=='Pascal'):
+				if (D['units']=='Pa') or (D['units']=='Pascal'):
 					P0=1.0E5
 				else:                        # otherwise assume pressure is in hPa
 					P0=1.0E3
 			except ValueError:  #raised if `V` has an empty dimension, which sometimes happens when we load netcdf files with time means 
 				pass
 			Z = H*np.log(P0/V)
+
 			# for tropopause heights, convert 2d to 3d array by adding an additional dimension 
 			if 'ztrop' in Etemp['matrix_name']:
 				# find which is the vertical levels dimension 
@@ -3007,7 +3009,7 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 			# add final array to dictionary 
 			Zdict[Etemp['matrix_name']]=Z3d
 
-			#now for each point, compute z-ztrop+ztropmean
+	#now for each point, compute z-ztrop+ztropmean
 	ZT = Zdict['z']-Zdict['ztrop']+Zdict['ztropmean']
 
 	# create a regular grid 
