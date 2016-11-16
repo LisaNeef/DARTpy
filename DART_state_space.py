@@ -2443,7 +2443,6 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 
 	# ------data types that loop over date ranges  
 	Vlist = []
-	Vshape = None
 
 	for date in DR:
 
@@ -2531,32 +2530,30 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 		# add the variable field just loaded to the list:
 		Vlist.append(V)
 
-		# store the dimensions of the array V one time 
-		if (V is not None) and (Vshape is None):
-			Vshape = V.shape
+	# if Vlist still has length 0, we didn't find any data -- abort 
+	if len(Vlist)>0:
+	
+		# if Vlist has length, 
+		# remove any Nones that might be in there and check again 
+		Vlist2 = [V for V in Vlist if V is not None]
+		if len(Vlist2)>0:
+			bad = [i for i, j in enumerate(Vlist) if j is None]
+			new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
+			# turn the list of variable fields into a matrix 
+			Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
+			# make sure we transfer fill values if they exist
+			Vmatrix=np.ma.masked_values(Vmatrix,V.fill_value)
 
-		# if Vlist still has length 0, we didn't find any data -- abort 
-		if len(Vlist)>0:
-		
-
-			# if Vlist has length, 
-			# remove any Nones that might be in there and check again 
-			Vlist2 = [V for V in Vlist if V is not None]
-			if len(Vlist2)>0:
-				bad = [i for i, j in enumerate(Vlist) if j is None]
-				new_daterange = [i for j, i in enumerate(E['daterange']) if j not in bad]
-				# turn the list of variable fields into a matrix 
-				Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
-			else:
-				d1 = E['daterange'][0].strftime("%Y-%m-%d")
-				d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
-				print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
-				return None,None,None,None,None
 		else:
 			d1 = E['daterange'][0].strftime("%Y-%m-%d")
 			d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
 			print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
 			return None,None,None,None,None
+	else:
+		d1 = E['daterange'][0].strftime("%Y-%m-%d")
+		d2 = E['daterange'][len(E['daterange'])-1].strftime("%Y-%m-%d")
+		print('Could not find any data for experiment '+E['exp_name']+' and variable '+E['variable']+' between dates '+d1+' and '+d2)
+		return None,None,None,None,None
 
 	if return_single_variables:
 		return Vmatrix,lat,lon,lev,new_daterange

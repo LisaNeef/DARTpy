@@ -513,7 +513,6 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		print("Retrieving experiment "+E['exp_name'])
 		print("for diagnostic "+E['diagn'])
 		print("variable "+E['variable'])
-		print("copy "+E['copystring'])
 		if isinstance(date,str):
 			datestr=date
 		else:
@@ -697,6 +696,10 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 			VV = V[0,copies,j1:j2+1,i1:i2+1]
 		else:
 			VV = V[0,copies,j1:j2+1,i1:i2+1,k1:k2+1]
+
+		# also record the netcdf fill value in the array  
+		if hasattr(V, '_FillValue'):
+			VV = np.ma.masked_values(VV, V._FillValue)
 
 		# close the primary file  
 		f.close()
