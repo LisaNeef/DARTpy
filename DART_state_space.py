@@ -261,7 +261,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	# return the colorbar handle if available, the map handle, and the data
 	return CB,map,M,sig
 
-def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None):
+def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,scaling_factor=1.0,reverse_colors=False,cmap_type='sequential'):
 
 	"""
 	plot a given state-space diagnostic on a Hovmoeller plot, i.e. with time on the y-axis and 
@@ -278,63 +278,38 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	"""
 
 	# generate an array from the requested diagnostic  
-	Vmatrix,lat,lon,lev,DRnew = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	D = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-	# find the latidue dimension and average over it
-	shape_tuple = Vmatrix.shape
-	for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-		if dimlength == len(lat):
-			latdim = ii
-	Mlat = np.nanmean(Vmatrix,axis=latdim)
+	# load the difference array and subtract (if requested)
+	if Ediff is not None:
+		D2 = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix = D['data']-D2['data']
 
-	# if it's a 3d variable, also average over the selected level range  
-	if len(shape_tuple) > 3: 
-		shape_tuple_2 = Mlat.shape
-		for dimlength,ii in zip(shape_tuple_2,range(len(shape_tuple_2))):
-			if dimlength == len(lev):
-				levdim = ii
-		M1 = np.nanmean(Mlat,axis=levdim)
-	else:
-		M1 = Mlat
-
-	# if computing a difference to another field, load that here  
-	if (Ediff != None):
-		Vmatrix,lat,lon,lev = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-
-		# find the latidue dimension and average over it
-		shape_tuple = Vmatrix.shape
-		for dimlength,ii in zip(shape_tuple,range(len(shape_tuple))):
-			if dimlength == len(lat):
-				latdim = ii
-		Mlat = np.nanmean(Vmatrix,axis=latdim)
-
-		# if it's a 3d variable, also average over the selected level range  
-		if lev is not None:
-			shape_tuple_2 = Mlat.shape
-			for dimlength,ii in zip(shape_tuple_2,range(len(shape_tuple_2))):
-				if dimlength == len(lev):
-					levdim = ii
-			M2 = np.nanmean(Mlat,axis=levdim)
+	# find the lat and level dimensions and average 
+	V1 = average_over_named_dimension(Vmatrix,D['lat'])
+	if 'lev' in D:
+		if D['lev'] is not None:
+			V2 = average_over_named_dimension(V1,D['lev'])
 		else:
-			M2 = Mlat
-
-		# subtract the difference field out from the primary field  
-		M = M1-M2
+			V2=V1
 	else:
-		M = M1
+		V2=V1
+	
+	# multiply by a scaling factor if needed 
+	M = scaling_factor*np.squeeze(V2)
 
-	#---plot settings----------------
-	time = DRnew
+	#---plot setup----------------
+	time = D['daterange']
 
-        # choose color map based on the variable in question
+        # choose color map 
+	cc = nice_colormaps(cmap_type,reverse_colors)
+	cmap=cc.mpl_colormap
+	ncolors = cc.number
 	colors,cmap,cmap_type = state_space_HCL_colormap(E,Ediff)
 
 	# specify the color limits 
 	if clim is None:
 		clim = np.nanmax(np.absolute(M))
-	if debug:
-		print('++++++clim+++++')
-		print(clim)
 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if cmap_type == 'divergent':
@@ -366,12 +341,20 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	else: 
 		CB = None
 
-
-	#plt.gca().invert_yaxis()
 	plt.ylabel('Time')
 	plt.xlabel('Longitude')
-	#plt.axis('tight')
-	return CB,cs,M
+
+	# put some outputs into a dictionary 
+	Mout = dict()
+	Mout['data']=MT
+	Mout['xname']='Longitude'
+	Mout['yname']='Date'
+	Mout['x']=lon	
+	Mout['y']=time
+	Mout['colorbar']=CB
+	Mout['contours']=cs
+
+	return Mout
 
 
 def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,cmap_type='sequential',hostname='taurus',debug=False):
