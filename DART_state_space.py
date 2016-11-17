@@ -261,7 +261,7 @@ def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='verti
 	# return the colorbar handle if available, the map handle, and the data
 	return CB,map,M,sig
 
-def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,colorbar_label=None,scaling_factor=1.0,reverse_colors=False,cmap_type='sequential'):
+def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels=None,hostname='taurus',debug=False,scaling_factor=1.0,reverse_colors=False,cmap_type='sequential'):
 
 	"""
 	plot a given state-space diagnostic on a Hovmoeller plot, i.e. with time on the y-axis and 
@@ -284,6 +284,8 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	if Ediff is not None:
 		D2 = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		Vmatrix = D['data']-D2['data']
+	else:	
+		Vmatrix = D['data']
 
 	# find the lat and level dimensions and average 
 	V1 = average_over_named_dimension(Vmatrix,D['lat'])
@@ -300,6 +302,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 
 	#---plot setup----------------
 	time = D['daterange']
+	lon = D['lon']
 
         # choose color map 
 	cc = nice_colormaps(cmap_type,reverse_colors)
@@ -336,8 +339,8 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.3f')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
-		if colorbar_label is not None:
-			CB.set_label(colorbar_label)
+		if 'units' in D:
+			CB.set_label(D['units'])
 	else: 
 		CB = None
 
@@ -2542,7 +2545,8 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 			# turn the list of variable fields into a matrix 
 			Vmatrix = np.concatenate([V[..., np.newaxis] for V in Vlist2], axis=len(V.shape))
 			# make sure we transfer fill values if they exist
-			Vmatrix=np.ma.masked_values(Vmatrix,V.fill_value)
+			if 'FillValue' in DD:
+				Vmatrix=np.ma.masked_values(Vmatrix,DD['FillValue'])
 
 		else:
 			d1 = E['daterange'][0].strftime("%Y-%m-%d")
@@ -2628,14 +2632,14 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 				meantrop='DJFmean'
 			else:
 				meantrop=vcoord_string[1]
-			Vmain,lev=to_TPbased(E,D['data'],D['lev'],meantrop=meantrop,hostname=hostname,debug=debug)
-		else:
-			Vmain=D['data']
-			try:
-				lev=D['lev']
-			except KeyError:
-				print(D.keys())
-				return
+			D=to_TPbased(E,D,meantrop=meantrop,hostname=hostname,debug=debug)
+		#else:
+		#	Vmain=D['data']
+		#	try:
+		#		lev=D['lev']
+		#	except KeyError:
+		#		print(D.keys())
+		#		return
 
 		if Ediff is not None:
 			Etempdiff=Ediff.copy()
@@ -2643,17 +2647,19 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 			D2 = DART_diagn_to_array(Etempdiff,hostname=hostname,debug=debug)
 			# convert to TP-based coordinates if requested 	
 			if vertical_coord=='TPbased': 
-				Vdiff,lev=to_TPbased(Etempdiff,D2['data'],D2['lev'],hostname=hostname,debug=debug)
-			else:
-				Vdiff=D2['data']
-			Vmatrix=Vmain-Vdiff
+				D2=to_TPbased(Etempdiff,D2,hostname=hostname,debug=debug)
+			Vmatrix=D['data']-D2['data']
 		else:
-			Vmatrix=Vmain
+			Vmatrix=D['data']
+
 		Vmatrix_list.append(Vmatrix)
 
 	if ('+' in E['variable']):
 		Vmatrix = sum(V for V in Vmatrix_list)
 
+	# make sure bad values are masked out 
+	#if 'FillValue' in D:
+	#	Vmatrix=np.ma.masked_values(Vmatrix,FillValue)
 
 	# average over time 
 	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
@@ -2678,17 +2684,17 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
-		y=lev
+		y=D['lev']
 		ylabel = 'Level (hPa)'
 	if vertical_coord=='z':
 		H=7.0
 		p0=1000.0 
-		y = H*np.log(p0/lev)
+		y = H*np.log(p0/D['lev'])
 		ylabel = 'log-p height (km)'
 	if 'TPbased' in vertical_coord:
 		#from matplotlib import rcParams
 		#rcParams['text.usetex'] = True
-		y=lev
+		y=D['lev']
 		ylabel='z (TP-based) (km)'
 
         # plot the profile  - loop over copies if that dimension is there  
@@ -2887,7 +2893,7 @@ def plot_diagnostic_lon(E=dart.basic_experiment_dict(),Ediff=None,color="#000000
 
 	return MT,lon
 
-def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
+def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	"""
 	This routine takes some multi-dimensional variable field and a corresponding array for vertical levels, 
@@ -2905,7 +2911,8 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
  
 	INPUTS:
 	E: a DART experiment dictionary giving the details of the data that we are requesting 
-	Vmatrix: a multi-dimensional model data grid, ideally the output of DART_diagn_to_array  
+	D: a dictionary holding the data matrix that we want to interpolate under 'data', an 
+	array of vertical levels under 'lev', and a 'FillValue' entry to denote bad values 
 	lev: a vector of vertical level pressures. These can be in Pascal or hPa. 
 	meantrop: a string denoting how we compute the mean tropopause. This has to also appear 
 		in the filename that holds mean tropopause height (default is 'DJFmean')
@@ -2918,6 +2925,9 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	#
 	# First define all the things we need in experiment dictionaries, and then 
 	# stick those into a list to loop over 
+
+	Vmatrix = D['data']
+	lev = D['lev']
 
 	# tropopause height of the experiment 
 	Etrop=E.copy()
@@ -2981,6 +2991,7 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 				try:
 					Z3d=np.broadcast_to(Zx,Vmatrix.shape)
 				except ValueError:
+					print('to_TPbased: there is a mismatch between the tropopause height array we created and the matrix we are broadcasting to:')
 					print(Zx.shape)
 					print(Vmatrix.shape)
 			else:
@@ -2999,6 +3010,10 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 	Snew = list(Vmatrix.shape)
 	Snew[levdim] = len(zTPgrid)
 	Vnew = np.empty(shape=Snew)*np.nan
+
+	# mask out bad flags if they are present 
+	if 'FillValue' in D:
+		Vnew=np.ma.masked_values(Vnew,D['FillValue'])
 
 	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
 	# this is a pretty weirdly coded loop designed to work with arrays of either shape 
@@ -3054,7 +3069,12 @@ def to_TPbased(E,Vmatrix,lev,meantrop='DJFmean',hostname='taurus',debug=False):
 					#else:
 					#	Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
 
-	return Vnew,zTPgrid
+
+	Dout = D
+	Dout['data']=Vnew
+	Dout['lev']=zTPgrid
+	
+	return D
 
 def nice_colormaps(cmap_type='sequential',reverse_colors=False):
 
@@ -3114,7 +3134,7 @@ def average_over_named_dimension(V,dim):
 		print("In variable of this shape:")
 		print(V.shape)
 		raise RuntimeError("average_over_named_dimension cannot find the right dimension")
-	Vave = np.mean(V,axis=desired_dimension_number)
+	Vave = np.nanmean(V,axis=desired_dimension_number)
 
 	return(Vave)
 

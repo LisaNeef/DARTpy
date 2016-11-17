@@ -700,6 +700,7 @@ def load_DART_diagnostic_file(E,date=datetime.datetime(2009,1,1,1,0,0),hostname=
 		# also record the netcdf fill value in the array  
 		if hasattr(V, '_FillValue'):
 			VV = np.ma.masked_values(VV, V._FillValue)
+			Dout['FillValue'] = V._FillValue
 
 		# close the primary file  
 		f.close()
