@@ -360,3 +360,41 @@ def HRRS_station_data(hostname='taurus'):
 	stations[['Lat','Lon']] = stations[['Lat','Lon']].apply(pd.to_numeric, errors='coerce')
 
 	return(stations)
+
+def read_COSMIC_TPbased_mean(E,hostname='taurus'):
+
+	"""	
+	Read in COSMIC temp and N2 data averaged with respect to the local tropopause. 
+	"""	
+
+	from netCDF4 import Dataset
+
+	# find the path to the data  
+	datadir = es.obs_data_paths('COSMIC',hostname)
+
+	# TODO: right now this loads the only file I have. Later can code a dynamic way to 
+	# choose files based on what is specified in E. 
+	ff = 'mean_GPS-RO_45-60N_COSMIC_Jan2010_TPbased_mean.nc'
+	filename=datadir+ff
+
+	# open the file and read in the relevant data into dict
+	D = dict()
+	f = Dataset(filename,'r')
+
+	varnames = {'T':'T',
+			'Nsq':'N2'}
+	variable = varnames[E['variable']]
+
+	D['z'] = f.variables['z'][:]
+	D['data'] = f.variables[variable][:]
+	D['units']= f.variables[variable].units
+
+	# one last thing! Convert Celsius to Kelvin  
+	if 'Celsius' in f.variables[variable].units:
+		D['data']=f.variables[variable][:]+273.5
+		D['units']='K'
+
+	f.close()
+
+	return D
+
