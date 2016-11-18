@@ -2699,6 +2699,7 @@ def plot_diagnostic_profiles(E=dart.basic_experiment_dict(),Ediff=None,color="#0
 
         # plot the profile  - loop over copies if that dimension is there  
 	# from the way DART_diagn_to_array works, copy is always the 0th dimension  
+
 	if M.ndim == 2:
 		nC = M.shape[0]
 		for iC in range(nC):
@@ -2962,19 +2963,19 @@ def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 			# of the same shape 
 			if (Etemp['variable']=='P') and (Etemp['levtype']=='pressure_levels'):
 				Etemp['variable']='T'
-				D= DART_diagn_to_array(Etemp,debug=debug)
-				VT = D['data']
-				Px = D['lev']		# these are the pressures at each level 
+				Dtemp= DART_diagn_to_array(Etemp,debug=debug)
+				VT = Dtemp['data']
+				Px = Dtemp['lev']		# these are the pressures at each level 
 				for idim,dimlength in enumerate(VT.shape):
 					if dimlength != len(levT):
 						Px = np.expand_dims(Px,axis=idim)
 				V = np.broadcast_to(Px,VT.shape)
 			else:
 				# otherwise, load the field  of whatever was requested - pressure, tropopopause pressure, or mean trop pressyre 
-				D= DART_diagn_to_array(Etemp,debug=debug)
-				V = D['data']
+				Dtemp= DART_diagn_to_array(Etemp,debug=debug)
+				V = Dtemp['data']
 			try:
-				if (D['units']=='Pa') or (D['units']=='Pascal'):
+				if (Dtemp['units']=='Pa') or (Dtemp['units']=='Pascal'):
 					P0=1.0E5
 				else:                        # otherwise assume pressure is in hPa
 					P0=1.0E3
