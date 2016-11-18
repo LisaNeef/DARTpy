@@ -2926,9 +2926,12 @@ def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 	#
 	# First define all the things we need in experiment dictionaries, and then 
 	# stick those into a list to loop over 
-
 	Vmatrix = D['data']
 	lev = D['lev']
+
+	# Vmatrix should be a masked array, and to make sure interp1d doesn't mess with 
+	# the bad values, replace them with NaNs
+	Vmatrix = np.ma.fix_invalid(Vmatrix,np.nan)
 
 	# tropopause height of the experiment 
 	Etrop=E.copy()
