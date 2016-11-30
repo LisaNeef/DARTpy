@@ -676,8 +676,9 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scalin
 	# turn the list of ensemble states into a matrix 
 	VE = np.concatenate([V[np.newaxis,...] for V in VElist], axis=0)
 
-	# output
-	return VE,lev,lat,lon
+	# output - swap out the data array from a single member to all members. Everything else stays the same. 
+	D['data'] = VE
+	return D
 
 
 def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,label_ensemble='Ensemble',label_mean='Mean',scaling_factor=1.0,linewidth=1.0,alpha=1.0,linestyle='-',hostname='taurus',debug=False,show_legend=False,ensemble_members='all'):
@@ -698,9 +699,10 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
 	"""
 
 	# retrieve the ensemble
-	VE,lev,lat,lon = retrieve_state_space_ensemble(E=E,averaging=True,
-								hostname=hostname,debug=debug,scaling_factor=scaling_factor,
+	D = retrieve_state_space_ensemble(E=E,averaging=True,hostname=hostname,debug=debug,scaling_factor=scaling_factor,
 								ensemble_members=ensemble_members)
+	VE = D['data']
+
 	# set up a  time grid 
 	t = E['daterange']
 
@@ -711,7 +713,6 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
         # plot global diagnostic in in time
 	N = VE.shape[0]
 	VM = np.mean(VE,axis=0)
-	cs = plt.plot(t,VE[0,:],color=color_ensemble,label=label_ensemble)
 	for iens in np.arange(1,N):
 		cs = plt.plot(t,VE[iens,:],color=color_ensemble,label='_nolegend_',linewidth=0.7*linewidth,alpha=alpha)
 	plt.plot(t,VM,color=color_mean,label=label_mean,linewidth=linewidth,linestyle=linestyle)
