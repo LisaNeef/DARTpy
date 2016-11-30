@@ -296,7 +296,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 			V2=V1
 	else:
 		V2=V1
-	
+
 	# multiply by a scaling factor if needed 
 	M = scaling_factor*np.squeeze(V2)
 
@@ -646,36 +646,29 @@ def retrieve_state_space_ensemble(E,averaging=True,ensemble_members='all',scalin
 		copystring = "ensemble member"+spacing+str(iens)		
 		Eens['copystring'] = copystring
 
-		Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
+		D = DART_diagn_to_array(Eens,hostname=hostname,debug=debug)
 
 		# if averaging, do that here
 		if averaging:
-			nlat = len(lat)
-			nlon = len(lon)
-			
+
 			# average over latitude
-			for s,slen in enumerate(Vmatrix.shape):
-				if slen == nlat:
-					Mlat = np.mean(Vmatrix,axis=s)
-					
+			V0 = average_over_named_dimension(D['data'],D['lat'])
+			
 			# average over longitude  
-			for s,slen in enumerate(Mlat.shape):
-				if slen == nlon:
-					Mlatlon = np.mean(Mlat,axis=s)
+			V1 = average_over_named_dimension(V0,D['lon'])
+
+			# average over vertical level, if present  
 
 			# for 3d variables, average over level:
 			if E['variable'] not in var2d: 
-				nlev = len(lev)
-				for s,slen in enumerate(Mlatlon.shape):
-					if slen == nlev:
-						Mlatlonlev = np.mean(Mlatlon,axis=s)
+				V2 = average_over_named_dimension(V1,D['lev'])
 			else:
-				Mlatlonlev=Mlatlon
+				V2=V1
 
 			# thee might be another length-1 dimension left --average that out here  
-			VV = scaling_factor*np.squeeze(Mlatlonlev)
+			VV = scaling_factor*np.squeeze(V2)
 		else:
-			VV = scaling_factor*Vmatrix
+			VV = scaling_factor*D['data']
 
 		# append ensemble member to list
 		VElist.append(VV)
@@ -749,7 +742,15 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
 	fmt = mdates.DateFormatter('%b-%d')
 	plt.gca().xaxis.set_major_formatter(fmt)
 
-	return VE,t,lg
+	# put some outputs into a dictionary 
+	Mout = dict()
+	Mout['data']=VE
+	Mout['xname']='Date'
+	Mout['yname']=E['variable']
+	Mout['x']=t
+	Mout['legend_handle']=lg
+
+	return Mout
 
 def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,x_as_days=False,hostname='taurus',debug=False):
 
@@ -2564,7 +2565,7 @@ def DART_diagn_to_array(E,hostname='taurus',debug=False,return_single_variables=
 	else:
 		DD['data']=Vmatrix
 		DD['daterange']=new_daterange
-		return(DD)
+		return DD
 
 def error_msg_DART_diagn_to_array(FT,E):
 
@@ -2931,7 +2932,7 @@ def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 
 	# Vmatrix should be a masked array, and to make sure interp1d doesn't mess with 
 	# the bad values, replace them with NaNs
-	Vmatrix = np.ma.fix_invalid(Vmatrix,np.nan)
+	Vmatrix = np.ma.fix_invalid(Vmatrix,fill_value=np.nan)
 
 	# tropopause height of the experiment 
 	Etrop=E.copy()
@@ -3015,14 +3016,6 @@ def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 	Snew[levdim] = len(zTPgrid)
 	Vnew = np.empty(shape=Snew)*np.nan
 
-	# mask out bad flags if they are present 
-	if 'FillValue' in D:
-		Vnew=np.ma.masked_values(Vnew,D['FillValue'])
-
-	# loop through Vmatrix and create interpolation function between each column and the corresponding heights 
-	# this is a pretty weirdly coded loop designed to work with arrays of either shape 
-	# copy x lev x lat x lon x time or
-	# copy x lat x lon x lev x time or
 	# note that so far I've only coded this for two array shapes 
 	# -- add more if needed 
 
@@ -3074,8 +3067,17 @@ def to_TPbased(E,D,meantrop='DJFmean',hostname='taurus',debug=False):
 					#	Vnew[ii,jj,kk,:,ll] = f(zTPgrid)
 
 
+	# applying interp1d fucks up the mask over bad values 
+	# (I guess it comes up wtih values close to the masked value)
+	# to need to reapply it, with some closer values 
+	if 'FillValue' in D:
+		mask = np.isclose(Vnew,D['FillValue'])
+		Vnew2 = np.ma.array(Vnew,mask=mask)
+	else:
+		Vnew2 = Vnew  
+
 	Dout = D
-	Dout['data']=Vnew
+	Dout['data']=Vnew2
 	Dout['lev']=zTPgrid
 	
 	return D
@@ -3128,6 +3130,11 @@ def average_over_named_dimension(V,dim):
 	V: multi dimensional data array  
 	dim: dimension array (1xN, where N is the length of the dim in question)  
 	"""
+
+	# the input matrix should be a masked array. For some reason, even though values are masked 
+	# the mean performed here is also performed on those values, which screws the mask
+	# so as a temporary solution, convert the masked values to nans. 
+	#V= np.ma.fix_invalid(V,fill_value=np.nan)
 
 	for idim,dimlen in enumerate(V.shape):
 		if dimlen == len(dim):
