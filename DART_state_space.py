@@ -389,69 +389,65 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 		return
 
 	# load the requested array, and the difference array if needed 
-	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	D = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
 	# convert to TP-based coordinates if requested 	
 	if vertical_coord=='TPbased': 
-		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
-	else:
-		Vmain=Vmain0
-		lev=lev0
+		Vmain,lev=to_TPbased(E,D,hostname=hostname,debug=debug)
+		D['data']=Vmain
+		D['lev']=lev
+
 	if Ediff is not None:
-		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		D2 = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		# convert to TP-based coordinates if requested 	
 		if vertical_coord=='TPbased': 
-			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
+			Vdiff,lev=to_TPbased(E,D2,hostname=hostname,debug=debug)
+			D2['data']=Vmain
+			D2['lev']=lev
+		# subtract the main datarray 
+		Vmatrix=D['data']-D2['data']
+	else:
+		Vmatrix=D['data']
+
+	# avearage over latitude and longitude 
+	if 'lat' in D:
+		if D['lat'] is not None:
+			V0 = average_over_named_dimension(Vmatrix,D['lat'])
 		else:
-			Vdiff=Vdiff0
-			lev=lev0
-		Vmatrix=Vmain-Vdiff
+			V0=Vmatrix
 	else:
-		Vmatrix=Vmain
-
-	# figure out which dimension is longitude and then average over that dimension 
-	# unless the data are already in zonal mean, in which case DART_diagn_to_array should have returned None for lon
-	if debug:
-		print('shape of array after concatenating dates:')
-		print(Vmatrix.shape)
-	if lon is not None:
-		for idim,dimlen in enumerate(Vmatrix.shape):
-			if dimlen == len(lon):
-				londim = idim
-		Vlon = np.mean(Vmatrix,axis=londim)
+		V0=Vmatrix
+	if 'lon' in D:
+		if D['lon'] is not None:
+			V1 = average_over_named_dimension(V0,D['lon'])
+		else:
+			V1=V0
 	else:
-		Vlon = Vmatrix  
-	if debug:
-		print('shape of array after averaging out longitude:')
-		print(Vlon.shape)
+		V1 = V0
 
-	# figure out which dimension is latitude and then average over that dimension 
-	if lat is not None:
-		for idim,dimlen in enumerate(Vlon.shape):
-			if dimlen == len(lat):
-				latdim = idim
-		Vlonlat = np.squeeze(np.mean(Vlon,axis=latdim))
-	else:
-		Vlonlat = Vlon
-	if debug:
-		print('shape of array after averaging out latitude:')
-		print(Vlonlat.shape)
-
-	# squeeze out any leftover length-1 dimensions
-	M = scaling_factor*np.squeeze(Vlonlat)
+	# squeeze out any remaining length-1 dimensions and scale 
+	M = scaling_factor*np.squeeze(V1)
 
         # choose color map 
 	cc = nice_colormaps(cmap_type,reverse_colors)
 	cmap=cc.mpl_colormap
 	ncolors = cc.number
 
+	# if not already specified, 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
-	if clim is None:
-		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
-
-	if cmap_type == 'divergent':
-		L  = np.linspace(start=-clim,stop=clim,num=ncolors)
-	else:
-		L  = np.linspace(start=0,stop=clim,num=ncolors)
+	if L is None:
+		if clim is None:
+			clim0 = np.nanmax(np.absolute(M[np.isfinite(M)]))
+			clim1 = np.nanmin(M[np.isfinite(M)])
+			clim2 = np.nanmax(M[np.isfinite(M)])
+		else:
+			clim1=clim[0]
+			clim2=clim[1]
+			clim0=np.max(np.absolute(clim))
+		if cmap_type == 'divergent':
+			L  = np.linspace(start=-clim0,stop=clim0,num=ncolors)
+		else:
+			L  = np.linspace(start=clim1,stop=clim2,num=ncolors)
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
@@ -467,13 +463,13 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 		#rcParams['text.usetex'] = True
 		y=lev
 		ylabel='z (TP-based) (km)'
+	x = D['daterange']
 
         # contour data 
-	t = new_daterange
 	if debug:
 		print('shape of the array to be plotted:')
 		print(M.shape)
-	cs = plt.contourf(t,y,M,L,cmap=cmap,extend="both")
+	cs = plt.contourf(x,y,M,L,cmap=cmap,extend="both")
 
 	# fix the date exis
 	if len(t)>30:
@@ -505,7 +501,17 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	if 'levels' in vertical_coord:
 		plt.gca().invert_yaxis()
 
-	return cs,CB,M
+	# put some outputs into a dictionary 
+	Mout = dict()
+	Mout['data']=M
+	Mout['xname']='Date'
+	Mout['yname']=ylabel
+	Mout['x']=x
+	Mout['y']=y
+	Mout['colorbar']=CB
+	Mout['contour levels']=L
+	Mout['contours']=cs
+	return Mout
 
 def plot_diagnostic_lat_time(E=dart.basic_experiment_dict(),Ediff=None,daterange = dart.daterange(date_start=datetime.datetime(2009,1,1), periods=81, DT='1D'),clim=None,hostname='taurus',cbar=True,debug=False):
 
