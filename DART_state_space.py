@@ -1903,31 +1903,36 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		return
 
 	# load the requested array, and the difference array if needed 
-	Vmain0,lat,lon,lev0,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+	D = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+
 	# convert to TP-based coordinates if requested 	
 	if vertical_coord=='TPbased': 
-		Vmain,lev=to_TPbased(E,Vmain0,lev0,hostname=hostname,debug=debug)
-	else:
-		Vmain=Vmain0
-		lev=lev0
+		Vmain,lev=to_TPbased(E,D,hostname=hostname,debug=debug)
+		D['data']=Vmain
+		D['lev']=lev
+
 	if Ediff is not None:
-		Vdiff0,lat,lon,lev0,new_daterange = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		D2 = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
 		# convert to TP-based coordinates if requested 	
 		if vertical_coord=='TPbased': 
-			Vdiff,lev=to_TPbased(E,Vdiff0,lev0,hostname=hostname,debug=debug)
-		else:
-			Vdiff=Vdiff0
-			lev=lev0
-		Vmatrix=Vmain-Vdiff
+			Vdiff,lev=to_TPbased(E,D2,hostname=hostname,debug=debug)
+			D2['data']=Vmain
+			D2['lev']=lev
+		# subtract the main datarray 
+		Vmatrix=D['data']-D2['data']
 	else:
-		Vmatrix=Vmain
+		Vmatrix=D['data']
 
 	# average over time and longitude 
-	V0 = average_over_named_dimension(Vmatrix,new_daterange)
-	if lon is not None:
-		V1 = average_over_named_dimension(V0,lon)
+	V0 = average_over_named_dimension(Vmatrix,D['daterange'])
+	if 'lon' in D:
+		if D['lon'] is not None:
+			V1 = average_over_named_dimension(V0,D['lon'])
+		else:
+			V1=V0
 	else:
 		V1 = V0
+
 	# squeeze out any leftover length-1 dimensions 
 	M = np.squeeze(V1)
 
@@ -1948,7 +1953,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 			L  = np.linspace(start=0,stop=clim,num=ncolors)
 
 	# transpose the array if necessary  
-	if M.shape[0]==len(lat):
+	if M.shape[0]==len(D['lat']):
 		MT = np.transpose(M)
 	else:
 		MT = M
@@ -1960,30 +1965,29 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 		print('Returning with nothing plotted...')
 		return None,None
 
-	if (MT.shape[0] != len(lev)) |  (MT.shape[1] != len(lat)):
+	if (MT.shape[0] != len(D['lev'])) |  (MT.shape[1] != len(D['lat'])):
 		print("plot_diagnostic_lev_lat: the dimensions of the derived array don't match the level and latitude arrays we are plotting against. Here are their shapes:")
 		print(MT.shape)
-		print(len(lev))
-		print(len(lat))
+		print(len(D['lev']))
+		print(len(D['lat']))
 		print('Returning with nothing plotted...')
 		return None,None
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
-		y=lev
+		y=D['lev']
 		ylabel = 'Level (hPa)'
 	if vertical_coord=='z':
 		H=7.0
 		p0=1000.0 
-		y = H*np.log(p0/lev)
+		y = H*np.log(p0/D['lev'])
 		ylabel = 'log-p height (km)'
 	if vertical_coord=='TPbased':
-		#from matplotlib import rcParams
-		#rcParams['text.usetex'] = True
-		y=lev
+		y=D['lev']
 		ylabel='z (TP-based) (km)'
 
-	cs = plt.contourf(lat,y,scaling_factor*MT,L,cmap=cmap,extend="both")
+	x = D['lat']
+	cs = plt.contourf(x,y,scaling_factor*MT,L,cmap=cmap,extend="both")
 
 	# add a colorbar if desired 
 	if cbar is not None:
@@ -2008,8 +2012,18 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	# make sure the axes only go as far as the ranges in E
 	plt.xlim(E['latrange'])
 
+	# put some outputs into a dictionary 
+	Mout = dict()
+	Mout['data']=M
+	Mout['xname']='Latitude'
+	Mout['yname']=ylabel
+	Mout['x']=x
+	Mout['y']=y
+	Mout['colorbar']=CB
+	Mout['contour levels']=L
+
 	# return the colorbar handle if available, so we can adjust it later
-	return CB,M,L
+	return Mout
 
 def plot_diagnostic_lev_lat_quiver(E=dart.basic_experiment_dict(),Ediff=None,alpha=(1,1),narrow=1,arrowscale=1.0,scale_by_pressure=False,vertical_coord='log_levels',hostname='taurus',debug=False):
 
