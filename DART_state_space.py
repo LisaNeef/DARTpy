@@ -1941,16 +1941,22 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 	cmap=cc.mpl_colormap
 	ncolors = cc.number
 
-	if clim is None:
-		clim = np.nanmax(np.absolute(M[np.isfinite(M)]))
 
 	# if not already specified, 
 	# set the contour levels - it depends on the color limits and the number of colors we have  
 	if L is None:
-		if cmap_type == 'divergent':
-			L  = np.linspace(start=-clim,stop=clim,num=ncolors)
+		if clim is None:
+			clim0 = np.nanmax(np.absolute(M[np.isfinite(M)]))
+			clim1 = np.nanmin(M[np.isfinite(M)])
+			clim2 = np.nanmax(M[np.isfinite(M)])
 		else:
-			L  = np.linspace(start=0,stop=clim,num=ncolors)
+			clim1=clim[0]
+			clim2=clim[1]
+			clim0=np.max(np.absolute(clim))
+		if cmap_type == 'divergent':
+			L  = np.linspace(start=-clim0,stop=clim0,num=ncolors)
+		else:
+			L  = np.linspace(start=clim1,stop=clim2,num=ncolors)
 
 	# transpose the array if necessary  
 	if M.shape[0]==len(D['lat']):
@@ -1991,7 +1997,7 @@ def plot_diagnostic_lev_lat(E=dart.basic_experiment_dict(),Ediff=None,clim=None,
 
 	# add a colorbar if desired 
 	if cbar is not None:
-		if (clim > 1000) or (clim < 0.01):
+		if (clim0 > 1000) or (clim0 < 0.01):
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
