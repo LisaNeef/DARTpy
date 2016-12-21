@@ -360,7 +360,7 @@ def plot_diagnostic_hovmoeller(E,Ediff=None,clim=None,cbar='vertical',log_levels
 	return Mout
 
 
-def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,cmap_type='sequential',hostname='taurus',debug=False):
+def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_coord='log_levels',L=None,clim=None,cbar='vertical',colorbar_label=None,reverse_colors=False,scaling_factor=1.0,cmap_type='sequential',hostname='taurus',debug=False):
 
 	"""
 	Given a DART experiment dictionary E, plot the desired diagnostic as a function of vertical level and time, 
@@ -369,6 +369,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	INPUTS:
 	E: experiment dictionary defining the main diagnostic  
 	Ediff: experiment dictionary for the difference experiment
+	L: list of values at which to define the contour levels. Default is None - in this case these are computed from clim. 
 	clim: color limits (single number, applied to both ends if the colormap is divergent)
 	hostname: name of the computer on which the code is running
 	cbar: how to do the colorbar -- choose 'vertical','horiztonal', or None
@@ -451,12 +452,12 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 
 	# compute vertical coordinate depending on choice of pressure or altitude 
 	if 'levels' in vertical_coord:
-		y=lev
+		y=D['lev']
 		ylabel = 'Level (hPa)'
 	if vertical_coord=='z':
 		H=7.0
 		p0=1000.0 
-		y = H*np.log(p0/lev)
+		y = H*np.log(p0/D['lev'])
 		ylabel = 'log-p height (km)'
 	if vertical_coord=='TPbased':
 		#from matplotlib import rcParams
@@ -472,7 +473,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 	cs = plt.contourf(x,y,M,L,cmap=cmap,extend="both")
 
 	# fix the date exis
-	if len(t)>30:
+	if len(x)>30:
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
 		plt.gca().xaxis.set_major_formatter(fmt)
@@ -484,7 +485,7 @@ def plot_diagnostic_lev_time(E=dart.basic_experiment_dict(),Ediff=None,vertical_
 
 	# add a colorbar if desired 
 	if cbar is not None:
-		if (clim > 1000) or (clim < 0.001):
+		if (clim0 > 1000) or (clim0 < 0.001):
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar,format='%.0e')
 		else:
 			CB = plt.colorbar(cs, shrink=0.8, extend='both',orientation=cbar)
@@ -819,13 +820,13 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 				x[iE,ii] = dtfrac
 
 			# load the data over the desired latitude and longitude range  
-			lev,lat,lon,VV,P0,hybm,hyam = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+			DD = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
 
 			# load the difference array if desired  
 			if EEdiff is not None:
 				Ediff = EEdiff[iE]
-				lev2,lat2,lon2,VVdiff,P0,hybm,hyam = dart.load_DART_diagnostic_file(Ediff,date,hostname=hostname,debug=debug)
-				Vmatrix = VV-VVdiff
+				DDdiff = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+				Vmatrix = DD['data']-DDdiff['data']
 			else:
 				Vmatrix = VV
 
@@ -834,15 +835,15 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 				# average over latitude, longitude, and vertical level 
 				if lat is not None:
-					Vlat = average_over_named_dimension(Vmatrix,lat)
+					Vlat = average_over_named_dimension(Vmatrix,DD['lat'])
 				else:	
 					Vlat=Vmatrix
 				if lon is not None:
-					Vlatlon = average_over_named_dimension(Vlat,lon)
+					Vlatlon = average_over_named_dimension(Vlat,DD['lon'])
 				else:
 					Vlatlon=Vlat
 				if lev is not None:
-					Vlatlonlev = average_over_named_dimension(Vlatlon,lev)
+					Vlatlonlev = average_over_named_dimension(Vlatlon,DD['lev'])
 				else:
 					Vlatlonlev=Vlatlon
 
@@ -922,7 +923,11 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		fmt = mdates.DateFormatter('%b-%d')
 		plt.gca().xaxis.set_major_formatter(fmt)
 
-	return MT,x
+	# prepare output  
+	DD['data']=MT
+	DD['x']=x
+
+	return DD
 
 
 

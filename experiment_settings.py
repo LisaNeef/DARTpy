@@ -631,6 +631,7 @@ def get_long_names(exp_name):
 	'W0910_GLOBAL_OLDensemble' : 'nechpc-waccm-dart-gpsro-ncep-global-01',			
 	'W0910_GLOBAL' : 'nechpc-waccm-dart-gpsro-ncep-global-02',			
 	'W0910_NODA' : 'nechpc-waccm-dart-gpsro-ncep-no-assim-02',			
+	'W0910_TROPICS' : 'nechpc-waccm-dart-gpsro-ncep-30S-30N-02',			
 	'ERPALL' : 'ERPALL_2009_N80/',
 	'NODA' : 'NODA_2009_N80/',
 	'RST' : 'RS_TEMPS_2009_N80/',
