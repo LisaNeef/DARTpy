@@ -760,7 +760,7 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
 
 	return Mout
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,x_as_days=False,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,linewidth=1.0,alpha=1.0,x_as_days=False,hostname='taurus',debug=False):
 
 	"""
 	plot a given state-space diagnostic for a given variable field,
@@ -874,14 +874,14 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 			nEns = y.shape[0]
 			for iens in range(nEns):
 				try:
-					cs = plt.plot(x,y[iens,:],color=colors[iE],linewidth=0.5,alpha=0.3,linestyle=linestyles[iE],marker=markers[iE])
+					cs = plt.plot(x,y[iens,:],color=colors[iE],linewidth=linewidth,alpha=alpha,linestyle=linestyles[iE],marker=markers[iE])
 				except ValueError:
 					print("There's a problem plotting the time and global average array. Here are their shapes:")
 					print(len(x))
 					print(y.shape)
 		else:
 			try:
-				cs = plt.plot(x,y,color=colors[iE],linewidth=0.5,alpha=0.3,linestyle=linestyles[iE],marker=markers[iE])
+				cs = plt.plot(x,y,color=colors[iE],linewidth=linewidth,alpha=alpha,linestyle=linestyles[iE],marker=markers[iE])
 			except ValueError:
 				print("There's a problem plotting the time and global average array. Here are their shapes:")
 				print(len(x))
