@@ -870,12 +870,22 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		y = MM[nn]
 		x = X[nn]
 	
-		try:
-			cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE],marker=markers[iE])
-		except ValueError:
-			print("There's a problem plotting the time and global average array. Here are their shapes:")
-			print(len(x))
-			print(y.shape)
+		if E['copystring']=='ensemble' or E['copystring']=='ensemble sample':
+			nEns = y.shape[0]
+			for iens in range(nEns):
+				try:
+					cs = plt.plot(x,y[iens,:],color=colors[iE],linewidth=0.5,alpha=0.3,linestyle=linestyles[iE],marker=markers[iE])
+				except ValueError:
+					print("There's a problem plotting the time and global average array. Here are their shapes:")
+					print(len(x))
+					print(y.shape)
+		else:
+			try:
+				cs = plt.plot(x,y,color=colors[iE],linewidth=0.5,alpha=0.3,linestyle=linestyles[iE],marker=markers[iE])
+			except ValueError:
+				print("There's a problem plotting the time and global average array. Here are their shapes:")
+				print(len(x))
+				print(y.shape)
 
 	# include legend if desire
 	if include_legend:
@@ -905,8 +915,9 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		plt.gca().xaxis.set_major_formatter(fmt)
 
 	# prepare output  
-	DD['data']=MM
-	DD['x']=x
+	for nn in names:
+		DD['data_'+nn]=MM[nn]
+		DD['x_'+nn]=X[nn]
 
 	return DD
 
