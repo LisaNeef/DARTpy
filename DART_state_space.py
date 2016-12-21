@@ -784,20 +784,9 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 
 	"""
 
-	# set up an array of global averages that's the length of the longest experiment  
-	DR_all = []
-	for E in EE:
-		DR_all.append(len(E['daterange']))
-	max_length_time = max(DR_all)
-	nE = len(EE)
-	MM = np.zeros(shape=(nE, max_length_time), dtype=float)
-
-	# also set up an array that holds the day count for each experiment  
-	if x_as_days:
-		x = np.zeros(shape=(nE, max_length_time), dtype=float)
-		x[:,:] = np.NAN
-	else: 
-		x = E['daterange']
+	# set up empty dicts to hold the timeseries and x-axes to plot  
+	MM=dict()
+	X=dict()
 
 	# loop over experiment dictionaries and load the timeseries of the desired diagnostic
 	names = []
@@ -806,60 +795,58 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		# store the name of this experiment
 		names.append(E['title'])
 
-		# TODO: instead of looping over dates, load the entire timeseries using this subroutine
-		# for each experiment, load the desired DART diagnostic for the desired variable and daterange:
-		#Vmatrix,lat,lon,lev,new_daterange = DART_diagn_to_array(E,hostname=hostname,debug=debug)
+		# calculate the number of days from start, if requested  
+		# to do: convert list to array, or change the plotting part of this routine 
+		if x_as_days:
+			days = [dd -E['daterange'][0] for dd in E['daterange']]
+			X[E['title']]=days
+		else:
+			X[E['title']]=E['daterange']
 
-		# for each experiment loop over the input date range
-		for ii,date in enumerate(E['daterange']):
+		# load the data over the desired latitude and longitude range  
+		DD = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-			# fill in the day count (if desired) 
-			if x_as_days:
-				dt = date-E['daterange'][0]	
-				dtfrac = dt.days + dt.seconds/(24.0*60.0*60.0)
-				x[iE,ii] = dtfrac
+		# load the difference array if desired  
+		if EEdiff is not None:
+			Ediff = EEdiff[iE]
+			DDdiff = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+			Vmatrix = DD['data']-DDdiff['data']
+		else:
+			Vmatrix = DD['data']
 
-			# load the data over the desired latitude and longitude range  
-			DD = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
+		# compute global average only if the file was found
+		if Vmatrix is not None:
 
-			# load the difference array if desired  
-			if EEdiff is not None:
-				Ediff = EEdiff[iE]
-				DDdiff = dart.load_DART_diagnostic_file(E,date,hostname=hostname,debug=debug)
-				Vmatrix = DD['data']-DDdiff['data']
+			if 'lat' not in DD: 
+				DD['lat']=None
+			if 'lon' not in DD: 
+				DD['lon']=None
+			if 'lev' not in DD: 
+				DD['lev']=None
+
+			# average over latitude, longitude, and vertical level 
+			if DD['lat'] is not None:
+				Vlat = average_over_named_dimension(Vmatrix,DD['lat'])
+			else:	
+				Vlat=Vmatrix
+			if DD['lon'] is not None:
+				Vlatlon = average_over_named_dimension(Vlat,DD['lon'])
 			else:
-				Vmatrix = VV
-
-			# compute global average only if the file was found
-			if Vmatrix is not None:
-
-				# average over latitude, longitude, and vertical level 
-				if lat is not None:
-					Vlat = average_over_named_dimension(Vmatrix,DD['lat'])
-				else:	
-					Vlat=Vmatrix
-				if lon is not None:
-					Vlatlon = average_over_named_dimension(Vlat,DD['lon'])
-				else:
-					Vlatlon=Vlat
-				if lev is not None:
-					Vlatlonlev = average_over_named_dimension(Vlatlon,DD['lev'])
-				else:
-					Vlatlonlev=Vlatlon
-
-				# squeeze out any remaining length-1 dimensions  
-				M = np.squeeze(Vlatlonlev)
-
+				Vlatlon=Vlat
+			if DD['lev'] is not None:
+				Vlatlonlev = average_over_named_dimension(Vlatlon,DD['lev'])
 			else:
-				# if no file was found, just make the global average a NAN
-				M = np.NAN
+				Vlatlonlev=Vlatlon
 
-			# append the resulting vector to the larger array (or initialize it)
-			try:
-				MM[iE,ii] = M
-			except ValueError:
-				print("Array M doesn't seem to fit. Here is it's shape:")
-				print(M.shape)
+			# squeeze out any remaining length-1 dimensions  
+			M = np.squeeze(Vlatlonlev)
+
+		else:
+			# if no file was found, just make the global average a NAN
+			M = np.NAN
+
+		# append the resulting vector to the larger array (or initialize it)
+		MM[E['title']] = M
 
 
 	#------plotting----------
@@ -870,6 +857,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		colors=cc.mpl_colors
 
 	# set all line styles to a plain line if not previous specified  
+	nE = len(EE)
 	if linestyles == None:
 		linestyles = ['-']*nE
 
@@ -878,17 +866,10 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		markers = [None]*nE
 
         # plot global diagnostic in in time
-	MT = np.transpose(MM)
-	if x_as_days:
-		xT = np.transpose(x)
-	for iE in np.arange(0,nE):
-		y0 = MT[:,iE]
-		y = y0[~np.isnan(y0)]
-		if x_as_days:
-			x0 = xT[:,iE]
-			x = x0[~np.isnan(y0)]
-		else:
-			x = E['daterange']
+	for iE,nn in enumerate(names):
+		y = MM[nn]
+		x = X[nn]
+	
 		try:
 			cs = plt.plot(x,y,color=colors[iE],linewidth=2,linestyle=linestyles[iE],marker=markers[iE])
 		except ValueError:
@@ -924,7 +905,7 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		plt.gca().xaxis.set_major_formatter(fmt)
 
 	# prepare output  
-	DD['data']=MT
+	DD['data']=MM
 	DD['x']=x
 
 	return DD
