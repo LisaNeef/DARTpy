@@ -760,7 +760,7 @@ def plot_state_space_ensemble(E=None,color_ensemble='#777777',color_mean=None,la
 
 	return Mout
 
-def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_legend=True,colors=None,linestyles=None,markers=None,linewidth=1.0,alpha=1.0,x_as_days=False,hostname='taurus',debug=False):
+def plot_diagnostic_global_ave(E,Ediff=None,label_for_legend=True,color="#000000",linestyle='-',marker=None,linewidth=1.0,alpha=1.0,x_as_days=False,hostname='taurus',debug=False):
 
 	"""
 	plot a given state-space diagnostic for a given variable field,
@@ -769,18 +769,17 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	called Ediff  
 
 	INPUTS:
-	EE: a list of experiment dictionaries to loop over an plot
-	EEdiff: a list of experiments to subtract from the experiments in EE
-	ylim: y-limits of the figure
-	xlim: x-limits of the figure - note that this is tricky if we use dates instead of numbers 
-	include_legend: set to False to get rid of the legennd (default is True)
-	colors: input a list of hex codes that give the colors of the experiments to plot 
-		the default is "None" -- in this case, choose Colorbrewer qualitative colormap "Dark2"
-	linestyles: input a list of linestyle strings that give the styles for each line plotted. 
-		the default is "None" - in this case, all lines are plotted as plain lines  
-	markers: input a list of marker strings that give the markers for each line plotted. 
-		the default is "None" - in this case, all lines are plotted as plain lines  
+	E: experiment dictionary denoting what to plot 
+	Ediff: experiment dictionary denoting the experiment or variable to subtract (default is None) 
+	colors: a hex code that gives the color of the curve to be drawn. 
+		When plotting multiple copies, this can be a list of colors. 
+		Defauly is black. 
+	linestyle: string giving the line style to be plotted - default is  plain  line 
+	marker: string that gives the marker for th e line ploted - default is None 
 	x_as_days: set to True to plot a count of days on the x-axis rather than dates
+	label_for_legend: if this is set to true, the profile being plotted is assigned whatever is given in E['title']
+		to appear when you do plt.legend(). The default is True; set this to False to ignore certain profiles 
+		(e.g. individual ensemble members) in the legend. 
 
 	"""
 
@@ -788,122 +787,85 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 	MM=dict()
 	X=dict()
 
-	# loop over experiment dictionaries and load the timeseries of the desired diagnostic
-	names = []
-	for iE,E in enumerate(EE):
+	# calculate the number of days from start, if requested  
+	# to do: convert list to array, or change the plotting part of this routine 
+	if x_as_days:
+		x = [dd -E['daterange'][0] for dd in E['daterange']]
+	else:
+		x = E['daterange']
 
-		# store the name of this experiment
-		names.append(E['title'])
+	# load the data over the desired latitude and longitude range  
+	DD = DART_diagn_to_array(E,hostname=hostname,debug=debug)
 
-		# calculate the number of days from start, if requested  
-		# to do: convert list to array, or change the plotting part of this routine 
-		if x_as_days:
-			days = [dd -E['daterange'][0] for dd in E['daterange']]
-			X[E['title']]=days
+	# load the difference array if desired  
+	if Ediff is not None:
+		DDdiff = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
+		Vmatrix = DD['data']-DDdiff['data']
+	else:
+		Vmatrix = DD['data']
+
+	# compute global average only if the file was found
+	if Vmatrix is not None:
+
+		if 'lat' not in DD: 
+			DD['lat']=None
+		if 'lon' not in DD: 
+			DD['lon']=None
+		if 'lev' not in DD: 
+			DD['lev']=None
+
+		# average over latitude, longitude, and vertical level 
+		if DD['lat'] is not None:
+			Vlat = average_over_named_dimension(Vmatrix,DD['lat'])
+		else:	
+			Vlat=Vmatrix
+		if DD['lon'] is not None:
+			Vlatlon = average_over_named_dimension(Vlat,DD['lon'])
 		else:
-			X[E['title']]=E['daterange']
-
-		# load the data over the desired latitude and longitude range  
-		DD = DART_diagn_to_array(E,hostname=hostname,debug=debug)
-
-		# load the difference array if desired  
-		if EEdiff is not None:
-			Ediff = EEdiff[iE]
-			DDdiff = DART_diagn_to_array(Ediff,hostname=hostname,debug=debug)
-			Vmatrix = DD['data']-DDdiff['data']
+			Vlatlon=Vlat
+		if DD['lev'] is not None:
+			Vlatlonlev = average_over_named_dimension(Vlatlon,DD['lev'])
 		else:
-			Vmatrix = DD['data']
+			Vlatlonlev=Vlatlon
 
-		# compute global average only if the file was found
-		if Vmatrix is not None:
+		# squeeze out any remaining length-1 dimensions  
+		M = np.squeeze(Vlatlonlev)
 
-			if 'lat' not in DD: 
-				DD['lat']=None
-			if 'lon' not in DD: 
-				DD['lon']=None
-			if 'lev' not in DD: 
-				DD['lev']=None
-
-			# average over latitude, longitude, and vertical level 
-			if DD['lat'] is not None:
-				Vlat = average_over_named_dimension(Vmatrix,DD['lat'])
-			else:	
-				Vlat=Vmatrix
-			if DD['lon'] is not None:
-				Vlatlon = average_over_named_dimension(Vlat,DD['lon'])
-			else:
-				Vlatlon=Vlat
-			if DD['lev'] is not None:
-				Vlatlonlev = average_over_named_dimension(Vlatlon,DD['lev'])
-			else:
-				Vlatlonlev=Vlatlon
-
-			# squeeze out any remaining length-1 dimensions  
-			M = np.squeeze(Vlatlonlev)
-
-		else:
-			# if no file was found, just make the global average a NAN
-			M = np.NAN
-
-		# append the resulting vector to the larger array (or initialize it)
-		MM[E['title']] = M
-
+	else:
+		# if no file was found, just make the global average a NAN
+		M = np.NAN
 
 	#------plotting----------
 
-	# change the default color cycle to colorbrewer Dark2, or use what is supplied
-	if colors is None:
-		cc = nice_colormaps('qualitative')
-		colors=cc.mpl_colors
-
-	# set all line styles to a plain line if not previous specified  
-	nE = len(EE)
-	if linestyles == None:
-		linestyles = ['-']*nE
-
-	# set all markers to None unless previously specified  
-	if markers is None:
-		markers = [None]*nE
-
-        # plot global diagnostic in in time
-	for iE,nn in enumerate(names):
-		y = MM[nn]
-		x = X[nn]
-	
-		if E['copystring']=='ensemble' or E['copystring']=='ensemble sample':
-			nEns = y.shape[0]
-			for iens in range(nEns):
-				try:
-					cs = plt.plot(x,y[iens,:],color=colors[iE],linewidth=linewidth,alpha=alpha,linestyle=linestyles[iE],marker=markers[iE])
-				except ValueError:
-					print("There's a problem plotting the time and global average array. Here are their shapes:")
-					print(len(x))
-					print(y.shape)
+	y = M
+	if E['copystring']=='ensemble' or E['copystring']=='ensemble sample':
+		nC = y.shape[0]
+		if type(color) is 'list':
+			color2 = color[iC]
 		else:
+			color2=color 
+		for iC in range(nC):
 			try:
-				cs = plt.plot(x,y,color=colors[iE],linewidth=linewidth,alpha=alpha,linestyle=linestyles[iE],marker=markers[iE])
+				plt.plot(x,y[iC,:],color=color2,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha,marker=marker)
 			except ValueError:
 				print("There's a problem plotting the time and global average array. Here are their shapes:")
 				print(len(x))
 				print(y.shape)
-
-	# include legend if desire
-	if include_legend:
-		lg = plt.legend(names,loc='best')
-		lg.draw_frame(False)
-
-	plt.xlabel('Time (Days)')
-	if ylim is not None:
-		plt.ylim(ylim)
 	else:
-		ylim= plt.gca().get_ylim()
-	if xlim is not None:
-		plt.xlim(xlim)
+		try:
+			plt.plot(x,y,color=color,linestyle=linestyle,linewidth=linewidth,label=E['title'],alpha=alpha,marker=marker)
+		except ValueError:
+			print("There's a problem plotting the time and global average array. Here are their shapes:")
+			print(len(x))
+			print(y.shape)
+
 
 	# format the y-axis labels to be exponential if the limits are quite high
+	ylim= plt.gca().get_ylim()
 	if (np.max(ylim) > 1000):
 		ax = plt.gca()
 		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
+	plt.ylabel(DD['long_name']+' ('+DD['units']+')')
 
 	if not x_as_days:
 		# format the x-axis labels to be dates
@@ -915,9 +877,8 @@ def plot_diagnostic_global_ave(EE=[],EEdiff=None,ylim=None,xlim=None,include_leg
 		plt.gca().xaxis.set_major_formatter(fmt)
 
 	# prepare output  
-	for nn in names:
-		DD['data_'+nn]=MM[nn]
-		DD['x_'+nn]=X[nn]
+	DD['data']=M
+	DD['x']=x
 
 	return DD
 
