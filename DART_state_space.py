@@ -30,6 +30,43 @@ var1d = ['hyam','hybm','hyai','hybi']
 # constants
 H = 7.0    # 7.0km scale height 
 
+
+def retrieve_diagn_and_process(E,Ediff=None,averaging_dimensions=['lat']):
+
+        """
+        This subroutine retrieves some DART diagnostic defined in experiment 
+        dictionary E, using the routine DART_diagn_to_array. 
+        Then it does the following: 
+        + retrieve and add all the quantities listed in E['variable']
+        + do the same for whatever experiment is given in Ediff and then subtract that array  
+        + average over the dimensions listed in averaging_dimensions  
+
+        It returns the resulting array in a dictionary under the entry 'data'.
+        """
+
+
+        #----retrieve the main experiment  
+
+        # check if the desired variable is a sum
+        if ('+' in E['variable']):
+                variable_list = E['variable'].split('+')
+        else:
+                variable_list=[E['variable']]
+
+        # loop over the variables to add and load them all 
+        data_list = []
+        for variable in variable_list:
+                Etemp=E.copy()
+                Etemp['variable']=variable
+
+                # load the requested array, and the difference array if needed 
+                D0 = DART_diagn_to_array(Etemp,hostname=hostname,debug=debug)
+				data_list.append(D0['data'])
+
+		# sum over the  variables retrieved 
+		if ('+' in E['variable']):
+			D0['data'] = sum(V for V in data_list)
+
 def plot_diagnostic_globe(E,Ediff=None,projection='miller',clim=None,cbar='vertical',log_levels=None,ncolors=19,hostname='taurus',debug=False,colorbar_label=None,reverse_colors=False,stat_sig=None):
 
 	"""
